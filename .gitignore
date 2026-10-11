@@ -3,6 +3,7 @@ dist/
 coverage/
 .vite/
 .playwright-cli/
+output/playwright/
 .DS_Store
 Thumbs.db
 .env

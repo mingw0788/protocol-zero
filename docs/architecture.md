@@ -6,7 +6,7 @@
 | 项目 | Protocol Zero / 零号协议：失控之城 |
 | 版本 | 1.0 |
 | 依赖 | `docs/requirements.md` PZ-SRS-001 |
-| 状态 | T000–T004 已完成；循环/时钟/状态机、地图/摄像机、玩家移动与输入已实现 |
+| 状态 | T000–T005 已完成；循环/时钟/状态机、地图/摄像机、玩家移动与输入、主菜单与基础 HUD 已实现 |
 
 ## 1. 架构目标与选型
 
@@ -159,7 +159,7 @@ protocol-zero/
 └── package.json
 ```
 
-**注意：** 上面是按任务逐步建立的目标目录；当前已建立 T001 工程骨架、T002 `src/core/`、T003 `src/config/` 和 `src/rendering/`、T004 `src/entities/`、`src/input/` 与 `src/systems/` 中的实际模块。其余模块在对应任务中按需创建，不要求提前建立空文件。
+**注意：** 上面是按任务逐步建立的目标目录；当前已建立 T001 工程骨架、T002 `src/core/`、T003 `src/config/` 和 `src/rendering/`、T004 `src/entities/`、`src/input/` 与 `src/systems/`、T005 `src/ui/UIManager.js` 中的实际模块。其余模块在对应任务中按需创建，不要求提前建立空文件。
 
 ## 4. 状态机与游戏生命周期
 
@@ -170,6 +170,7 @@ BOOT --> MENU --> PLAYING --> LEVEL_UP --> PLAYING
                  PAUSED
                    |
                    +---- 继续 --> PLAYING
+                   +---- 确认返回并清理本局 --> MENU
 PLAYING --> VICTORY
 PLAYING --> DEFEAT
 VICTORY/DEFEAT --> MENU or NEW PLAYING
@@ -185,7 +186,7 @@ VICTORY/DEFEAT --> MENU or NEW PLAYING
 | VICTORY | 否 | 否 | 结算、重来、返回 |
 | DEFEAT | 否 | 否 | 结算、重来、返回 |
 
-T002 按任务范围先实现 `MENU`、`PLAYING`、`PAUSED` 三态；`LEVEL_UP`、`VICTORY`、`DEFEAT` 将由对应升级与结算任务接入。
+T002 按任务范围先实现 `MENU`、`PLAYING`、`PAUSED` 三态；T005 加入 PAUSED → MENU，首次加载保持 MENU，开始新局和确认返回均先清理本局。取消返回确认保持 PAUSED；Esc 只切换 PLAYING/PAUSED，并忽略重复 keydown。`LEVEL_UP`、`VICTORY`、`DEFEAT` 将由对应升级与结算任务接入。
 
 约束：状态迁移应由单一管理器协调，不允许多个系统各自把游戏标记“结束”。死亡检查与胜利检查采用固定优先级：**死亡优先**。
 
@@ -227,6 +228,8 @@ weaponStates, upgradeLevels, alive
 ```
 
 由 PlayerSystem 管理运动，DamageSystem 负责受伤与生命钳制，ExperienceSystem 负责经验。
+
+T005 已建立 `hp/maxHp`、`level`、`exp` 和独立的 `weaponStates` 运行数据，初值为 100/100、1、0 和 `pulse-gun`。`Player.reset()` 恢复这些属性及位置；伤害、经验和武器行为仍由后续对应系统实现。
 
 ### 6.2 Enemy / Boss
 
@@ -321,6 +324,18 @@ id, x, y, expValue, pickupRadius, active
 
 UI 不直接绕过升级系统修改玩家属性。菜单与 HUD 显示采用游戏状态快照或只读访问接口。
 
+### 11.1 T005 已实现的菜单与 HUD 合约
+
+- `GameWorld.getHudSnapshot()` 汇总真实 Player、GameClock 和本局击杀数，返回 `{ health: { current, max }, experience, level, weaponIds, killCount, elapsedSeconds }`。快照、生命对象、武器 ID 数组均新建并冻结，不泄露实体引用。
+- `GameWorld.recordKill()` 提供本局击杀累加入口；T008 负责在真实死亡结算时只调用一次。`GameWorld.reset()` 清理时钟、玩家、输入、击杀和模拟步数。
+- `Game` 通过 `getHudSnapshot()` 提供读取，使用受状态约束的 `startGame/togglePause/returnToMenu` 接受界面操作。重复开始不能重置活动局。
+- `UIManager` 管理 DOM 菜单、帮助、基础 HUD、暂停和原生返回确认对话框。开始/停止负责订阅及事件绑定/解除，不直接修改世界或玩家。
+- `Game.attachUIManager()` 在应用启动前连接展示端口。每帧 Canvas 绘制后传入最新快照；状态迁移时同步切换界面和焦点。仅展示值变化时写入 DOM。
+- HUD 只在 PLAYING 显示；经验暂为数值，不提前定义 T010 的升级阈值。主菜单和暂停时不推进有效时间。
+- `Game.soundEnabled` 默认开启，`toggleSound()` 更新本次页面运行期偏好，返回菜单保留偏好；T005 不创建音频上下文或写入存储。T018 接入音效，T019 接入持久化。
+
+### 11.2 后续音效与本地存储
+
 音效：用户交互后再启动音频上下文；资源缺失则静音降级，不阻断游戏。
 
 本地储存建议带数据版本字段，仅保存最高击杀、最佳通关时间和音量偏好，不保存战局中途状态。读取失败使用安全默认值。
@@ -358,4 +373,4 @@ T021 必须运行构建并在部署后的静态页面上验证，不可只在 Vi
 - 系统之间保持单向依赖、避免循环导入。
 - 测试缺失必须明确写“未验证”。
 - 每个任务修改仅对应既定需求；需求变更先更新文档和记录。
-- 当前实现状态以 `docs/task-status.md` 为准。T002 只交付循环、时钟和 MENU/PLAYING/PAUSED 状态基础；玩家、地图、战斗、UI 等功能仍按开发计划逐项实现。
+- 当前实现状态以 `docs/task-status.md` 为准。T005 已交付菜单、基础 HUD 和暂停/返回操作；敌人、战斗、成长、结算、音效与存储仍按开发计划逐项实现。

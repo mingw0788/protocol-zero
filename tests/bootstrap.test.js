@@ -16,4 +16,17 @@ describe('starter browser shell', () => {
     expect(html).toMatch(/<link\b[^>]*rel="icon"[^>]*href="data:,"/);
     expect(existsSync(mainEntryPath)).toBe(true);
   });
+
+  it('provides the UI mount and screen controls used by the presentation layer', () => {
+    const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    for (const id of [
+      'game-ui', 'main-menu-panel', 'help-panel', 'game-hud', 'pause-panel',
+      'start-game-button', 'show-help-button', 'hide-help-button', 'sound-toggle-button',
+      'resume-game-button', 'return-menu-button', 'return-menu-dialog',
+      'cancel-return-button', 'confirm-return-button',
+    ]) {
+      expect(html).toContain('id="' + id + '"');
+    }
+    expect(html).toMatch(/<dialog\b[^>]*id="return-menu-dialog"/);
+  });
 });

@@ -1,11 +1,13 @@
 # 零号协议：失控之城 | Protocol Zero
 
-> **项目阶段：T004 玩家移动完成；敌人与战斗玩法尚未实现。**
+> **项目阶段：T005 主菜单与基础 HUD 完成；敌人与战斗玩法尚未实现。**
 > **目标：** 使用 HTML5、CSS3、JavaScript、Canvas 2D 与 Vite，制作可在 Windows Chrome / Edge 浏览器运行的原创赛博朋克像素风 2D Roguelite 割草生存游戏。
 
 ## 本地运行
 
-需要 Node.js `^22.12.0 || ^24.0.0 || >=26.0.0` 和 npm 11.13.0。页面直接进入可操作场景；可用 WASD 或方向键移动 ZERO。主菜单和 HUD 将在 T005 加入。
+需要 Node.js `^22.12.0 || ^24.0.0 || >=26.0.0` 和 npm 11.13.0。页面先显示标题主菜单，点击“开始游戏”进入场景；使用 WASD 或方向键移动 ZERO，Esc 暂停/继续。暂停后返回主菜单需要确认，并清理本局进度。
+
+HUD 从真实状态读取生命、经验、等级、有效存活时间、击杀和装备。当前战斗系统尚未实现，除时间外显示初始状态。音效开关目前只保存本次页面运行期偏好；音频播放和偏好持久化分别在 T018、T019 接入。
 
 ```sh
 npm ci
@@ -35,10 +37,12 @@ Codex 应打开整个 `protocol-zero` 文件夹，以便读取根目录的 `AGEN
 | `docs/task-status.md` | 任务完成情况、里程碑检查表、变更记录入口 |
 | `docs/decisions.md` | 关键设计决策和待确认事项 |
 | `docs/review-report-T000.md` | T000 需求、架构、任务依赖审查及 T001 准备清单 |
+| `docs/task-report-T005.md` | T005 实现、自动化与浏览器证据、审查及交付限制 |
 | `src/`、`tests/` | 应用入口、页面样式和工程烟雾测试 |
 | `src/core/` | Game、固定步长循环、有效游戏时钟、三态状态机和最小战局容器 |
 | `src/config/`、`src/rendering/` | 地图和逻辑视口配置、Canvas DPR 适配、摄像机与网格地图绘制 |
 | `src/entities/`、`src/input/`、`src/systems/` | ZERO 玩家实体、键盘输入和固定步长玩家更新 |
+| `src/ui/` | DOM 主菜单、帮助、HUD、暂停与返回确认；只读取状态快照 |
 
 ## V1 目标
 
@@ -58,4 +62,4 @@ Codex 应打开整个 `protocol-zero` 文件夹，以便读取根目录的 `AGEN
 
 `Implementation → Tests → Review → Fix → Git Commit → Next Task`。
 
-**注意：** T004 已交付基础移动原型；攻击、敌人、菜单、HUD 等功能仍按开发计划逐项实施和验证。
+**注意：** T005 已交付带菜单、暂停与 HUD 的移动原型；敌人、攻击、经验成长等功能仍按开发计划逐项实施和验证。

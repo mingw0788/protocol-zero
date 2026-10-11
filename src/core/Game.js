@@ -9,6 +9,9 @@ import { MapRenderer } from '../rendering/MapRenderer.js';
 import { PlayerRenderer } from '../rendering/PlayerRenderer.js';
 
 export class Game {
+  #uiManager = null;
+  #soundEnabled = true;
+
   constructor({ canvas = null, loopOptions = {}, inputOptions = {} } = {}) {
     this.stateManager = new GameStateManager();
     this.clock = new GameClock();
@@ -32,14 +35,35 @@ export class Game {
       ...loopOptions,
       stateManager: this.stateManager,
       world: this.world,
-      render: () => this.renderer?.render(this.world.player),
+      render: () => {
+        this.renderer?.render(this.world.player);
+        this.#uiManager?.renderSnapshot(this.getHudSnapshot(), this.stateManager.currentState);
+      },
     });
   }
 
   start() {
     this.inputController.start();
     this.renderer?.start();
+    this.#uiManager?.start();
     this.loop.start();
+  }
+
+  attachUIManager(manager) {
+    if (!manager || !['start', 'stop', 'renderSnapshot'].every((method) => typeof manager[method] === 'function')) {
+      throw new TypeError('UI manager must provide start, stop, and renderSnapshot methods');
+    }
+    if (this.#uiManager && this.#uiManager !== manager) throw new Error('A UI manager is already attached');
+    this.#uiManager = manager;
+  }
+
+  get soundEnabled() {
+    return this.#soundEnabled;
+  }
+
+  toggleSound() {
+    this.#soundEnabled = !this.#soundEnabled;
+    return this.#soundEnabled;
   }
 
   startGame() {
@@ -76,5 +100,6 @@ export class Game {
     this.loop.stop();
     this.inputController.stop();
     this.renderer?.stop();
+    this.#uiManager?.stop();
   }
 }

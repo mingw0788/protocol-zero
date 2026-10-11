@@ -8,8 +8,66 @@
     <title>零号协议：失控之城 | Protocol Zero</title>
   </head>
   <body>
-    <main id="app" aria-label="零号协议游戏画布">
+    <main id="app" aria-label="零号协议：失控之城">
       <canvas id="game-canvas" width="1280" height="720" aria-label="游戏画布"></canvas>
+      <div id="game-ui" tabindex="-1" aria-label="游戏界面">
+        <section id="main-menu-panel" class="ui-panel" aria-labelledby="game-title">
+          <div class="ui-card menu-card">
+            <p class="eyebrow">PROTOCOL ZERO / 2149</p>
+            <h1 id="game-title">零号协议<span>失控之城</span></h1>
+            <p class="menu-description">自主战斗单元 ZERO<br />废弃科技实验室 · 接入就绪</p>
+            <div class="button-stack">
+              <button id="start-game-button" class="button-primary" type="button">开始游戏</button>
+              <button id="show-help-button" type="button">操作说明</button>
+              <button id="sound-toggle-button" type="button" aria-pressed="true">音效：开启</button>
+            </div>
+          </div>
+        </section>
+        <section id="help-panel" class="ui-panel" aria-labelledby="help-title" hidden>
+          <div class="ui-card">
+            <p class="eyebrow">ZERO / CONTROL</p>
+            <h2 id="help-title">操作说明</h2>
+            <dl class="control-list">
+              <div><dt>WASD / 方向键</dt><dd>移动 ZERO，组合按键可斜向移动。</dd></div>
+              <div><dt>Esc</dt><dd>暂停或继续游戏。</dd></div>
+              <div><dt>窗口失焦</dt><dd>自动暂停，回到游戏后手动继续。</dd></div>
+            </dl>
+            <button id="hide-help-button" class="button-primary" type="button">返回主菜单</button>
+          </div>
+        </section>
+        <aside id="game-hud" class="game-hud" aria-label="战斗状态" hidden>
+          <div class="hud-item hud-health">
+            <span class="hud-label">生命</span>
+            <strong id="hud-health-value"></strong>
+            <progress id="hud-health-bar" aria-label="生命值" max="100" value="100"></progress>
+          </div>
+          <div class="hud-item"><span class="hud-label">经验</span><strong id="hud-experience"></strong></div>
+          <div class="hud-item"><span class="hud-label">等级</span><strong id="hud-level"></strong></div>
+          <div class="hud-item"><span class="hud-label">存活时间</span><time id="hud-time"></time></div>
+          <div class="hud-item"><span class="hud-label">击杀</span><strong id="hud-kills"></strong></div>
+          <div class="hud-item"><span class="hud-label">武器</span><strong id="hud-weapons"></strong></div>
+        </aside>
+        <section id="pause-panel" class="ui-panel" aria-labelledby="pause-title" hidden>
+          <div class="ui-card">
+            <p class="eyebrow">ZERO / STANDBY</p>
+            <h2 id="pause-title">战斗已暂停</h2>
+            <p class="panel-description">准备好后，继续行动。</p>
+            <div class="button-stack">
+              <button id="resume-game-button" class="button-primary" type="button">继续游戏</button>
+              <button id="return-menu-button" type="button">返回主菜单</button>
+            </div>
+          </div>
+        </section>
+        <dialog id="return-menu-dialog" class="confirm-dialog" aria-labelledby="return-menu-title" aria-describedby="return-menu-description">
+          <p class="eyebrow">ZERO / DISCONNECT</p>
+          <h2 id="return-menu-title">返回主菜单？</h2>
+          <p id="return-menu-description" class="panel-description">本局进度将被清除。</p>
+          <div class="dialog-actions">
+            <button id="cancel-return-button" type="button" autofocus>取消</button>
+            <button id="confirm-return-button" class="button-primary" type="button">确认返回</button>
+          </div>
+        </dialog>
+      </div>
     </main>
     <script type="module" src="/src/main.js"></script>
   </body>
