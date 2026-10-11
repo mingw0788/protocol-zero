@@ -1,0 +1,63 @@
+export const GAME_STATES = Object.freeze({
+  MENU: 'MENU',
+  PLAYING: 'PLAYING',
+  PAUSED: 'PAUSED',
+});
+
+const ALLOWED_TRANSITIONS = Object.freeze({
+  [GAME_STATES.MENU]: new Set([GAME_STATES.PLAYING]),
+  [GAME_STATES.PLAYING]: new Set([GAME_STATES.PAUSED]),
+  [GAME_STATES.PAUSED]: new Set([GAME_STATES.PLAYING]),
+});
+
+export class GameStateManager {
+  #currentState;
+  #listeners = new Set();
+
+  constructor(initialState = GAME_STATES.MENU) {
+    if (!Object.hasOwn(ALLOWED_TRANSITIONS, initialState)) {
+      throw new RangeError(`Unsupported game state: ${initialState}`);
+    }
+
+    this.#currentState = initialState;
+  }
+
+  get currentState() {
+    return this.#currentState;
+  }
+
+  isPlaying() {
+    return this.#currentState === GAME_STATES.PLAYING;
+  }
+
+  startGame() {
+    return this.transitionTo(GAME_STATES.PLAYING);
+  }
+
+  pause() {
+    return this.transitionTo(GAME_STATES.PAUSED);
+  }
+
+  resume() {
+    return this.transitionTo(GAME_STATES.PLAYING);
+  }
+
+  transitionTo(nextState) {
+    if (!Object.hasOwn(ALLOWED_TRANSITIONS, nextState)) return false;
+    if (!ALLOWED_TRANSITIONS[this.#currentState].has(nextState)) return false;
+
+    const previousState = this.#currentState;
+    this.#currentState = nextState;
+    for (const listener of this.#listeners) listener(nextState, previousState);
+    return true;
+  }
+
+  subscribe(listener) {
+    if (typeof listener !== 'function') {
+      throw new TypeError('State change listener must be a function');
+    }
+
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
+  }
+}
