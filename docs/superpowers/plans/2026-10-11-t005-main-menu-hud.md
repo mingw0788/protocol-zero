@@ -220,7 +220,7 @@ Expected: Vite 生产构建成功，无缺失入口、语法错误或资源错�
 
 将 `docs/architecture.md` 状态更新为 T000–T005，并记录只读 HUD 快照和 UIManager 职责/接线。将 `docs/task-status.md` 中 T005 标为完成，仅在自动化与浏览器结果有真实证据时填写，并增加日期、测试摘要和提交记录。将本次已批准的 T005 菜单/运行期声音偏好设计记入 `docs/decisions.md` 的 T005 记录，不改写已确认玩法。
 
-- [ ] **Step 6: 复核差异并提交 T005**
+- [x] **Step 6: 复核差异并提交 T005**
 
 Run:
 
