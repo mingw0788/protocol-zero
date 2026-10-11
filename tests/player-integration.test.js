@@ -3,6 +3,7 @@ import { GameLoop } from '../src/core/GameLoop.js';
 import { GameStateManager } from '../src/core/GameStateManager.js';
 import { GameWorld } from '../src/core/GameWorld.js';
 import { InputController } from '../src/input/InputController.js';
+import { Camera } from '../src/rendering/Camera.js';
 
 function createEventTarget(properties = {}) {
   const listeners = new Map();
@@ -49,7 +50,7 @@ function runRightwardForOneSecondAt(framesPerSecond) {
   const windowTarget = createEventTarget();
   const documentTarget = createEventTarget({ hidden: false });
   const inputController = new InputController({ stateManager, windowTarget, documentTarget });
-  const world = new GameWorld({ stateManager, inputController });
+  const world = new GameWorld({ stateManager, inputController, camera: new Camera() });
   const animationFrame = createAnimationFrameHarness();
   const loop = new GameLoop({
     stateManager,
@@ -80,7 +81,7 @@ describe('player movement in the game loop', () => {
     const windowTarget = createEventTarget();
     const documentTarget = createEventTarget({ hidden: false });
     const inputController = new InputController({ stateManager, windowTarget, documentTarget });
-    const world = new GameWorld({ stateManager, inputController });
+    const world = new GameWorld({ stateManager, inputController, camera: new Camera() });
     inputController.start();
     stateManager.startGame();
 

@@ -7,6 +7,7 @@ import { Camera } from '../rendering/Camera.js';
 import { CanvasRenderer } from '../rendering/CanvasRenderer.js';
 import { MapRenderer } from '../rendering/MapRenderer.js';
 import { PlayerRenderer } from '../rendering/PlayerRenderer.js';
+import { EnemyRenderer } from '../rendering/EnemyRenderer.js';
 
 export class Game {
   #uiManager = null;
@@ -16,18 +17,20 @@ export class Game {
     this.stateManager = new GameStateManager();
     this.clock = new GameClock();
     this.inputController = new InputController({ ...inputOptions, stateManager: this.stateManager });
+    this.camera = new Camera();
     this.world = new GameWorld({
       stateManager: this.stateManager,
       clock: this.clock,
+      camera: this.camera,
       inputController: this.inputController,
     });
-    this.camera = new Camera();
     this.camera.follow(this.world.player);
     this.renderer = canvas
       ? new CanvasRenderer({
         canvas,
         camera: this.camera,
         mapRenderer: new MapRenderer(),
+        enemyRenderer: new EnemyRenderer(),
         playerRenderer: new PlayerRenderer(),
       })
       : null;
@@ -36,7 +39,7 @@ export class Game {
       stateManager: this.stateManager,
       world: this.world,
       render: () => {
-        this.renderer?.render(this.world.player);
+        this.renderer?.render(this.world.player, this.world.enemies);
         this.#uiManager?.renderSnapshot(this.getHudSnapshot(), this.stateManager.currentState);
       },
     });

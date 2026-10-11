@@ -3,6 +3,7 @@ import { GameClock } from '../src/core/GameClock.js';
 import { GameLoop } from '../src/core/GameLoop.js';
 import { GameStateManager, GAME_STATES } from '../src/core/GameStateManager.js';
 import { GameWorld } from '../src/core/GameWorld.js';
+import { Camera } from '../src/rendering/Camera.js';
 
 function createAnimationFrameHarness() {
   let nextHandle = 0;
@@ -87,7 +88,7 @@ describe('GameWorld and GameClock', () => {
   it('advances effective time and simulation steps only while playing', () => {
     const stateManager = new GameStateManager();
     const clock = new GameClock();
-    const world = new GameWorld({ stateManager, clock });
+    const world = new GameWorld({ stateManager, clock, camera: new Camera() });
 
     world.update(1 / 60);
     expect(clock.elapsedSeconds).toBe(0);
@@ -116,7 +117,7 @@ describe('GameLoop', () => {
   it('keeps one second of simulation time consistent at different render rates', () => {
     const runAtFrameRate = (framesPerSecond) => {
       const stateManager = new GameStateManager();
-      const world = new GameWorld({ stateManager });
+      const world = new GameWorld({ stateManager, camera: new Camera() });
       const animationFrame = createAnimationFrameHarness();
       const loop = createLoop({ stateManager, world, animationFrame });
 
@@ -138,7 +139,7 @@ describe('GameLoop', () => {
 
   it('limits catch-up to five steps and keeps only the fractional remainder', () => {
     const stateManager = new GameStateManager();
-    const world = new GameWorld({ stateManager });
+    const world = new GameWorld({ stateManager, camera: new Camera() });
     const animationFrame = createAnimationFrameHarness();
     const loop = createLoop({ stateManager, world, animationFrame });
 
@@ -155,7 +156,7 @@ describe('GameLoop', () => {
 
   it('pauses on focus loss and requires manual resume without background catch-up', () => {
     const stateManager = new GameStateManager();
-    const world = new GameWorld({ stateManager });
+    const world = new GameWorld({ stateManager, camera: new Camera() });
     const animationFrame = createAnimationFrameHarness();
     const windowTarget = createEventTarget();
     const documentTarget = createEventTarget({ hidden: false });

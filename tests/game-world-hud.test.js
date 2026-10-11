@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { GameWorld } from '../src/core/GameWorld.js';
+import { Camera } from '../src/rendering/Camera.js';
+
+function createWorld(options = {}) {
+  const camera = new Camera();
+  const world = new GameWorld({ ...options, camera });
+  return world;
+}
 
 describe('GameWorld HUD snapshots', () => {
   it('reports the real initial run state', () => {
-    const world = new GameWorld();
+    const world = createWorld();
 
     expect(world.getHudSnapshot()).toEqual({
       health: { current: 100, max: 100 },
@@ -16,7 +23,7 @@ describe('GameWorld HUD snapshots', () => {
   });
 
   it('reads changed player, clock, equipment, and kill values from the model', () => {
-    const world = new GameWorld();
+    const world = createWorld();
     world.stateManager.startGame();
     world.update(1.5);
     world.player.hp = 70;
@@ -38,7 +45,7 @@ describe('GameWorld HUD snapshots', () => {
   });
 
   it('prevents presentation callers from changing current or later snapshots', () => {
-    const world = new GameWorld();
+    const world = createWorld();
     const snapshot = world.getHudSnapshot();
 
     expect(Object.isFrozen(snapshot)).toBe(true);
@@ -57,7 +64,7 @@ describe('GameWorld HUD snapshots', () => {
   });
 
   it('resets all existing run data together', () => {
-    const world = new GameWorld();
+    const world = createWorld();
     world.stateManager.startGame();
     world.update(2);
     world.player.update({ x: 1, y: 1 }, 1);
