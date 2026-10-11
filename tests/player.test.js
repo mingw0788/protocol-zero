@@ -50,4 +50,38 @@ describe('Player', () => {
     expect(player.x).toBe(1200);
     expect(player.y).toBe(675);
   });
+
+  it('owns the configured starting health, progression, and pulse gun state', () => {
+    const player = new Player();
+
+    expect(player.hp).toBe(100);
+    expect(player.maxHp).toBe(100);
+    expect(player.level).toBe(1);
+    expect(player.exp).toBe(0);
+    expect(player.weaponStates).toEqual([{ id: 'pulse-gun' }]);
+  });
+
+  it('restores run attributes without sharing equipment between players', () => {
+    const player = new Player();
+    const otherPlayer = new Player();
+    player.update({ x: 1, y: 0 }, 1);
+    player.hp = 12;
+    player.maxHp = 140;
+    player.level = 4;
+    player.exp = 8;
+    player.weaponStates = [{ id: 'orbital-blade' }];
+
+    player.reset();
+    player.weaponStates[0].id = 'changed-in-one-run';
+
+    expect(player.x).toBe(1200);
+    expect(player.y).toBe(675);
+    expect(player.hp).toBe(100);
+    expect(player.maxHp).toBe(100);
+    expect(player.level).toBe(1);
+    expect(player.exp).toBe(0);
+    expect(otherPlayer.weaponStates).toEqual([{ id: 'pulse-gun' }]);
+    player.reset();
+    expect(player.weaponStates).toEqual([{ id: 'pulse-gun' }]);
+  });
 });

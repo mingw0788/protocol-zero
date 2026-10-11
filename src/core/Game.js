@@ -1,6 +1,6 @@
 import { GameClock } from './GameClock.js';
 import { GameLoop } from './GameLoop.js';
-import { GameStateManager } from './GameStateManager.js';
+import { GameStateManager, GAME_STATES } from './GameStateManager.js';
 import { GameWorld } from './GameWorld.js';
 import { InputController } from '../input/InputController.js';
 import { Camera } from '../rendering/Camera.js';
@@ -43,7 +43,25 @@ export class Game {
   }
 
   startGame() {
+    if (this.stateManager.currentState !== GAME_STATES.MENU) return false;
+    this.world.reset();
     return this.stateManager.startGame();
+  }
+
+  getHudSnapshot() {
+    return this.world.getHudSnapshot();
+  }
+
+  togglePause() {
+    if (this.stateManager.currentState === GAME_STATES.PLAYING) return this.pause();
+    if (this.stateManager.currentState === GAME_STATES.PAUSED) return this.resume();
+    return false;
+  }
+
+  returnToMenu() {
+    if (this.stateManager.currentState !== GAME_STATES.PAUSED) return false;
+    this.world.reset();
+    return this.stateManager.returnToMenu();
   }
 
   pause() {

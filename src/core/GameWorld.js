@@ -5,6 +5,7 @@ import { PlayerSystem } from '../systems/PlayerSystem.js';
 
 export class GameWorld {
   #simulationSteps = 0;
+  #killCount = 0;
 
   constructor({
     stateManager = new GameStateManager(),
@@ -22,6 +23,26 @@ export class GameWorld {
     return this.#simulationSteps;
   }
 
+  get killCount() {
+    return this.#killCount;
+  }
+
+  recordKill() {
+    this.#killCount += 1;
+    return this.#killCount;
+  }
+
+  getHudSnapshot() {
+    return Object.freeze({
+      health: Object.freeze({ current: this.player.hp, max: this.player.maxHp }),
+      experience: this.player.exp,
+      level: this.player.level,
+      weaponIds: Object.freeze(this.player.weaponStates.map((weapon) => weapon.id)),
+      killCount: this.#killCount,
+      elapsedSeconds: this.clock.elapsedSeconds,
+    });
+  }
+
   update(deltaSeconds) {
     if (!this.stateManager.isPlaying()) return false;
 
@@ -35,5 +56,6 @@ export class GameWorld {
     this.clock.reset();
     this.playerSystem.reset();
     this.#simulationSteps = 0;
+    this.#killCount = 0;
   }
 }

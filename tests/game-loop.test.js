@@ -68,6 +68,19 @@ describe('GameStateManager', () => {
     expect(states.currentState).toBe(GAME_STATES.PLAYING);
     expect(states.resume()).toBe(false);
   });
+
+  it('returns to the menu only from a paused run', () => {
+    const states = new GameStateManager();
+    expect(states.returnToMenu()).toBe(false);
+    states.startGame();
+    expect(states.returnToMenu()).toBe(false);
+    states.pause();
+    expect(states.startGame()).toBe(false);
+    expect(states.returnToMenu()).toBe(true);
+    expect(states.currentState).toBe(GAME_STATES.MENU);
+    expect(states.resume()).toBe(false);
+    expect(states.startGame()).toBe(true);
+  });
 });
 
 describe('GameWorld and GameClock', () => {

@@ -7,7 +7,7 @@ export const GAME_STATES = Object.freeze({
 const ALLOWED_TRANSITIONS = Object.freeze({
   [GAME_STATES.MENU]: new Set([GAME_STATES.PLAYING]),
   [GAME_STATES.PLAYING]: new Set([GAME_STATES.PAUSED]),
-  [GAME_STATES.PAUSED]: new Set([GAME_STATES.PLAYING]),
+  [GAME_STATES.PAUSED]: new Set([GAME_STATES.PLAYING, GAME_STATES.MENU]),
 });
 
 export class GameStateManager {
@@ -31,6 +31,7 @@ export class GameStateManager {
   }
 
   startGame() {
+    if (this.#currentState !== GAME_STATES.MENU) return false;
     return this.transitionTo(GAME_STATES.PLAYING);
   }
 
@@ -39,7 +40,12 @@ export class GameStateManager {
   }
 
   resume() {
+    if (this.#currentState !== GAME_STATES.PAUSED) return false;
     return this.transitionTo(GAME_STATES.PLAYING);
+  }
+
+  returnToMenu() {
+    return this.transitionTo(GAME_STATES.MENU);
   }
 
   transitionTo(nextState) {

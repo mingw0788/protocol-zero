@@ -37,6 +37,7 @@ export class Player {
     this.moveSpeed = moveSpeed;
     this.x = clamp(x, radius, worldWidth - radius);
     this.y = clamp(y, radius, worldHeight - radius);
+    this.#resetRunAttributes();
   }
 
   update(direction, deltaSeconds) {
@@ -58,5 +59,14 @@ export class Player {
   reset() {
     this.x = this.worldWidth / 2;
     this.y = this.worldHeight / 2;
+    this.#resetRunAttributes();
+  }
+
+  #resetRunAttributes() {
+    this.maxHp = PLAYER_CONFIG.maxHp;
+    this.hp = this.maxHp;
+    this.level = PLAYER_CONFIG.initialLevel;
+    this.exp = PLAYER_CONFIG.initialExp;
+    this.weaponStates = [{ id: PLAYER_CONFIG.startingWeaponId }];
   }
 }
