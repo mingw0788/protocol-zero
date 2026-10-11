@@ -1,11 +1,13 @@
 import { LOGICAL_VIEWPORT } from '../config/worldConfig.js';
 import { MapRenderer } from './MapRenderer.js';
+import { PlayerRenderer } from './PlayerRenderer.js';
 
 export class CanvasRenderer {
   #canvas;
   #context;
   #camera;
   #mapRenderer;
+  #playerRenderer;
   #windowTarget;
   #devicePixelRatio;
   #started = false;
@@ -18,6 +20,7 @@ export class CanvasRenderer {
     canvas,
     camera,
     mapRenderer = new MapRenderer(),
+    playerRenderer = new PlayerRenderer(),
     windowTarget = globalThis.window ?? null,
     devicePixelRatio = () => globalThis.devicePixelRatio || 1,
   } = {}) {
@@ -30,6 +33,9 @@ export class CanvasRenderer {
     if (!mapRenderer || typeof mapRenderer.render !== 'function') {
       throw new TypeError('CanvasRenderer requires a map renderer');
     }
+    if (!playerRenderer || typeof playerRenderer.render !== 'function') {
+      throw new TypeError('CanvasRenderer requires a player renderer');
+    }
     if (typeof devicePixelRatio !== 'function') {
       throw new TypeError('devicePixelRatio must be provided as a function');
     }
@@ -39,6 +45,7 @@ export class CanvasRenderer {
     if (!this.#context) throw new Error('Canvas 2D context is unavailable');
     this.#camera = camera;
     this.#mapRenderer = mapRenderer;
+    this.#playerRenderer = playerRenderer;
     this.#windowTarget = windowTarget;
     this.#devicePixelRatio = devicePixelRatio;
     this.resize();
@@ -78,7 +85,7 @@ export class CanvasRenderer {
     this.#lastDevicePixelRatio = ratio;
   }
 
-  render() {
+  render(player = null) {
     const ratio = this.#readDevicePixelRatio();
     if (ratio !== this.#lastDevicePixelRatio) this.resize();
 
@@ -88,6 +95,7 @@ export class CanvasRenderer {
     this.#context.imageSmoothingEnabled = false;
     this.#camera.update();
     this.#mapRenderer.render(this.#context, this.#camera);
+    if (player) this.#playerRenderer.render(this.#context, this.#camera, player);
   }
 
   #handleResize = () => {

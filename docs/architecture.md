@@ -6,7 +6,7 @@
 | 项目 | Protocol Zero / 零号协议：失控之城 |
 | 版本 | 1.0 |
 | 依赖 | `docs/requirements.md` PZ-SRS-001 |
-| 状态 | T000–T003 已完成；循环/时钟/状态机、地图、摄像机和 Canvas 尺寸适配已实现 |
+| 状态 | T000–T004 已完成；循环/时钟/状态机、地图/摄像机、玩家移动与输入已实现 |
 
 ## 1. 架构目标与选型
 
@@ -64,6 +64,8 @@ CanvasRenderer + Camera | HTML/CSS UI | AudioManager
 - `GameClock`：战局有效时间，与网页真实时间分离。
 - `GameStateManager`：管理 BOOT、MENU、PLAYING、LEVEL_UP、PAUSED、VICTORY、DEFEAT。
 - `GameWorld`：当前局实体集合、战局状态及一次性事件标记。
+- `InputController`：收集 WASD/方向键输入；失焦、隐藏标签页或离开 PLAYING 时清除按键状态。
+- `PlayerSystem`：在固定模拟步中读取移动向量并更新玩家实体。
 
 ### 2.3 战斗与成长系统
 
@@ -73,7 +75,7 @@ CanvasRenderer + Camera | HTML/CSS UI | AudioManager
 
 ### 2.4 表现与服务层
 
-- `CanvasRenderer` 按图层绘制地图 → 敌人 → 掉落物 → 子弹 → 玩家 → 特效。
+- `CanvasRenderer` 按图层绘制地图 → 敌人 → 掉落物 → 子弹 → 玩家 → 特效；T004 先绘制玩家占位方块。
 - `Camera` 世界/屏幕坐标转换、居中跟随、地图边界约束。
 - `UIManager` 管理主菜单、HUD、暂停、升级、结算 UI。
 - `AudioManager` 管理事件音效、背景音乐、静音与音量。
@@ -107,6 +109,8 @@ protocol-zero/
 │   │   ├── GameClock.js
 │   │   ├── GameStateManager.js
 │   │   └── GameWorld.js
+│   ├── input/
+│   │   └── InputController.js
 │   ├── entities/
 │   │   ├── Player.js
 │   │   ├── Enemy.js
@@ -129,6 +133,8 @@ protocol-zero/
 │   ├── rendering/
 │   │   ├── CanvasRenderer.js
 │   │   ├── Camera.js
+│   │   ├── MapRenderer.js
+│   │   ├── PlayerRenderer.js
 │   │   └── ParticleSystem.js
 │   ├── ui/
 │   │   ├── UIManager.js
@@ -139,6 +145,7 @@ protocol-zero/
 │   │   └── ResourceManager.js
 │   ├── config/
 │   │   ├── gameConfig.js
+│   │   ├── worldConfig.js
 │   │   ├── playerConfig.js
 │   │   ├── enemyConfig.js
 │   │   ├── weaponConfig.js
@@ -152,7 +159,7 @@ protocol-zero/
 └── package.json
 ```
 
-**注意：** 上面是按任务逐步建立的目标目录；当前已建立 T001 工程骨架、T002 `src/core/` 模块及 T003 `src/config/` 和 `src/rendering/` 模块，其余模块在对应任务中按需创建，不要求提前建立空文件。
+**注意：** 上面是按任务逐步建立的目标目录；当前已建立 T001 工程骨架、T002 `src/core/`、T003 `src/config/` 和 `src/rendering/`、T004 `src/entities/`、`src/input/` 与 `src/systems/` 中的实际模块。其余模块在对应任务中按需创建，不要求提前建立空文件。
 
 ## 4. 状态机与游戏生命周期
 

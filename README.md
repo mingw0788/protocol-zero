@@ -1,11 +1,11 @@
 # 零号协议：失控之城 | Protocol Zero
 
-> **项目阶段：T003 地图与摄像机完成；玩家和战斗玩法尚未实现。**
+> **项目阶段：T004 玩家移动完成；敌人与战斗玩法尚未实现。**
 > **目标：** 使用 HTML5、CSS3、JavaScript、Canvas 2D 与 Vite，制作可在 Windows Chrome / Edge 浏览器运行的原创赛博朋克像素风 2D Roguelite 割草生存游戏。
 
 ## 本地运行
 
-需要 Node.js `^22.12.0 || ^24.0.0 || >=26.0.0` 和 npm 11.13.0。页面显示有限网格地图；尚无玩家、菜单或战斗内容。
+需要 Node.js `^22.12.0 || ^24.0.0 || >=26.0.0` 和 npm 11.13.0。页面直接进入可操作场景；可用 WASD 或方向键移动 ZERO。主菜单和 HUD 将在 T005 加入。
 
 ```sh
 npm ci
@@ -38,6 +38,7 @@ Codex 应打开整个 `protocol-zero` 文件夹，以便读取根目录的 `AGEN
 | `src/`、`tests/` | 应用入口、页面样式和工程烟雾测试 |
 | `src/core/` | Game、固定步长循环、有效游戏时钟、三态状态机和最小战局容器 |
 | `src/config/`、`src/rendering/` | 地图和逻辑视口配置、Canvas DPR 适配、摄像机与网格地图绘制 |
+| `src/entities/`、`src/input/`、`src/systems/` | ZERO 玩家实体、键盘输入和固定步长玩家更新 |
 
 ## V1 目标
 
@@ -57,4 +58,4 @@ Codex 应打开整个 `protocol-zero` 文件夹，以便读取根目录的 `AGEN
 
 `Implementation → Tests → Review → Fix → Git Commit → Next Task`。
 
-**注意：** T003 只交付地图绘制与摄像机基础，不代表可玩功能已经实现。各功能仍需按开发计划逐项实施和验证。
+**注意：** T004 已交付基础移动原型；攻击、敌人、菜单、HUD 等功能仍按开发计划逐项实施和验证。
