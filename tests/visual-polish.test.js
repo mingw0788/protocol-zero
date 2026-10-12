@@ -20,5 +20,13 @@ describe('Visual polish contracts', () => {
     }
     expect(html).toContain('role="dialog"');
     expect(html).toContain('aria-modal="true"');
+    expect(html).toContain('id="sound-volume-slider" type="range"');
+    expect(html).toContain('aria-label="音效音量"');
+  });
+
+  it('keeps the volume setting and all main-menu actions compact at short heights', () => {
+    expect(css).toMatch(/\.sound-volume-control\s*\{/);
+    expect(css).toMatch(/@media\s*\(max-height:\s*480px\)[\s\S]*?\.menu-card button\s*\{[^}]*min-height:\s*36px/);
+    expect(css).toMatch(/@media\s*\(max-height:\s*480px\)[\s\S]*?\.menu-card h1\s*\{/);
   });
 });

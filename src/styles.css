@@ -586,6 +586,43 @@ h2 {
     margin: 12px 0;
   }
 
+  .menu-card {
+    padding: 12px;
+  }
+
+  .menu-card .eyebrow {
+    margin-bottom: 4px;
+  }
+
+  .menu-card h1 {
+    font-size: 28px;
+  }
+
+  .menu-card h1 span {
+    margin-top: 2px;
+  }
+
+  .menu-card .menu-description {
+    margin: 8px 0 10px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .menu-card .button-stack {
+    gap: 6px;
+  }
+
+  .menu-card button {
+    min-height: 36px;
+    padding: 6px 14px;
+  }
+
+  .sound-volume-control {
+    gap: 8px;
+    padding-top: 4px;
+    font-size: 12px;
+  }
+
   .result-stats {
     gap: 8px;
     margin: 10px 0;
