@@ -65,7 +65,18 @@ describe('WeaponSystem', () => {
     const projectiles = [];
 
     expect(update(system, player, [makeEnemy('edge', 740, 100)], projectiles, 1 / 60)).toBe(1);
-    expect(update(system, player, [makeEnemy('outside', 741, 100)], [], 1 / 60)).toBe(0);
+
+    const outsidePlayer = makePlayer(100, 100);
+    const outsideSystem = new WeaponSystem();
+    const outsideProjectiles = [];
+    expect(update(
+      outsideSystem,
+      outsidePlayer,
+      [makeEnemy('outside', 741, 100)],
+      outsideProjectiles,
+      1 / 60,
+    )).toBe(0);
+    expect(outsideProjectiles).toEqual([]);
   });
 
   it('fires immediately and continues cooldown without a target', () => {
