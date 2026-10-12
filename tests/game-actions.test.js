@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Game } from '../src/core/Game.js';
 import { GAME_STATES } from '../src/core/GameStateManager.js';
+import { ExperienceCrystal } from '../src/entities/ExperienceCrystal.js';
 
 function createGame() {
   return new Game({
@@ -91,5 +92,52 @@ describe('Game menu and pause actions', () => {
     expect(game.startGame()).toBe(true);
     game.world.update(1);
     expect(game.clock.elapsedSeconds).toBe(1);
+  });
+
+  it('exposes validated upgrade reads and choice actions through Game', () => {
+    const game = createGame();
+
+    expect(game.getUpgradeChoices()).toEqual([]);
+    expect(game.chooseUpgrade('UP-01')).toBe(false);
+    game.startGame();
+    game.world.experienceCrystals.push(new ExperienceCrystal({
+      id: 'game-controller-level-up',
+      x: game.world.player.x,
+      y: game.world.player.y,
+      expValue: 6,
+    }));
+    game.world.update(1 / 60);
+
+    const choices = game.getUpgradeChoices();
+    expect(choices).toHaveLength(3);
+    expect(Object.isFrozen(choices)).toBe(true);
+    expect(game.chooseUpgrade('not-offered')).toBe(false);
+    expect(game.world.levelSystem.pendingLevelUps).toBe(1);
+
+    expect(game.chooseUpgrade(choices[0].id)).toBe(true);
+    expect(game.stateManager.currentState).toBe(GAME_STATES.PLAYING);
+    expect(game.getUpgradeChoices()).toEqual([]);
+  });
+
+  it('clears upgrade levels when returning to the menu and starting a new run', () => {
+    const game = createGame();
+    game.startGame();
+    game.world.experienceCrystals.push(new ExperienceCrystal({
+      id: 'upgrade-reset-level-up',
+      x: game.world.player.x,
+      y: game.world.player.y,
+      expValue: 6,
+    }));
+    game.world.update(1 / 60);
+    const selectedId = game.getUpgradeChoices()[0].id;
+    expect(game.chooseUpgrade(selectedId)).toBe(true);
+    expect(game.world.upgradeSystem.getLevel(selectedId)).toBe(1);
+
+    game.pause();
+    expect(game.returnToMenu()).toBe(true);
+    expect(game.startGame()).toBe(true);
+
+    expect(game.world.upgradeSystem.getLevel(selectedId)).toBe(0);
+    expect(game.getUpgradeChoices()).toEqual([]);
   });
 });

@@ -88,6 +88,14 @@ export class Game {
     return this.world.getHudSnapshot();
   }
 
+  getUpgradeChoices() {
+    return this.world.getUpgradeChoices();
+  }
+
+  chooseUpgrade(choiceId) {
+    return this.world.chooseUpgrade(choiceId);
+  }
+
   togglePause() {
     if (this.stateManager.currentState === GAME_STATES.PLAYING) return this.pause();
     if (this.stateManager.currentState === GAME_STATES.PAUSED) return this.resume();

@@ -13,6 +13,7 @@ import { WeaponSystem } from '../systems/WeaponSystem.js';
 import { ProjectileSystem } from '../systems/ProjectileSystem.js';
 import { ExperienceSystem } from '../systems/ExperienceSystem.js';
 import { LevelSystem } from '../systems/LevelSystem.js';
+import { UpgradeSystem } from '../systems/UpgradeSystem.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -41,6 +42,7 @@ export class GameWorld {
     camera,
     inputController = null,
     random = Math.random,
+    upgradeRandom = Math.random,
     world = WORLD_MAP,
     enemyConfig = ENEMY_CONFIG,
   } = {}) {
@@ -78,6 +80,7 @@ export class GameWorld {
       subscribeEnemyDeath: (listener) => this.subscribeEnemyDeath(listener),
     });
     this.levelSystem = new LevelSystem({ player: this.player, stateManager: this.stateManager });
+    this.upgradeSystem = new UpgradeSystem({ player: this.player, random: upgradeRandom });
   }
 
   get simulationSteps() {
@@ -103,6 +106,21 @@ export class GameWorld {
       killCount: this.#killCount,
       elapsedSeconds: this.clock.elapsedSeconds,
     });
+  }
+
+  getUpgradeChoices() {
+    return this.upgradeSystem.getChoicesSnapshot();
+  }
+
+  chooseUpgrade(choiceId) {
+    if (this.stateManager.currentState !== GAME_STATES.LEVEL_UP
+      || this.levelSystem.pendingLevelUps === 0) return false;
+
+    const selection = this.upgradeSystem.select(choiceId);
+    if (selection === false) return false;
+    if (!this.levelSystem.completePendingLevelUp()) return false;
+    if (this.levelSystem.pendingLevelUps > 0) this.upgradeSystem.prepareChoices();
+    return true;
   }
 
   subscribePlayerDeath(listener) {
@@ -156,6 +174,7 @@ export class GameWorld {
     }
 
     if (gainedLevels > 0 && damageResult.killed !== true && this.player.alive === true) {
+      this.upgradeSystem.prepareChoices();
       this.stateManager.beginLevelUp();
     }
 
@@ -192,6 +211,7 @@ export class GameWorld {
     this.projectiles.length = 0;
     this.experienceSystem.reset();
     this.levelSystem.reset();
+    this.upgradeSystem.reset();
     this.spawnSystem.reset();
     this.#simulationSteps = 0;
     this.#killCount = 0;

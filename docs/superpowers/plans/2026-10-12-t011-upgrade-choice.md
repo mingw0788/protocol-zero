@@ -68,13 +68,14 @@ Expected: FAIL because the module/API does not exist.
 - Produces: `world.upgradeSystem`; `GameWorld.getUpgradeChoices()`; `GameWorld.chooseUpgrade(id) -> boolean`; `Game.getUpgradeChoices()`; `Game.chooseUpgrade(id) -> boolean`.
 - Add independent `upgradeRandom = Math.random` injection so upgrade draws do not change the enemy spawn random sequence.
 
-- [ ] **Step 1: Write the failing test** `prepares candidates before LEVEL_UP state listeners run`; pick up 35 XP, assert three pending choices, and assert the first frozen candidate group is already readable inside the synchronous state listener.
-- [ ] **Step 2: Run the integration test and confirm it fails** because GameWorld/Game do not expose upgrade choices/actions.
-- [ ] **Step 3: Add failing tests** `consumes one choice per selection while the world remains frozen`, `rejects stale choices without changing levels or queue`, and `resets upgrade state without shifting enemy randomness`; assert a 35-XP pickup needs three selections, elapsed time/step count stay fixed until the last one, invalid actions preserve snapshots, and reset returns levels/candidates to baseline.
-- [ ] **Step 4: Run the focused integration tests and confirm the new assertions fail** for missing validation, queue consumption and candidate refresh.
-- [ ] **Step 5: Connect the system**; prepare candidates before `beginLevelUp()`, accept selection only in LEVEL_UP with a nonempty queue, consume one T010 pending choice, refresh candidates only when choices remain, and clear candidates after the final choice. Reset UpgradeSystem with the run.
-- [ ] **Step 6: Run `npm test -- tests/game-world-upgrades.test.js tests/game-actions.test.js tests/level-system.test.js` and confirm green.**
-- [ ] **Step 7: Commit** as `feat: connect upgrade choices to game world`.
+- [x] **Step 1: Write the failing test** `prepares candidates before LEVEL_UP state listeners run`; pick up 35 XP, assert three pending choices, and assert the first frozen candidate group is already readable inside the synchronous state listener.
+- [x] **Step 2: Run the integration test and confirm it fails** because GameWorld/Game do not expose upgrade choices/actions.
+- [x] **Step 3: Add failing tests** `consumes one choice per selection while the world remains frozen`, `rejects stale choices without changing levels or queue`, and `resets upgrade state without shifting enemy randomness`; assert a 35-XP pickup needs three selections, elapsed time/step count stay fixed until the last one, invalid actions preserve snapshots, and reset returns levels/candidates to baseline.
+- [x] **Step 4: Run the focused integration tests and confirm the new assertions fail** for missing validation, queue consumption and candidate refresh.
+- [x] **Step 5: Connect the system**; prepare candidates before `beginLevelUp()`, accept selection only in LEVEL_UP with a nonempty queue, consume one T010 pending choice, refresh candidates only when choices remain, and clear candidates after the final choice. Reset UpgradeSystem with the run.
+- [x] **Step 6: Run `npm test -- tests/game-world-upgrades.test.js tests/game-actions.test.js tests/level-system.test.js` and confirm green.**
+- [x] **Step 7: Run full `npm test`**; 31 files / 218 tests passed.
+- [ ] **Step 8: Commit** as `feat: connect upgrade choices to game world`.
 
 ### Task 3: Render the accessible level-up panel
 
