@@ -42,12 +42,19 @@ describe('GameWorld enemy lifecycle', () => {
     [120 * 60, 'swift-intro', 'heavy-intro'],
   ])('switches wave at the %i-th fixed step without floating-point delay', (stepCount, previousPhase, nextPhase) => {
     const { world, stateManager } = createWorld();
+    const observedProfiles = [];
+    const updateSpawn = world.spawnSystem.update.bind(world.spawnSystem);
+    world.spawnSystem.update = (deltaSeconds, waveSnapshot) => {
+      observedProfiles.push(waveSnapshot);
+      return updateSpawn(deltaSeconds, waveSnapshot);
+    };
     stateManager.startGame();
 
     for (let step = 1; step < stepCount; step += 1) world.clock.advance(1 / 60);
 
     expect(world.getWaveSnapshot().phaseId).toBe(previousPhase);
     world.update(1 / 60);
+    expect(observedProfiles.at(-1).phaseId).toBe(nextPhase);
     expect(world.getWaveSnapshot().phaseId).toBe(nextPhase);
   });
 
