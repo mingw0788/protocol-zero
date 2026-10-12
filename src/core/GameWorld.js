@@ -12,6 +12,7 @@ import { EnemyDamageSystem } from '../systems/EnemyDamageSystem.js';
 import { WeaponSystem } from '../systems/WeaponSystem.js';
 import { ProjectileSystem } from '../systems/ProjectileSystem.js';
 import { ExperienceSystem } from '../systems/ExperienceSystem.js';
+import { LevelSystem } from '../systems/LevelSystem.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -76,6 +77,7 @@ export class GameWorld {
       player: this.player,
       subscribeEnemyDeath: (listener) => this.subscribeEnemyDeath(listener),
     });
+    this.levelSystem = new LevelSystem({ player: this.player, stateManager: this.stateManager });
   }
 
   get simulationSteps() {
@@ -96,6 +98,7 @@ export class GameWorld {
       health: Object.freeze({ current: this.player.hp, max: this.player.maxHp }),
       experience: this.player.exp,
       level: this.player.level,
+      pendingLevelUps: this.levelSystem.pendingLevelUps,
       weaponIds: Object.freeze(this.player.weaponStates.map((weapon) => weapon.id)),
       killCount: this.#killCount,
       elapsedSeconds: this.clock.elapsedSeconds,
@@ -141,6 +144,7 @@ export class GameWorld {
     this.#settleEnemyDeaths();
     this.enemySystem.cleanup();
     this.experienceSystem.update(deltaSeconds);
+    const gainedLevels = this.levelSystem.processExperience();
     this.clock.advance(deltaSeconds);
     this.#simulationSteps += 1;
 
@@ -149,6 +153,10 @@ export class GameWorld {
       this.#playerDeathFrozen = true;
       const payload = Object.freeze({ elapsedSeconds: this.clock.elapsedSeconds });
       for (const listener of [...this.#playerDeathListeners]) listener(payload);
+    }
+
+    if (gainedLevels > 0 && damageResult.killed !== true && this.player.alive === true) {
+      this.stateManager.beginLevelUp();
     }
 
     return true;
@@ -179,6 +187,7 @@ export class GameWorld {
     for (const projectile of this.projectiles) projectile.active = false;
     this.projectiles.length = 0;
     this.experienceSystem.reset();
+    this.levelSystem.reset();
     this.spawnSystem.reset();
     this.#simulationSteps = 0;
     this.#killCount = 0;

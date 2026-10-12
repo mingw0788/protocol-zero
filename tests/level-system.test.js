@@ -132,4 +132,21 @@ describe('LevelSystem experience accounting', () => {
     expect(stateManager.currentState).toBe('PLAYING');
     expect(levelSystem.completePendingLevelUp()).toBe(false);
   });
+
+  it('clears the final pending count before notifying PLAYING state listeners', () => {
+    const { stateManager, levelSystem } = createLevelSystem({ exp: 6 });
+    levelSystem.processExperience();
+    stateManager.startGame();
+    stateManager.beginLevelUp();
+    let pendingCountAtResume = null;
+    stateManager.subscribe((state, previousState) => {
+      if (state === 'PLAYING' && previousState === 'LEVEL_UP') {
+        pendingCountAtResume = levelSystem.pendingLevelUps;
+      }
+    });
+
+    expect(levelSystem.completePendingLevelUp()).toBe(true);
+
+    expect(pendingCountAtResume).toBe(0);
+  });
 });

@@ -83,6 +83,7 @@ describe('Game menu and pause actions', () => {
       health: { current: 100, max: 100 },
       experience: 0,
       level: 1,
+      pendingLevelUps: 0,
       weaponIds: ['pulse-gun'],
       killCount: 0,
       elapsedSeconds: 0,

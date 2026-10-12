@@ -170,6 +170,27 @@ describe('GameLoop', () => {
     loop.stop();
   });
 
+  it('stops catch-up immediately when a fixed step enters LEVEL_UP', () => {
+    const stateManager = new GameStateManager();
+    const world = new GameWorld({ stateManager, camera: new Camera() });
+    const animationFrame = createAnimationFrameHarness();
+    const loop = createLoop({ stateManager, world, animationFrame });
+    world.player.exp = 6;
+
+    stateManager.startGame();
+    loop.start();
+    animationFrame.frame(0);
+    animationFrame.frame((5 * 1000) / 60);
+
+    expect(stateManager.currentState).toBe(GAME_STATES.LEVEL_UP);
+    expect(world.simulationSteps).toBe(1);
+    expect(world.clock.elapsedSeconds).toBeCloseTo(1 / 60, 12);
+    animationFrame.frame((10 * 1000) / 60);
+    expect(world.simulationSteps).toBe(1);
+    expect(world.clock.elapsedSeconds).toBeCloseTo(1 / 60, 12);
+    loop.stop();
+  });
+
   it('pauses on focus loss and requires manual resume without background catch-up', () => {
     const stateManager = new GameStateManager();
     const world = new GameWorld({ stateManager, camera: new Camera() });

@@ -77,8 +77,13 @@ export class LevelSystem {
       return false;
     }
 
-    if (this.#pendingLevelUps === 1 && !this.stateManager.completeLevelUp()) {
-      return false;
+    if (this.#pendingLevelUps === 1) {
+      this.#pendingLevelUps = 0;
+      if (!this.stateManager.completeLevelUp()) {
+        this.#pendingLevelUps = 1;
+        return false;
+      }
+      return true;
     }
 
     this.#pendingLevelUps -= 1;

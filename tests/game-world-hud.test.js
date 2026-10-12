@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { GAME_STATES } from '../src/core/GameStateManager.js';
 import { GameWorld } from '../src/core/GameWorld.js';
 import { Enemy } from '../src/entities/Enemy.js';
+import { ExperienceCrystal } from '../src/entities/ExperienceCrystal.js';
 import { Camera } from '../src/rendering/Camera.js';
 
 function createWorld(options = {}) {
@@ -17,6 +19,7 @@ describe('GameWorld HUD snapshots', () => {
       health: { current: 100, max: 100 },
       experience: 0,
       level: 1,
+      pendingLevelUps: 0,
       weaponIds: ['pulse-gun'],
       killCount: 0,
       elapsedSeconds: 0,
@@ -39,6 +42,7 @@ describe('GameWorld HUD snapshots', () => {
       health: { current: 70, max: 120 },
       experience: 4,
       level: 2,
+      pendingLevelUps: 0,
       weaponIds: ['pulse-gun', 'orbital-blade'],
       killCount: 2,
       elapsedSeconds: 1.5,
@@ -80,6 +84,44 @@ describe('GameWorld HUD snapshots', () => {
     expect(world.experienceCrystals).toEqual([]);
   });
 
+  it('processes a multilevel pickup before freezing and preserves the triggering step', () => {
+    const world = createWorld();
+    const initialSnapshot = world.getHudSnapshot();
+    world.stateManager.startGame();
+    world.experienceCrystals.push(new ExperienceCrystal({
+      id: 'multilevel-crystal',
+      x: world.player.x,
+      y: world.player.y,
+      expValue: 35,
+    }));
+
+    expect(world.update(1 / 60)).toBe(true);
+
+    expect(world.player.level).toBe(4);
+    expect(world.player.exp).toBe(5);
+    expect(world.levelSystem.pendingLevelUps).toBe(3);
+    expect(world.stateManager.currentState).toBe(GAME_STATES.LEVEL_UP);
+    expect(world.clock.elapsedSeconds).toBeCloseTo(1 / 60, 12);
+    expect(world.simulationSteps).toBe(1);
+    const levelUpSnapshot = world.getHudSnapshot();
+    expect(levelUpSnapshot).toMatchObject({ experience: 5, level: 4, pendingLevelUps: 3 });
+    expect(initialSnapshot).toMatchObject({ experience: 0, level: 1, pendingLevelUps: 0 });
+    expect(Object.isFrozen(levelUpSnapshot)).toBe(true);
+
+    expect(world.update(1)).toBe(false);
+    expect(world.clock.elapsedSeconds).toBeCloseTo(1 / 60, 12);
+    expect(world.simulationSteps).toBe(1);
+
+    expect(world.levelSystem.completePendingLevelUp()).toBe(true);
+    expect(world.stateManager.currentState).toBe(GAME_STATES.LEVEL_UP);
+    expect(world.levelSystem.completePendingLevelUp()).toBe(true);
+    expect(world.stateManager.currentState).toBe(GAME_STATES.LEVEL_UP);
+    expect(world.levelSystem.completePendingLevelUp()).toBe(true);
+    expect(world.stateManager.currentState).toBe(GAME_STATES.PLAYING);
+    expect(world.update(1 / 60)).toBe(true);
+    expect(world.simulationSteps).toBe(2);
+  });
+
   it('prevents presentation callers from changing current or later snapshots', () => {
     const world = createWorld();
     const snapshot = world.getHudSnapshot();
@@ -107,7 +149,9 @@ describe('GameWorld HUD snapshots', () => {
     world.player.hp = 10;
     world.player.maxHp = 160;
     world.player.exp = 8;
-    world.player.level = 4;
+    world.player.level = 1;
+    world.levelSystem.processExperience();
+    expect(world.levelSystem.pendingLevelUps).toBe(1);
     world.player.weaponStates.push({ id: 'orbital-blade' });
     world.recordKill();
 
@@ -117,6 +161,7 @@ describe('GameWorld HUD snapshots', () => {
       health: { current: 100, max: 100 },
       experience: 0,
       level: 1,
+      pendingLevelUps: 0,
       weaponIds: ['pulse-gun'],
       killCount: 0,
       elapsedSeconds: 0,
