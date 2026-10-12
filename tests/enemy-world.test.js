@@ -37,6 +37,20 @@ function createWorld() {
 }
 
 describe('GameWorld enemy lifecycle', () => {
+  it.each([
+    [60 * 60, 'opening', 'swift-intro'],
+    [120 * 60, 'swift-intro', 'heavy-intro'],
+  ])('switches wave at the %i-th fixed step without floating-point delay', (stepCount, previousPhase, nextPhase) => {
+    const { world, stateManager } = createWorld();
+    stateManager.startGame();
+
+    for (let step = 1; step < stepCount; step += 1) world.clock.advance(1 / 60);
+
+    expect(world.getWaveSnapshot().phaseId).toBe(previousPhase);
+    world.update(1 / 60);
+    expect(world.getWaveSnapshot().phaseId).toBe(nextPhase);
+  });
+
   it('reads current wave time and passes the active fixed-step endpoint profile to spawning', () => {
     const { world, stateManager } = createWorld();
     const observedProfiles = [];
