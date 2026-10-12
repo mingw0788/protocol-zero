@@ -17,6 +17,9 @@ const POSITIVE_FIELDS = Object.freeze([
   'recoverySeconds',
   'attackCooldownSeconds',
 ]);
+const REQUIRED_HP = 1800;
+const REQUIRED_SPAWN_TIME_SECONDS = 270;
+const MIN_TELEGRAPH_SECONDS = 0.7;
 
 function requirePositiveFinite(value, name) {
   if (!Number.isFinite(value) || value <= 0) {
@@ -29,6 +32,15 @@ function validateConfig(config) {
     throw new TypeError('BossSystem requires a Boss config');
   }
   for (const field of POSITIVE_FIELDS) requirePositiveFinite(config[field], field);
+  if (config.hp !== REQUIRED_HP || config.maxHp !== REQUIRED_HP) {
+    throw new RangeError(`Boss hp and maxHp must remain ${REQUIRED_HP}`);
+  }
+  if (config.spawnTimeSeconds !== REQUIRED_SPAWN_TIME_SECONDS) {
+    throw new RangeError(`Boss spawnTimeSeconds must remain ${REQUIRED_SPAWN_TIME_SECONDS}`);
+  }
+  if (config.telegraphSeconds < MIN_TELEGRAPH_SECONDS) {
+    throw new RangeError(`Boss telegraphSeconds must be at least ${MIN_TELEGRAPH_SECONDS}`);
+  }
   if (!Number.isFinite(config.expDrop) || config.expDrop !== 0) {
     throw new RangeError('Boss expDrop must be zero');
   }

@@ -58,6 +58,10 @@ describe('BossSystem spawn', () => {
     ['spawnClearance', Number.NaN],
     ['telegraphSeconds', 0],
     ['chargeDurationSeconds', -0.1],
+    ['hp', 1799],
+    ['maxHp', 1801],
+    ['spawnTimeSeconds', 270.001],
+    ['telegraphSeconds', 0.69],
   ])('rejects an invalid %s config value', (key, value) => {
     expect(() => createBossSystem({ config: { ...BOSS_CONFIG, [key]: value } }))
       .toThrow(RangeError);
