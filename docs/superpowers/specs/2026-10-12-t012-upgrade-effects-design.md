@@ -27,6 +27,7 @@
 ### 3.1 集中配置与效果快照
 
 - 新增冻结的 `UPGRADE_EFFECT_CONFIG`，以 `UP-01` 至 `UP-06` 为键集中记录每级效果参数；既有 `UPGRADE_CONFIG` 仍是显示名称、描述和等级上限的唯一来源。
+- 配置字段固定为：`UP-01.damageBonusPerLevel: 0.15`、`UP-02.pulseGunFireRateBonusPerLevel: 0.12`、`UP-03.extraProjectilesPerLevel: 1`、`UP-04.exposesOrbitalBladeLevel: true`、`UP-05.moveSpeedBonusPerLevel: 0.08`、`UP-06.maxHpIncreasePerLevel: 20` 与 `UP-06.healPerLevel: 20`。配置数字必须有限且符合非负/正值范围，不能从名称/描述字符串解析效果。
 - 新增 `UpgradeEffectSystem`，读取 `UpgradeSystem` 的只读等级快照，纯计算冻结效果快照：`damageMultiplier`、`pulseGunFireRateMultiplier`、`pulseGunProjectileCount`、`moveSpeedMultiplier`、`orbitalBladeLevel`。等级越界、缺少配置、非有限或无效参数必须快速拒绝，不得部分修改状态。
 - 选择普通升级后，GameWorld 将已验证的选择结果交给 `UpgradeEffectSystem`；纳米装甲按新上限增血，机动优化从 `Player.baseMoveSpeed` 派生当前 `moveSpeed`，其它效果通过冻结效果快照供战斗系统读取。满血恢复兜底仍由 T011 `UpgradeSystem` 按原规则处理。
 - `Player.reset()` 恢复其基础 `moveSpeed`、生命和其它基础状态；`GameWorld.reset()` 清除升级等级/快照，重新建立全中性倍率。配置和选择快照均只读。
