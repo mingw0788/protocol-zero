@@ -5,5 +5,6 @@ export const PLAYER_CONFIG = Object.freeze({
   startingWeaponId: 'pulse-gun',
   moveSpeed: 220,
   radius: 16,
+  invulnerabilitySeconds: 0.6,
   color: '#4cf3ff',
 });

@@ -61,6 +61,26 @@ describe('Player', () => {
     expect(player.weaponStates).toEqual([{ id: 'pulse-gun' }]);
   });
 
+  it('tracks alive and invulnerability per player and resets them', () => {
+    const player = new Player();
+    const otherPlayer = new Player();
+
+    expect(player.alive).toBe(true);
+    expect(player.invulnerabilityRemaining).toBe(0);
+    player.hp = 17;
+    player.alive = false;
+    player.invulnerabilityRemaining = 0.25;
+
+    expect(otherPlayer.alive).toBe(true);
+    expect(otherPlayer.invulnerabilityRemaining).toBe(0);
+
+    player.reset();
+
+    expect(player.hp).toBe(100);
+    expect(player.alive).toBe(true);
+    expect(player.invulnerabilityRemaining).toBe(0);
+  });
+
   it('restores run attributes without sharing equipment between players', () => {
     const player = new Player();
     const otherPlayer = new Player();

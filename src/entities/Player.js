@@ -65,6 +65,8 @@ export class Player {
   #resetRunAttributes() {
     this.maxHp = PLAYER_CONFIG.maxHp;
     this.hp = this.maxHp;
+    this.alive = true;
+    this.invulnerabilityRemaining = 0;
     this.level = PLAYER_CONFIG.initialLevel;
     this.exp = PLAYER_CONFIG.initialExp;
     this.weaponStates = [{ id: PLAYER_CONFIG.startingWeaponId }];
