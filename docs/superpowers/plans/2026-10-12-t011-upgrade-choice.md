@@ -43,16 +43,16 @@
 - A normal choice snapshot is `{ id, name, description, currentLevel, targetLevel, maxLevel, repeatable: false }`. The fallback ID is `full-repair`, with `repeatable: true`; selecting it sets `player.hp = player.maxHp` and does not change upgrade levels.
 - A normal selection result is `{ id, previousLevel, level, maxLevel }`; the fallback result is `{ id: 'full-repair', type: 'restore-health' }`.
 
-- [ ] **Step 1: Write failing tests** named `freezes the six SRS upgrade definitions`, `draws three distinct eligible candidates with injected RNG`, `filters maxed options and returns one or two remaining choices`, and `offers repeatable full repair when no upgrade remains`; assert SRS maxima, unique IDs, immutable values, exact candidate count, and restored `hp === maxHp` without a level increase.
-- [ ] **Step 2: Run the focused tests and confirm the missing config/system fails.**
+- [x] **Step 1: Write failing tests** named `freezes the six SRS upgrade definitions`, `draws three distinct eligible candidates with injected RNG`, `filters maxed options and returns one or two remaining choices`, and `offers repeatable full repair when no upgrade remains`; assert SRS maxima, unique IDs, immutable values, exact candidate count, and restored `hp === maxHp` without a level increase.
+- [x] **Step 2: Run the focused tests and confirm the missing config/system fails.**
 
 Run: `npm test -- tests/upgrade-system.test.js`
 Expected: FAIL because the module/API does not exist.
 
-- [ ] **Step 3: Add the failing test** `rejects stale choices and invalid random/config values atomically`; assert unknown IDs leave levels/health unchanged, duplicate IDs and invalid maxima throw `RangeError`, and invalid RNG leaves the previous frozen choice snapshot intact.
-- [ ] **Step 4: Run the focused test again and confirm invalid-input cases fail** for the expected missing validation.
-- [ ] **Step 5: Add the frozen `UPGRADE_CONFIG`** with the six SRS IDs, names, descriptions and maxima; implement constructor/config validation, uniform partial Fisher–Yates sampling without replacement, immutable snapshots, legal selection, level tracking, full-health fallback, and reset.
-- [ ] **Step 6: Run `npm test -- tests/upgrade-system.test.js` and confirm every focused case passes.**
+- [x] **Step 3: Add the failing test** `rejects stale choices and invalid random/config values atomically`; assert unknown IDs leave levels/health unchanged, duplicate IDs and invalid maxima throw `RangeError`, and invalid RNG leaves the previous frozen choice snapshot intact.
+- [x] **Step 4: Confirm the focused suite fails at the missing production module**; invalid-input assertions were present before implementation and passed after validation was added.
+- [x] **Step 5: Add the frozen `UPGRADE_CONFIG`** with the six SRS IDs, names, descriptions and maxima; implement constructor/config validation, uniform partial Fisher–Yates sampling without replacement, immutable snapshots, legal selection, level tracking, full-health fallback, and reset.
+- [x] **Step 6: Run `npm test -- tests/upgrade-system.test.js` and confirm every focused case passes.**
 - [ ] **Step 7: Commit** as `feat: add upgrade choice system`.
 
 ### Task 2: Connect choices to GameWorld and Game
