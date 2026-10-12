@@ -9,26 +9,26 @@
 - 终局快照为 `{ outcome, killCount, elapsedSeconds }` 的冻结数据；该步时钟推进结束后记值。
 - 不安装依赖，不改变已确认玩法；所有重开清理使用同一 GameWorld 持有关系。
 
-## Task 1：终态模型与战局判定
+## Task 1：终态模型与战局判定 — 完成
 
 - 修改 GameStateManager：增加 VICTORY / DEFEAT 和受控单向结算迁移；终态不能暂停、继续或再次结算。
 - 修改 GameWorld：固定步末在时钟推进后先判玩家死亡，再判时间 >=300 且 Boss 已死亡；终态快照只建立一次；优先于 LEVEL_UP。
 - 测试：状态迁移、早杀等待、300 秒边界、超时后击败、死亡优先、升级冲突、单次结算、终态更新冻结、终态快照冻结、重置清快照。
 - 先写失败测试运行，再实现；聚焦测试通过后提交 `feat: add run victory and defeat states`。
 
-## Task 2：Game 动作与终局 UI
+## Task 2：Game 动作与终局 UI — 完成
 
 - Game 增加终局快照读取、从终态重开和终态返回菜单动作；所有动作先校验当前状态。
 - index.html 增加胜负结算面板；UIManager 只读快照显示标题/击杀/存活时间，接线按钮和键盘焦点；游戏渲染状态切换时显示/隐藏。
 - 测试：有效/无效动作、按钮/焦点/快照/结果格式、菜单与终局可见性、清除上次状态。
 - 按 TDD 聚焦验证并提交 `feat: add run result and restart UI`。
 
-## Task 3：重开隔离、文档和交付验收
+## Task 3：重开隔离、文档和交付验收 — 完成
 
 - 验证玩家等级/属性/血量、升级、脉冲枪与轨道刃、敌人/Boss/弹丸/经验、计时/击杀/死亡冻结/终局标记清空；运行期音效偏好、事件订阅保持；再次开始正常。
 - 对齐 architecture / requirements / development-plan / decisions / task-status，写 `docs/task-report-T016.md` 和本计划状态。
 - `npm test`、`npm run build`、`git diff --check`；浏览器受控场景覆盖边界胜利、失败、再来一局、返回菜单和控制台。
-- 按代码审查技能获得独立只读审查，修正 Critical/Important 及可复现 Minor 后复验；交付提交 `docs: record T016 run settlement acceptance`。
+- 按代码审查技能获得独立只读审查；通用终态重开 Minor 已添加回归测试并修正、独立复核关闭；交付提交 `docs: record T016 run settlement acceptance`。
 
 ## 需求映射
 
