@@ -33,6 +33,30 @@ export class MapRenderer {
     context.lineWidth = 1;
     context.stroke();
 
+    context.save();
+    context.beginPath();
+    for (let y = 96; y < height - 32; y += 192) {
+      for (let x = 96; x < width - 32; x += 192) {
+        const variant = (Math.floor(x / 192) * 7 + Math.floor(y / 192) * 3) % 3;
+        if (variant === 0) {
+          context.moveTo(x, y);
+          context.lineTo(x + 20, y);
+          context.lineTo(x + 20, y + 12);
+          context.moveTo(x + 3, y + 5);
+          context.lineTo(x + 10, y + 5);
+        } else if (variant === 1) {
+          context.moveTo(x, y);
+          context.lineTo(x, y + 18);
+          context.lineTo(x + 14, y + 18);
+        }
+      }
+    }
+    context.strokeStyle = '#25445a';
+    context.lineWidth = 1.5;
+    context.globalAlpha = 0.62;
+    context.stroke();
+    context.restore();
+
     context.strokeStyle = this.map.borderColor;
     context.lineWidth = 4;
     context.strokeRect(0, 0, width, height);

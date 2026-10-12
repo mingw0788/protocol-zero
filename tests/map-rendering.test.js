@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Camera } from '../src/rendering/Camera.js';
 import { CanvasRenderer } from '../src/rendering/CanvasRenderer.js';
 import { MapRenderer } from '../src/rendering/MapRenderer.js';
+import { WORLD_MAP } from '../src/config/worldConfig.js';
 
 function createRecordingContext() {
   const calls = {
@@ -13,6 +14,7 @@ function createRecordingContext() {
     moveTos: [],
     lineTos: [],
     strokes: 0,
+    strokeStyles: [],
     strokeRects: [],
   };
 
@@ -43,6 +45,7 @@ function createRecordingContext() {
     },
     stroke() {
       calls.strokes += 1;
+      calls.strokeStyles.push(this.strokeStyle);
     },
     strokeRect(...args) {
       calls.strokeRects.push(args);
@@ -100,6 +103,22 @@ describe('MapRenderer', () => {
     expect(context.calls.lineTos).toContainEqual([64, 1350]);
     expect(context.calls.strokeRects).toContainEqual([0, 0, 2400, 1350]);
     expect(context.calls.translations).toContainEqual([-560, -315]);
+  });
+
+  it('draws deterministic, visual-only floor circuits within the unchanged finite map', () => {
+    const first = createRecordingContext();
+    const second = createRecordingContext();
+    const camera = new Camera();
+    new MapRenderer().render(first, camera);
+    new MapRenderer().render(second, camera);
+
+    expect(WORLD_MAP).toMatchObject({ width: 2400, height: 1350, gridSpacing: 64 });
+    expect(first.calls.moveTos.length).toBeGreaterThan(45);
+    expect(first.calls.strokeStyles).toContain('#25445a');
+    expect(first.calls.moveTos).toEqual(second.calls.moveTos);
+    expect(first.calls.lineTos).toEqual(second.calls.lineTos);
+    expect(first.calls.moveTos.every(([x, y]) => x >= 0 && y >= 0 && x <= WORLD_MAP.width && y <= WORLD_MAP.height)).toBe(true);
+    expect(first.calls.lineTos.every(([x, y]) => x >= 0 && y >= 0 && x <= WORLD_MAP.width && y <= WORLD_MAP.height)).toBe(true);
   });
 });
 
