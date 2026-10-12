@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { GAME_STATES } from '../src/core/GameStateManager.js';
 import { GameWorld } from '../src/core/GameWorld.js';
 import { ExperienceCrystal } from '../src/entities/ExperienceCrystal.js';
@@ -89,5 +89,18 @@ describe('GameWorld upgrade choice integration', () => {
 
     expect(upgradeRandomCalls).toBe(3);
     expect(enemyRandomCalls).toBe(0);
+  });
+
+  it('uses an independent default upgrade random stream', () => {
+    const sharedRandom = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    try {
+      const world = createWorld();
+
+      world.upgradeSystem.prepareChoices();
+
+      expect(sharedRandom).not.toHaveBeenCalled();
+    } finally {
+      sharedRandom.mockRestore();
+    }
   });
 });

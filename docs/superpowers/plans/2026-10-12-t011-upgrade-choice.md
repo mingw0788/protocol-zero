@@ -91,7 +91,7 @@ Expected: FAIL because the module/API does not exist.
 
 - [x] **Step 1: Add failing tests** `shows choices only during LEVEL_UP` and `hides unused slots and refreshes each queued choice`; assert dialog/HUD/menu visibility, card names/descriptions/levels, 1/2-slot hiding, button activation, and next-choice content.
 - [x] **Step 2: Run the focused tests and confirm they fail** because the panel and event wiring are absent.
-- [x] **Step 3: Add the failing test** `traps keyboard focus and prevents Escape from skipping choices`; assert first-card focus, button-click selection, Tab/Shift+Tab wrap, and unchanged state/queue on Escape. Add `removes upgrade listeners across repeated start and stop` and assert no duplicate selection after restart. Native Enter/Space button activation is verified in the browser.
+- [x] **Step 3: Add the failing test** `traps keyboard focus and prevents Escape from skipping choices`; assert first-card focus, button-click selection, Tab/Shift+Tab wrap, and unchanged state/queue on Escape. Add `removes upgrade listeners across repeated start and stop` and assert no duplicate selection after restart. The browser check for native Enter/Space activation is deferred to Task 4; it remains unverified because neither natural run reached the upgrade panel.
 - [x] **Step 4: Run the focused UI tests again and confirm missing panel/keyboard behavior fails** for the expected absent UI.
 - [x] **Step 5: Add three static semantic card buttons** and dialog/live-region labels to `index.html`; style the panel/card layout with existing colors and narrow-screen scroll behavior.
 - [x] **Step 6: Implement UIManager rendering and action wiring**; activation calls only `Game.chooseUpgrade`, successful multi-choice selection refreshes the snapshot, and final selection relies on the state subscription to hide the panel and restore game focus.
@@ -114,7 +114,7 @@ Expected: FAIL because the module/API does not exist.
 - Consumes: T011 design/implementation and automated evidence from Tasks 1–3.
 - Produces: an auditable T011 status/report; T012 remains responsible for actual attribute effects.
 
-- [x] **Step 1: Run the full `npm test` suite, `npm run build`, and `git diff --check`; record exact results without installing dependencies.** `npm test`: 31 files / 223 passed; `npm run build`: Vite 41 modules passed; `git diff --check`: passed.
+- [x] **Step 1: Run the full `npm test` suite, `npm run build`, and `git diff --check`; record exact results without installing dependencies.** `npm test`: 32 files / 225 passed; `npm run build`: Vite 42 modules passed; `git diff --check`: passed.
 - [x] **Step 2: Start the local development server and use the available Playwright browser for a natural level-up attempt.** Browser verified the title menu, starting a run, HUD updates, and zero console errors/warnings. Two natural attempts ended before the 6 XP threshold: at 20 seconds/10 kills/3 XP and at 44 seconds/25 kills/3 XP. Upgrade cards, mouse/Enter/Space selection, Escape lockout, and resume after the final queued choice remain unverified in browser; unit/integration tests cover these interactions.
 - [x] **Step 3: Update SRS/SDD status, D-030/D-031, README, task status and `docs/task-report-T011.md`; identify that actual upgrade effects remain in T012.** No new gameplay ruling was needed.
 - [x] **Step 4: Commit** as `docs: record T011 upgrade choice acceptance`.

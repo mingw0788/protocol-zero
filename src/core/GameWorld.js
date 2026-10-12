@@ -14,6 +14,7 @@ import { ProjectileSystem } from '../systems/ProjectileSystem.js';
 import { ExperienceSystem } from '../systems/ExperienceSystem.js';
 import { LevelSystem } from '../systems/LevelSystem.js';
 import { UpgradeSystem } from '../systems/UpgradeSystem.js';
+import { createRandomStream } from './createRandomStream.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -42,7 +43,7 @@ export class GameWorld {
     camera,
     inputController = null,
     random = Math.random,
-    upgradeRandom = Math.random,
+    upgradeRandom = createRandomStream(),
     world = WORLD_MAP,
     enemyConfig = ENEMY_CONFIG,
   } = {}) {
