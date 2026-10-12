@@ -60,10 +60,10 @@
 - Produces: `WeaponSystem.update({ player, enemies, projectiles, deltaSeconds, upgradeEffects })`; omitted `upgradeEffects` uses the neutral snapshot and preserves all existing T008 behavior.
 - Adds `multiShotAngleStepDegrees: 12` to `PULSE_GUN_CONFIG`; every volley centers its evenly spaced directions on the existing nearest-target aim vector.
 
-- [ ] **Step 1: Add failing tests** `applies damage and attack-rate modifiers`, `keeps current cooldown as absolute remaining time`, `fires two and three evenly spaced projectiles`, `keeps projectile damage fixed after firing`, and `rejects invalid effect snapshots`. Assert rank-5 damage 35, rank-5 interval 0.5 seconds after a shot, exact projectile totals 2/3, angle offsets ±6° and −12°/0°/+12°, unique IDs, and unchanged baseline firing when omitted.
-- [ ] **Step 2: Run `npm test -- tests/weapon-system.test.js` and confirm each new assertion fails for the expected missing modifier behavior.**
-- [ ] **Step 3: Implement finite/range validation, base damage scaling, fire interval scaling, and symmetric projectile generation.** Keep target selection, range, projectile speed/lifetime, collision, and damage ownership unchanged.
-- [ ] **Step 4: Run `npm test -- tests/weapon-system.test.js` and confirm the upgraded and baseline weapon cases pass.**
+- [x] **Step 1: Add failing tests** `applies damage and attack-rate modifiers`, `keeps current cooldown as absolute remaining time`, `fires two and three evenly spaced projectiles`, `keeps projectile damage fixed after firing`, and `rejects invalid effect snapshots`. Assert rank-5 damage 35, rank-5 interval 0.5 seconds after a shot, exact projectile totals 2/3, angle offsets ±6° and −12°/0°/+12°, unique IDs, and unchanged baseline firing when omitted.
+- [x] **Step 2: Run `npm test -- tests/weapon-system.test.js` and confirm each new assertion fails for the expected missing modifier behavior.** Initial red run failed 8 new modifier/config assertions; implementation then exposed one tiny baseline direction-rounding regression, fixed by rotating the normalized aim vector and preserving the center shot exactly.
+- [x] **Step 3: Implement finite/range validation, base damage scaling, fire interval scaling, and symmetric projectile generation.** Keep target selection, range, projectile speed/lifetime, collision, and damage ownership unchanged.
+- [x] **Step 4: Run `npm test -- tests/weapon-system.test.js` and confirm the upgraded and baseline weapon cases pass.** 1 file / 25 tests passed.
 - [ ] **Step 5: Commit** as `feat: apply pulse gun upgrades`.
 
 ### Task 3: Connect effects to GameWorld choices and reset

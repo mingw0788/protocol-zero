@@ -15,8 +15,8 @@ function makeEnemy(id, x, y) {
   return new Enemy({ id, x, y });
 }
 
-function update(system, player, enemies, projectiles, deltaSeconds) {
-  return system.update({ player, enemies, projectiles, deltaSeconds });
+function update(system, player, enemies, projectiles, deltaSeconds, upgradeEffects) {
+  return system.update({ player, enemies, projectiles, deltaSeconds, upgradeEffects });
 }
 
 describe('WeaponSystem', () => {
@@ -100,6 +100,86 @@ describe('WeaponSystem', () => {
     expect(player.weaponStates[0].cooldownRemaining).toBe(0.8);
   });
 
+  it('applies damage and attack-rate modifiers while preserving the current cooldown', () => {
+    const player = makePlayer();
+    const system = new WeaponSystem();
+    const projectiles = [];
+    const effects = Object.freeze({
+      damageMultiplier: 1.75,
+      pulseGunFireRateMultiplier: 1.6,
+      pulseGunProjectileCount: 1,
+    });
+    player.weaponStates[0].cooldownRemaining = 0.3;
+
+    expect(update(system, player, [makeEnemy('cooling', 200, 100)], projectiles, 0.1, effects)).toBe(0);
+    expect(player.weaponStates[0].cooldownRemaining).toBeCloseTo(0.2, 12);
+    expect(projectiles).toHaveLength(0);
+
+    expect(update(system, player, [makeEnemy('ready', 200, 100)], projectiles, 0.2, effects)).toBe(1);
+    expect(projectiles[0].damage).toBe(35);
+    expect(player.weaponStates[0].cooldownRemaining).toBeCloseTo(0.5, 12);
+  });
+
+  it.each([
+    { projectileCount: 2, expectedAngles: [-6, 6] },
+    { projectileCount: 3, expectedAngles: [-12, 0, 12] },
+  ])('fires $projectileCount symmetric projectiles around the target direction', ({ projectileCount, expectedAngles }) => {
+    const player = makePlayer();
+    const system = new WeaponSystem();
+    const projectiles = [];
+    const effects = Object.freeze({
+      damageMultiplier: 1,
+      pulseGunFireRateMultiplier: 1,
+      pulseGunProjectileCount: projectileCount,
+    });
+
+    expect(update(system, player, [makeEnemy(`volley-${projectileCount}`, 200, 100)], projectiles, 1 / 60, effects))
+      .toBe(projectileCount);
+    const angles = projectiles.map((projectile) => Math.atan2(projectile.vy, projectile.vx) * (180 / Math.PI));
+    for (let index = 0; index < expectedAngles.length; index += 1) {
+      expect(angles[index]).toBeCloseTo(expectedAngles[index], 10);
+      expect(projectiles[index].damage).toBe(20);
+    }
+    expect(new Set(projectiles.map((projectile) => projectile.id)).size).toBe(projectileCount);
+  });
+
+  it('keeps in-flight projectile damage fixed when later shots receive a stronger modifier', () => {
+    const player = makePlayer();
+    const system = new WeaponSystem();
+    const projectiles = [];
+    const target = makeEnemy('damage-snapshot', 200, 100);
+
+    update(system, player, [target], projectiles, 1 / 60, {
+      damageMultiplier: 1,
+      pulseGunFireRateMultiplier: 1,
+      pulseGunProjectileCount: 1,
+    });
+    update(system, player, [target], projectiles, 0.8, {
+      damageMultiplier: 1.75,
+      pulseGunFireRateMultiplier: 1,
+      pulseGunProjectileCount: 1,
+    });
+
+    expect(projectiles.map((projectile) => projectile.damage)).toEqual([20, 35]);
+  });
+
+  it.each([
+    { damageMultiplier: Number.POSITIVE_INFINITY, pulseGunFireRateMultiplier: 1, pulseGunProjectileCount: 1 },
+    { damageMultiplier: 1, pulseGunFireRateMultiplier: 0, pulseGunProjectileCount: 1 },
+    { damageMultiplier: 1, pulseGunFireRateMultiplier: 1, pulseGunProjectileCount: 4 },
+  ])('rejects invalid upgrade effect snapshot $damageMultiplier/$pulseGunFireRateMultiplier/$pulseGunProjectileCount', (upgradeEffects) => {
+    const system = new WeaponSystem();
+
+    expect(() => update(
+      system,
+      makePlayer(),
+      [makeEnemy('invalid-effects', 200, 100)],
+      [],
+      1 / 60,
+      upgradeEffects,
+    )).toThrow(RangeError);
+  });
+
   it('does not mutate run state or fire for zero delta', () => {
     const player = makePlayer();
     player.weaponStates[0].cooldownRemaining = 0.5;
@@ -137,6 +217,11 @@ describe('WeaponSystem', () => {
     expect(() => new WeaponSystem({
       config: { ...PULSE_GUN_CONFIG, projectileColor: '' },
     })).toThrow(TypeError);
+  });
+
+  it('configures a 12-degree adjacent spread step', () => {
+    expect(PULSE_GUN_CONFIG.multiShotAngleStepDegrees).toBe(12);
+    expect(Object.isFrozen(PULSE_GUN_CONFIG)).toBe(true);
   });
 
   it('aims safely when player and target overlap', () => {

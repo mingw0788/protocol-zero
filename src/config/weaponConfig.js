@@ -6,5 +6,6 @@ export const PULSE_GUN_CONFIG = Object.freeze({
   projectileSpeed: 500,
   projectileRadius: 4,
   projectileLifetimeSeconds: 1.28,
+  multiShotAngleStepDegrees: 12,
   projectileColor: '#4cf3ff',
 });
