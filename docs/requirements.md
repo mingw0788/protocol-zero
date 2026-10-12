@@ -9,7 +9,7 @@
 | 类型 | 2D 俯视角单人 Roguelite 割草生存 |
 | 平台 | Windows 桌面浏览器 Chrome / Edge |
 | 视觉 | 赛博朋克像素风 |
-| 状态 | V1 需求基线；T000–T008 已完成；T009 行为参数已确认，设计规格待书面审阅 |
+| 状态 | V1 需求基线；T000–T008 已完成；T009 书面规格已批准，实施计划待审阅 |
 
 ## 1. 项目背景与目标
 
@@ -239,4 +239,4 @@ P0 = 玩法闭环必须具备；P1 = V1 最终交付前需完成的体验功能�
 
 需求数字（敌人生命、升级加成、掉落等）为首轮平衡配置，开发和试玩阶段允许在**记录原因、更新配置与文档**后调优。不允许在未获明确指令时新增 V2/V3 功能。若需求冲突，先在 `docs/decisions.md` 记录并确认。
 
-**当前状态提醒：** 本文定义 V1 需求基线。各项功能的实现和验收状态以 `docs/task-status.md` 为准；T008 已完成实现、验证和提交。T009 的确认规则见 `docs/superpowers/specs/2026-10-12-t009-experience-crystals-design.md`；实现尚未开始。
+**当前状态提醒：** 本文定义 V1 需求基线。各项功能的实现和验收状态以 `docs/task-status.md` 为准；T008 已完成实现、验证和提交。T009 的获批规则与实施计划见 `docs/superpowers/specs/2026-10-12-t009-experience-crystals-design.md` 和 `docs/superpowers/plans/2026-10-12-t009-experience-crystals.md`；实现尚未开始。
