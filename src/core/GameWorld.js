@@ -20,6 +20,7 @@ import { ExperienceSystem } from '../systems/ExperienceSystem.js';
 import { LevelSystem } from '../systems/LevelSystem.js';
 import { UpgradeSystem } from '../systems/UpgradeSystem.js';
 import { UpgradeEffectSystem } from '../systems/UpgradeEffectSystem.js';
+import { ParticleSystem } from '../systems/ParticleSystem.js';
 import { createRandomStream } from './createRandomStream.js';
 
 function requireCamera(camera) {
@@ -108,6 +109,9 @@ export class GameWorld {
       player: this.player,
       upgradeSystem: this.upgradeSystem,
     });
+    this.particleSystem = new ParticleSystem();
+    this.subscribeEnemyDeath((event) => this.particleSystem.emitEnemyDeath(event));
+    this.subscribePlayerDeath(() => this.particleSystem.emitPlayerDeath(this.player));
   }
 
   get simulationSteps() {
@@ -159,6 +163,10 @@ export class GameWorld {
     return this.upgradeEffectSystem.getSnapshot();
   }
 
+  getVisualEffectsSnapshot() {
+    return this.particleSystem.getSnapshot();
+  }
+
   getOrbitalBladeSnapshot() {
     return this.orbitalBladeSystem.getSnapshot(this.upgradeSystem.getLevel('UP-04'));
   }
@@ -196,6 +204,7 @@ export class GameWorld {
   update(deltaSeconds) {
     if (!this.stateManager.isPlaying() || this.#playerDeathFrozen) return false;
 
+    this.particleSystem.update(deltaSeconds);
     this.damageSystem.update(deltaSeconds);
     this.playerSystem.update(deltaSeconds);
     this.camera.follow(this.player);
@@ -206,6 +215,7 @@ export class GameWorld {
     this.bossSystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
     this.enemySystem.update(deltaSeconds);
     const damageResult = this.damageSystem.applyContactDamage(this.collisionSystem.getPlayerContacts());
+    if (damageResult.damaged && !damageResult.killed) this.particleSystem.emitPlayerHit(this.player);
     const upgradeEffects = this.upgradeEffectSystem.getSnapshot();
     this.weaponSystem.update({
       player: this.player,
@@ -271,6 +281,7 @@ export class GameWorld {
     }
 
     this.clock.reset();
+    this.particleSystem.reset();
     this.playerSystem.reset();
     this.camera.follow(this.player);
     this.enemies.length = 0;

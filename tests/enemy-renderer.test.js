@@ -132,6 +132,10 @@ describe('CanvasRenderer layering', () => {
         expect(boss).toEqual(expect.objectContaining({ typeId: 'BOSS-01', phase: 'telegraph' }));
         events.push('boss-warning');
       } },
+      particleRenderer: { render: (_context, _camera, effects) => {
+        expect(effects).toEqual([{ id: 'effect' }]);
+        events.push('particles');
+      } },
       orbitalBladeRenderer: { render: (_context, _camera, snapshot) => {
         expect(snapshot).toEqual(expect.objectContaining({ active: true, level: 1 }));
         events.push('orbital-blade');
@@ -146,10 +150,12 @@ describe('CanvasRenderer layering', () => {
       crystals,
       Object.freeze({ active: true, level: 1, x: 1200, y: 675, radius: 8, angleRadians: 0 }),
       Object.freeze({ typeId: 'BOSS-01', phase: 'telegraph' }),
+      [{ id: 'effect' }],
+      1.25,
     );
 
-    expect(events.slice(-7)).toEqual([
-      'map', 'crystals', 'projectiles', 'boss-warning', 'enemies', 'orbital-blade', 'player',
+    expect(events.slice(-8)).toEqual([
+      'map', 'crystals', 'projectiles', 'particles', 'boss-warning', 'enemies', 'orbital-blade', 'player',
     ]);
   });
 });
@@ -191,6 +197,8 @@ describe('Game world rendering', () => {
     game.world.getBossSnapshot = () => bossSnapshot;
 
     game.startGame();
+    game.world.particleSystem.emitPlayerHit(game.world.player);
+    const visualEffects = game.world.getVisualEffectsSnapshot();
     game.world.projectiles.push(new Projectile({
       id: 'game-projectile',
       ownerId: 'player',
@@ -213,7 +221,7 @@ describe('Game world rendering', () => {
     expect(renderCalls[0][3]).toBe(game.world.experienceCrystals);
     expect(renderCalls[0][4]).toBe(bladeSnapshot);
     expect(renderCalls[0][5]).toBe(bossSnapshot);
-    expect(renderCalls[0][6]).toEqual([]);
+    expect(renderCalls[0][6]).toEqual(visualEffects);
     expect(renderCalls[0][7]).toBe(0);
     game.stop();
   });

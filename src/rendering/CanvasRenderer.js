@@ -6,6 +6,7 @@ import { ProjectileRenderer } from './ProjectileRenderer.js';
 import { ExperienceCrystalRenderer } from './ExperienceCrystalRenderer.js';
 import { OrbitalBladeRenderer } from './OrbitalBladeRenderer.js';
 import { BossRenderer } from './BossRenderer.js';
+import { ParticleRenderer } from './ParticleRenderer.js';
 
 export class CanvasRenderer {
   #canvas;
@@ -18,6 +19,7 @@ export class CanvasRenderer {
   #playerRenderer;
   #orbitalBladeRenderer;
   #bossRenderer;
+  #particleRenderer;
   #windowTarget;
   #devicePixelRatio;
   #started = false;
@@ -35,6 +37,7 @@ export class CanvasRenderer {
     enemyRenderer = new EnemyRenderer(),
     orbitalBladeRenderer = new OrbitalBladeRenderer(),
     bossRenderer = new BossRenderer(),
+    particleRenderer = new ParticleRenderer(),
     playerRenderer = new PlayerRenderer(),
     windowTarget = globalThis.window ?? null,
     devicePixelRatio = () => globalThis.devicePixelRatio || 1,
@@ -66,6 +69,9 @@ export class CanvasRenderer {
     if (!bossRenderer || typeof bossRenderer.render !== 'function') {
       throw new TypeError('CanvasRenderer requires a Boss renderer');
     }
+    if (!particleRenderer || typeof particleRenderer.render !== 'function') {
+      throw new TypeError('CanvasRenderer requires a particle renderer');
+    }
     if (typeof devicePixelRatio !== 'function') {
       throw new TypeError('devicePixelRatio must be provided as a function');
     }
@@ -80,6 +86,7 @@ export class CanvasRenderer {
     this.#enemyRenderer = enemyRenderer;
     this.#orbitalBladeRenderer = orbitalBladeRenderer;
     this.#bossRenderer = bossRenderer;
+    this.#particleRenderer = particleRenderer;
     this.#playerRenderer = playerRenderer;
     this.#windowTarget = windowTarget;
     this.#devicePixelRatio = devicePixelRatio;
@@ -141,6 +148,7 @@ export class CanvasRenderer {
     this.#mapRenderer.render(this.#context, this.#camera);
     this.#experienceCrystalRenderer.render(this.#context, this.#camera, experienceCrystals);
     this.#projectileRenderer.render(this.#context, this.#camera, projectiles);
+    this.#particleRenderer.render(this.#context, this.#camera, visualEffects);
     this.#bossRenderer.render(this.#context, this.#camera, bossSnapshot, effectiveTime);
     this.#enemyRenderer.render(this.#context, this.#camera, enemies, effectiveTime);
     this.#orbitalBladeRenderer.render(this.#context, this.#camera, orbitalBlade);

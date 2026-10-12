@@ -54,7 +54,7 @@ export class Game {
           this.world.experienceCrystals,
           this.world.getOrbitalBladeSnapshot(),
           this.world.getBossSnapshot(),
-          [],
+          this.world.getVisualEffectsSnapshot(),
           this.clock.elapsedSeconds,
         );
         this.#uiManager?.renderSnapshot(
