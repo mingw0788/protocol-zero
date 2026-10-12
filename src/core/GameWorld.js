@@ -39,6 +39,7 @@ export class GameWorld {
   #simulationSteps = 0;
   #killCount = 0;
   #playerDeathFrozen = false;
+  #runResult = null;
   #playerDeathListeners = new Set();
   #enemyDeathListeners = new Set();
 
@@ -146,6 +147,10 @@ export class GameWorld {
     return this.bossSystem.getSnapshot();
   }
 
+  getRunResultSnapshot() {
+    return this.#runResult;
+  }
+
   getUpgradeChoices() {
     return this.upgradeSystem.getChoicesSnapshot();
   }
@@ -226,9 +231,16 @@ export class GameWorld {
       this.#playerDeathFrozen = true;
       const payload = Object.freeze({ elapsedSeconds: this.clock.elapsedSeconds });
       for (const listener of [...this.#playerDeathListeners]) listener(payload);
+      this.#finishRun(GAME_STATES.DEFEAT);
+    } else {
+      const bossSnapshot = this.bossSystem.getSnapshot();
+      if (this.clock.elapsedSeconds >= 300 && bossSnapshot?.alive === false) {
+        this.#finishRun(GAME_STATES.VICTORY);
+      }
     }
 
-    if (gainedLevels > 0 && damageResult.killed !== true && this.player.alive === true) {
+    if (gainedLevels > 0 && damageResult.killed !== true && this.player.alive === true
+      && this.stateManager.currentState === GAME_STATES.PLAYING) {
       this.upgradeSystem.prepareChoices();
       this.stateManager.beginLevelUp();
     }
@@ -273,5 +285,15 @@ export class GameWorld {
     this.#simulationSteps = 0;
     this.#killCount = 0;
     this.#playerDeathFrozen = false;
+    this.#runResult = null;
+  }
+
+  #finishRun(outcome) {
+    this.#runResult = Object.freeze({
+      outcome: outcome === GAME_STATES.VICTORY ? 'victory' : 'defeat',
+      killCount: this.#killCount,
+      elapsedSeconds: this.clock.elapsedSeconds,
+    });
+    if (!this.stateManager.finishRun(outcome)) this.#runResult = null;
   }
 }

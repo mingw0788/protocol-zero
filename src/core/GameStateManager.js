@@ -3,13 +3,17 @@ export const GAME_STATES = Object.freeze({
   PLAYING: 'PLAYING',
   PAUSED: 'PAUSED',
   LEVEL_UP: 'LEVEL_UP',
+  VICTORY: 'VICTORY',
+  DEFEAT: 'DEFEAT',
 });
 
 const ALLOWED_TRANSITIONS = Object.freeze({
   [GAME_STATES.MENU]: new Set([GAME_STATES.PLAYING]),
-  [GAME_STATES.PLAYING]: new Set([GAME_STATES.PAUSED, GAME_STATES.LEVEL_UP]),
+  [GAME_STATES.PLAYING]: new Set([GAME_STATES.PAUSED, GAME_STATES.LEVEL_UP, GAME_STATES.VICTORY, GAME_STATES.DEFEAT]),
   [GAME_STATES.PAUSED]: new Set([GAME_STATES.PLAYING, GAME_STATES.MENU]),
   [GAME_STATES.LEVEL_UP]: new Set([GAME_STATES.PLAYING]),
+  [GAME_STATES.VICTORY]: new Set([GAME_STATES.MENU, GAME_STATES.PLAYING]),
+  [GAME_STATES.DEFEAT]: new Set([GAME_STATES.MENU, GAME_STATES.PLAYING]),
 });
 
 export class GameStateManager {
@@ -47,7 +51,21 @@ export class GameStateManager {
   }
 
   returnToMenu() {
+    if (this.#currentState !== GAME_STATES.PAUSED
+      && this.#currentState !== GAME_STATES.VICTORY
+      && this.#currentState !== GAME_STATES.DEFEAT) return false;
     return this.transitionTo(GAME_STATES.MENU);
+  }
+
+  finishRun(outcome) {
+    if (outcome !== GAME_STATES.VICTORY && outcome !== GAME_STATES.DEFEAT) return false;
+    if (this.#currentState !== GAME_STATES.PLAYING) return false;
+    return this.#transitionTo(outcome);
+  }
+
+  restartRun() {
+    if (this.#currentState !== GAME_STATES.VICTORY && this.#currentState !== GAME_STATES.DEFEAT) return false;
+    return this.transitionTo(GAME_STATES.PLAYING);
   }
 
   beginLevelUp() {
@@ -62,6 +80,7 @@ export class GameStateManager {
 
   transitionTo(nextState) {
     if (nextState === GAME_STATES.LEVEL_UP || this.#currentState === GAME_STATES.LEVEL_UP) return false;
+    if (nextState === GAME_STATES.VICTORY || nextState === GAME_STATES.DEFEAT) return false;
     return this.#transitionTo(nextState);
   }
 

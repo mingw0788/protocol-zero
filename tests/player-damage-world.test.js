@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { GameStateManager } from '../src/core/GameStateManager.js';
+import { GAME_STATES, GameStateManager } from '../src/core/GameStateManager.js';
 import { GameWorld } from '../src/core/GameWorld.js';
 import { Enemy } from '../src/entities/Enemy.js';
+import { ExperienceCrystal } from '../src/entities/ExperienceCrystal.js';
 import { InputController } from '../src/input/InputController.js';
 import { Camera } from '../src/rendering/Camera.js';
 
@@ -44,6 +45,88 @@ function addEnemyAtPlayer(world, id = 'contact-enemy') {
 }
 
 describe('GameWorld player damage', () => {
+  it('fails on the lethal step before a same-step eligible Boss victory', () => {
+    const { stateManager, world } = createHarness();
+    stateManager.startGame();
+    world.bossSystem.update(0, 270);
+    const boss = world.enemies[0];
+    boss.hp = 0;
+    boss.alive = false;
+    world.clock.advance(300);
+    world.player.hp = 10;
+    addEnemyAtPlayer(world, 'same-step-lethal-enemy');
+
+    world.update(1 / 60);
+
+    expect(stateManager.currentState).toBe(GAME_STATES.DEFEAT);
+    expect(world.getRunResultSnapshot()).toMatchObject({
+      outcome: 'defeat',
+      elapsedSeconds: expect.any(Number),
+    });
+    expect(world.getRunResultSnapshot().killCount).toBe(1);
+  });
+
+  it('waits until 300 seconds for an already defeated Boss, then freezes a victory snapshot', () => {
+    const { stateManager, world } = createHarness();
+    stateManager.startGame();
+    world.bossSystem.update(0, 270);
+    world.enemies[0].hp = 0;
+    world.enemies[0].alive = false;
+    world.update(1 / 60);
+
+    expect(stateManager.currentState).toBe(GAME_STATES.PLAYING);
+    expect(world.getRunResultSnapshot()).toBeNull();
+
+    world.clock.advance(299.99);
+    world.update(1 / 60);
+    const result = world.getRunResultSnapshot();
+
+    expect(stateManager.currentState).toBe(GAME_STATES.VICTORY);
+    expect(result).toMatchObject({ outcome: 'victory', killCount: 1 });
+    expect(result.elapsedSeconds).toBeGreaterThanOrEqual(300);
+    expect(Object.isFrozen(result)).toBe(true);
+    expect(world.update(1 / 60)).toBe(false);
+    expect(world.getRunResultSnapshot()).toBe(result);
+  });
+
+  it('continues after 300 seconds while Boss is alive and wins when it is defeated', () => {
+    const { stateManager, world } = createHarness();
+    stateManager.startGame();
+    world.bossSystem.update(0, 270);
+    world.clock.advance(300);
+    world.update(1 / 60);
+
+    expect(stateManager.currentState).toBe(GAME_STATES.PLAYING);
+    expect(world.getRunResultSnapshot()).toBeNull();
+
+    world.enemies[0].hp = 0;
+    world.enemies[0].alive = false;
+    world.update(1 / 60);
+
+    expect(stateManager.currentState).toBe(GAME_STATES.VICTORY);
+    expect(world.getRunResultSnapshot().outcome).toBe('victory');
+  });
+
+  it('prefers victory to a new level-up choice on the same living step', () => {
+    const { stateManager, world } = createHarness();
+    stateManager.startGame();
+    world.bossSystem.update(0, 270);
+    world.enemies[0].hp = 0;
+    world.enemies[0].alive = false;
+    world.experienceCrystals.push(new ExperienceCrystal({
+      id: 'final-step-level-up',
+      x: world.player.x,
+      y: world.player.y,
+      expValue: 6,
+    }));
+    world.clock.advance(300);
+
+    world.update(1 / 60);
+
+    expect(stateManager.currentState).toBe(GAME_STATES.VICTORY);
+    expect(world.levelSystem.pendingLevelUps).toBe(1);
+  });
+
   it('finishes the lethal step then freezes projectile and cooldown simulation', () => {
     const { stateManager, world } = createHarness();
     stateManager.startGame();
@@ -179,8 +262,7 @@ describe('GameWorld player damage', () => {
     expect(world.player.hp).toBe(0);
     expect(deathCount).toBe(1);
     expect(inputController.getMovementVector()).toEqual({ x: 0, y: 0 });
-    stateManager.pause();
-    stateManager.resume();
+    expect(stateManager.currentState).toBe(GAME_STATES.DEFEAT);
     const frozenClock = world.clock.elapsedSeconds;
     expect(world.update(1 / 60)).toBe(false);
     expect(world.clock.elapsedSeconds).toBe(frozenClock);
@@ -188,6 +270,8 @@ describe('GameWorld player damage', () => {
     world.reset();
     expect(world.player.hp).toBe(100);
     expect(world.player.alive).toBe(true);
+    expect(stateManager.returnToMenu()).toBe(true);
+    expect(stateManager.startGame()).toBe(true);
     world.player.hp = 10;
     addEnemyAtPlayer(world, 'second-run-enemy');
     world.update(1 / 60);
