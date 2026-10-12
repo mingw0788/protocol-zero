@@ -72,6 +72,10 @@ function distanceToView(camera, x, y) {
   return Math.hypot(dx, dy);
 }
 
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
 export class BossSystem {
   #config;
   #enemies;
@@ -82,6 +86,10 @@ export class BossSystem {
   #spawned = false;
   #phase = 'approach';
   #phaseRemaining = 0;
+  #chargeDirection = null;
+  #chargeEnd = null;
+  #chargeDistanceRemaining = 0;
+  #lastDirection = Object.freeze({ x: 1, y: 0 });
 
   constructor({
     enemies,
@@ -134,11 +142,14 @@ export class BossSystem {
       return true;
     }
 
+    if (!this.#boss || deltaSeconds === 0 || !this.#boss.alive || this.#boss.hp <= 0) return false;
+    this.#updatePhase(deltaSeconds);
     return false;
   }
 
   getSnapshot() {
     if (!this.#boss) return null;
+    const warningActive = this.#phase === 'telegraph' || this.#phase === 'charging';
     return Object.freeze({
       id: this.#boss.id,
       typeId: this.#boss.typeId,
@@ -151,9 +162,126 @@ export class BossSystem {
       alive: this.#boss.alive && this.#boss.hp > 0,
       phase: this.#phase,
       phaseRemaining: this.#phaseRemaining,
-      chargeDirection: null,
-      chargeEnd: null,
+      chargeDirection: warningActive ? Object.freeze({ ...this.#chargeDirection }) : null,
+      chargeEnd: warningActive ? Object.freeze({ ...this.#chargeEnd }) : null,
     });
+  }
+
+  #updatePhase(deltaSeconds) {
+    if (this.#phase === 'approach') {
+      this.#moveTowardPlayer(deltaSeconds, this.#config.speed);
+      if (this.#countdown(deltaSeconds)) this.#beginTelegraph();
+      return;
+    }
+
+    if (this.#phase === 'telegraph') {
+      if (this.#countdown(deltaSeconds)) {
+        this.#phase = 'charging';
+        this.#phaseRemaining = this.#config.chargeDurationSeconds;
+        this.#chargeDistanceRemaining = this.#config.chargeSpeed * this.#config.chargeDurationSeconds;
+      }
+      return;
+    }
+
+    if (this.#phase === 'charging') {
+      this.#moveAlongCharge(deltaSeconds);
+      const timerFinished = this.#countdown(deltaSeconds);
+      const distanceTolerance = Number.EPSILON * Math.max(1, this.#config.chargeSpeed) * 16;
+      if (timerFinished || this.#chargeDistanceRemaining <= distanceTolerance) {
+        this.#phase = 'recovery';
+        this.#phaseRemaining = this.#config.recoverySeconds;
+      }
+      return;
+    }
+
+    if (this.#phase === 'recovery' && this.#countdown(deltaSeconds)) {
+      this.#phase = 'approach';
+      this.#phaseRemaining = this.#config.attackCooldownSeconds;
+      this.#chargeDirection = null;
+      this.#chargeEnd = null;
+      this.#chargeDistanceRemaining = 0;
+    }
+  }
+
+  #moveTowardPlayer(deltaSeconds, speed) {
+    const deltaX = this.#player.x - this.#boss.x;
+    const deltaY = this.#player.y - this.#boss.y;
+    const distance = Math.hypot(deltaX, deltaY);
+    if (distance === 0) return;
+
+    const direction = { x: deltaX / distance, y: deltaY / distance };
+    this.#lastDirection = direction;
+    const travel = Math.min(speed * deltaSeconds, distance);
+    this.#boss.x = clamp(
+      this.#boss.x + direction.x * travel,
+      this.#boss.radius,
+      this.#world.width - this.#boss.radius,
+    );
+    this.#boss.y = clamp(
+      this.#boss.y + direction.y * travel,
+      this.#boss.radius,
+      this.#world.height - this.#boss.radius,
+    );
+  }
+
+  #moveAlongCharge(deltaSeconds) {
+    const requestedDistance = Math.min(
+      this.#config.chargeSpeed * deltaSeconds,
+      this.#chargeDistanceRemaining,
+    );
+    const previousX = this.#boss.x;
+    const previousY = this.#boss.y;
+    this.#boss.x = clamp(
+      previousX + this.#chargeDirection.x * requestedDistance,
+      this.#boss.radius,
+      this.#world.width - this.#boss.radius,
+    );
+    this.#boss.y = clamp(
+      previousY + this.#chargeDirection.y * requestedDistance,
+      this.#boss.radius,
+      this.#world.height - this.#boss.radius,
+    );
+    const actualDistance = Math.hypot(this.#boss.x - previousX, this.#boss.y - previousY);
+    this.#chargeDistanceRemaining = Math.max(0, this.#chargeDistanceRemaining - actualDistance);
+  }
+
+  #countdown(deltaSeconds) {
+    const remaining = this.#phaseRemaining - deltaSeconds;
+    const phaseScale = Math.max(
+      this.#config.initialAttackDelaySeconds,
+      this.#config.telegraphSeconds,
+      this.#config.chargeDurationSeconds,
+      this.#config.recoverySeconds,
+      this.#config.attackCooldownSeconds,
+      deltaSeconds,
+    );
+    const tolerance = Number.EPSILON * phaseScale * 32;
+    this.#phaseRemaining = remaining <= tolerance ? 0 : remaining;
+    return this.#phaseRemaining === 0;
+  }
+
+  #beginTelegraph() {
+    const deltaX = this.#player.x - this.#boss.x;
+    const deltaY = this.#player.y - this.#boss.y;
+    const distance = Math.hypot(deltaX, deltaY);
+    const direction = distance > 0
+      ? { x: deltaX / distance, y: deltaY / distance }
+      : this.#lastDirection;
+    this.#chargeDirection = Object.freeze({ ...direction });
+    this.#chargeEnd = Object.freeze({
+      x: clamp(
+        this.#boss.x + direction.x * this.#config.chargeSpeed * this.#config.chargeDurationSeconds,
+        this.#boss.radius,
+        this.#world.width - this.#boss.radius,
+      ),
+      y: clamp(
+        this.#boss.y + direction.y * this.#config.chargeSpeed * this.#config.chargeDurationSeconds,
+        this.#boss.radius,
+        this.#world.height - this.#boss.radius,
+      ),
+    });
+    this.#phase = 'telegraph';
+    this.#phaseRemaining = this.#config.telegraphSeconds;
   }
 
   #findSpawnPosition() {

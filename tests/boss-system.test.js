@@ -19,6 +19,13 @@ function createBossSystem({ playerX, playerY, config = BOSS_CONFIG } = {}) {
   return { enemies, player, camera, bossSystem };
 }
 
+function advanceBoss(bossSystem, stepCount) {
+  const fixedStepSeconds = 1 / 60;
+  for (let step = 1; step <= stepCount; step += 1) {
+    bossSystem.update(fixedStepSeconds, 270 + step * fixedStepSeconds);
+  }
+}
+
 describe('BossSystem spawn', () => {
   it('keeps the confirmed Boss health and frozen D-036 first-tuning configuration', () => {
     expect(BOSS_CONFIG).toMatchObject({
@@ -119,5 +126,122 @@ describe('BossSystem spawn', () => {
     expect(Object.isFrozen(snapshot)).toBe(true);
     expect(snapshot).not.toBe(enemies[0]);
     expect(() => Object.assign(snapshot, { hp: 0 })).toThrow(TypeError);
+  });
+});
+
+describe('BossSystem charge cycle', () => {
+  it('pursues the player during the initial approach delay', () => {
+    const { bossSystem, enemies, player } = createBossSystem();
+    bossSystem.update(0, 270);
+    const [boss] = enemies;
+    const distanceBefore = Math.hypot(boss.x - player.x, boss.y - player.y);
+
+    bossSystem.update(1 / 60, 270 + 1 / 60);
+
+    expect(Math.hypot(boss.x - player.x, boss.y - player.y)).toBeLessThan(distanceBefore);
+    expect(bossSystem.getSnapshot()).toMatchObject({
+      phase: 'approach',
+      phaseRemaining: expect.closeTo(2 - 1 / 60, 10),
+    });
+  });
+
+  it('begins the first telegraph after exactly the configured 2-second approach delay', () => {
+    const { bossSystem } = createBossSystem();
+    bossSystem.update(0, 270);
+
+    advanceBoss(bossSystem, 119);
+    expect(bossSystem.getSnapshot().phase).toBe('approach');
+    expect(bossSystem.getSnapshot().phaseRemaining).toBeGreaterThan(0);
+
+    advanceBoss(bossSystem, 1);
+
+    expect(bossSystem.getSnapshot()).toMatchObject({
+      phase: 'telegraph',
+      phaseRemaining: 0.8,
+    });
+  });
+
+  it('holds position and warning geometry fixed while the player can dodge', () => {
+    const { bossSystem, enemies, player } = createBossSystem();
+    bossSystem.update(0, 270);
+    advanceBoss(bossSystem, 120);
+    const [boss] = enemies;
+    const bossPosition = { x: boss.x, y: boss.y };
+    const warning = bossSystem.getSnapshot();
+
+    expect(warning.phase).toBe('telegraph');
+    expect(Math.hypot(warning.chargeDirection.x, warning.chargeDirection.y)).toBeCloseTo(1, 12);
+    expect(Object.isFrozen(warning.chargeDirection)).toBe(true);
+    expect(Object.isFrozen(warning.chargeEnd)).toBe(true);
+    player.x = 100;
+    player.y = 100;
+    advanceBoss(bossSystem, 47);
+
+    expect(boss.x).toBe(bossPosition.x);
+    expect(boss.y).toBe(bossPosition.y);
+    expect(bossSystem.getSnapshot()).toMatchObject({
+      phase: 'telegraph',
+      chargeDirection: warning.chargeDirection,
+      chargeEnd: warning.chargeEnd,
+    });
+
+    advanceBoss(bossSystem, 1);
+
+    expect(bossSystem.getSnapshot().phase).toBe('charging');
+    expect(boss.x).toBe(bossPosition.x);
+    expect(boss.y).toBe(bossPosition.y);
+  });
+
+  it('charges at the configured speed, recovers, and starts another cooldown cycle', () => {
+    const { bossSystem, enemies } = createBossSystem();
+    bossSystem.update(0, 270);
+    advanceBoss(bossSystem, 120 + 48);
+    const [boss] = enemies;
+    const chargeStart = { x: boss.x, y: boss.y };
+
+    advanceBoss(bossSystem, 36);
+
+    expect(bossSystem.getSnapshot()).toMatchObject({
+      phase: 'recovery',
+      phaseRemaining: 0.8,
+    });
+    expect(Math.hypot(boss.x - chargeStart.x, boss.y - chargeStart.y)).toBeCloseTo(252, 8);
+
+    advanceBoss(bossSystem, 47);
+    expect(bossSystem.getSnapshot().phase).toBe('recovery');
+    advanceBoss(bossSystem, 1);
+    expect(bossSystem.getSnapshot()).toMatchObject({
+      phase: 'approach',
+      phaseRemaining: 3.2,
+    });
+
+    advanceBoss(bossSystem, 191);
+    expect(bossSystem.getSnapshot().phase).toBe('approach');
+    advanceBoss(bossSystem, 1);
+    expect(bossSystem.getSnapshot().phase).toBe('telegraph');
+  });
+
+  it('clamps the predicted and actual charge at a world edge', () => {
+    const config = { ...BOSS_CONFIG, initialAttackDelaySeconds: 1 / 60 };
+    const { bossSystem, enemies, player } = createBossSystem({ playerX: 16, playerY: 675, config });
+    bossSystem.update(0, 270);
+    const [boss] = enemies;
+    boss.x = 60;
+    boss.y = 675;
+
+    advanceBoss(bossSystem, 1);
+    expect(bossSystem.getSnapshot().phase).toBe('telegraph');
+    expect(bossSystem.getSnapshot().chargeEnd.x).toBe(boss.radius);
+    expect(bossSystem.getSnapshot().chargeDirection.x).toBe(-1);
+
+    advanceBoss(bossSystem, 48 + 36);
+
+    expect(boss.x).toBe(boss.radius);
+    expect(Number.isFinite(boss.x)).toBe(true);
+    expect(Number.isFinite(boss.y)).toBe(true);
+    expect(boss.x).toBeGreaterThanOrEqual(boss.radius);
+    expect(boss.x).toBeLessThanOrEqual(WORLD_MAP.width - boss.radius);
+    expect(boss.y).toBeGreaterThanOrEqual(boss.radius);
+    expect(boss.y).toBe(675);
   });
 });
