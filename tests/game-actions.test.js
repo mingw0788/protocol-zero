@@ -28,6 +28,7 @@ describe('Game menu and pause actions', () => {
     expect(game.stateManager.finishRun(GAME_STATES.DEFEAT)).toBe(false);
     expect(game.stateManager.pause()).toBe(false);
     expect(game.stateManager.resume()).toBe(false);
+    expect(game.stateManager.transitionTo(GAME_STATES.PLAYING)).toBe(false);
     expect(game.stateManager.restartRun()).toBe(true);
     expect(game.stateManager.currentState).toBe(GAME_STATES.PLAYING);
   });

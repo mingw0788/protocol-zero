@@ -65,7 +65,7 @@ export class GameStateManager {
 
   restartRun() {
     if (this.#currentState !== GAME_STATES.VICTORY && this.#currentState !== GAME_STATES.DEFEAT) return false;
-    return this.transitionTo(GAME_STATES.PLAYING);
+    return this.#transitionTo(GAME_STATES.PLAYING);
   }
 
   beginLevelUp() {
@@ -81,6 +81,8 @@ export class GameStateManager {
   transitionTo(nextState) {
     if (nextState === GAME_STATES.LEVEL_UP || this.#currentState === GAME_STATES.LEVEL_UP) return false;
     if (nextState === GAME_STATES.VICTORY || nextState === GAME_STATES.DEFEAT) return false;
+    if ((this.#currentState === GAME_STATES.VICTORY || this.#currentState === GAME_STATES.DEFEAT)
+      && nextState === GAME_STATES.PLAYING) return false;
     return this.#transitionTo(nextState);
   }
 
