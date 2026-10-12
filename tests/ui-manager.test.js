@@ -118,6 +118,13 @@ describe('UIManager with real Game state', () => {
     expect(h.get('run-result-kills').textContent).toBe('1');
     expect(h.get('run-result-time').textContent).toBe('05:00');
 
+    const shiftTab = h.key('Tab', { shiftKey: true });
+    expect(shiftTab.defaultPrevented).toBe(true);
+    expect(h.documentTarget.activeElement).toBe(h.get('result-menu-button'));
+    const tab = h.key('Tab');
+    expect(tab.defaultPrevented).toBe(true);
+    expect(h.documentTarget.activeElement).toBe(h.get('restart-run-button'));
+
     h.click('restart-run-button');
 
     expect(h.game.stateManager.currentState).toBe(GAME_STATES.PLAYING);

@@ -268,6 +268,22 @@ export class UIManager {
 
   #handleKeyDown = (event) => {
     const state = this.#game.stateManager.currentState;
+    if (state === GAME_STATES.VICTORY || state === GAME_STATES.DEFEAT) {
+      if (event.code === 'Escape') {
+        event.preventDefault();
+        return;
+      }
+      if (event.code === 'Tab') {
+        const first = this.#elements.restartRun;
+        const last = this.#elements.resultMenu;
+        const active = this.#windowTarget?.document?.activeElement;
+        if ((event.shiftKey && active === first) || (!event.shiftKey && active === last)) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus();
+        }
+      }
+      return;
+    }
     if (state === GAME_STATES.LEVEL_UP) {
       if (event.code === 'Escape') {
         event.preventDefault();
