@@ -69,6 +69,6 @@ export class Player {
     this.invulnerabilityRemaining = 0;
     this.level = PLAYER_CONFIG.initialLevel;
     this.exp = PLAYER_CONFIG.initialExp;
-    this.weaponStates = [{ id: PLAYER_CONFIG.startingWeaponId }];
+    this.weaponStates = [{ id: PLAYER_CONFIG.startingWeaponId, cooldownRemaining: 0 }];
   }
 }

@@ -58,7 +58,7 @@ describe('Player', () => {
     expect(player.maxHp).toBe(100);
     expect(player.level).toBe(1);
     expect(player.exp).toBe(0);
-    expect(player.weaponStates).toEqual([{ id: 'pulse-gun' }]);
+    expect(player.weaponStates).toEqual([{ id: 'pulse-gun', cooldownRemaining: 0 }]);
   });
 
   it('tracks alive and invulnerability per player and resets them', () => {
@@ -81,6 +81,20 @@ describe('Player', () => {
     expect(player.invulnerabilityRemaining).toBe(0);
   });
 
+  it('owns and resets an independent pulse gun cooldown', () => {
+    const player = new Player();
+    const otherPlayer = new Player();
+
+    expect(player.weaponStates).toEqual([{ id: 'pulse-gun', cooldownRemaining: 0 }]);
+    player.weaponStates[0].cooldownRemaining = 0.35;
+
+    expect(otherPlayer.weaponStates[0].cooldownRemaining).toBe(0);
+    player.reset();
+
+    expect(player.weaponStates).toEqual([{ id: 'pulse-gun', cooldownRemaining: 0 }]);
+    expect(player.weaponStates[0]).not.toBe(otherPlayer.weaponStates[0]);
+  });
+
   it('restores run attributes without sharing equipment between players', () => {
     const player = new Player();
     const otherPlayer = new Player();
@@ -100,8 +114,8 @@ describe('Player', () => {
     expect(player.maxHp).toBe(100);
     expect(player.level).toBe(1);
     expect(player.exp).toBe(0);
-    expect(otherPlayer.weaponStates).toEqual([{ id: 'pulse-gun' }]);
+    expect(otherPlayer.weaponStates).toEqual([{ id: 'pulse-gun', cooldownRemaining: 0 }]);
     player.reset();
-    expect(player.weaponStates).toEqual([{ id: 'pulse-gun' }]);
+    expect(player.weaponStates).toEqual([{ id: 'pulse-gun', cooldownRemaining: 0 }]);
   });
 });
