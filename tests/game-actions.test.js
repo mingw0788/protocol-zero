@@ -161,6 +161,20 @@ describe('Game menu and pause actions', () => {
     const game = createGame();
     game.toggleSound();
     game.startGame();
+    game.world.experienceCrystals.push(new ExperienceCrystal({
+      id: 'restart-level-up', x: game.world.player.x, y: game.world.player.y, expValue: 6,
+    }));
+    game.world.update(1 / 60);
+    const upgradeId = game.getUpgradeChoices()[0].id;
+    expect(game.chooseUpgrade(upgradeId)).toBe(true);
+    game.world.player.hp = 50;
+    game.world.player.exp = 4;
+    game.world.player.level = 2;
+    game.world.player.weaponStates.push({ id: 'stale-weapon' });
+    game.world.projectiles.push({ active: true });
+    game.world.experienceCrystals.push(new ExperienceCrystal({
+      id: 'restart-crystal', x: 100, y: 100, expValue: 2,
+    }));
     game.world.bossSystem.update(0, 270);
     game.world.enemies[0].hp = 0;
     game.world.enemies[0].alive = false;
@@ -173,7 +187,13 @@ describe('Game menu and pause actions', () => {
     expect(game.soundEnabled).toBe(false);
     expect(game.clock.elapsedSeconds).toBe(0);
     expect(game.world.enemies).toHaveLength(0);
+    expect(game.world.projectiles).toHaveLength(0);
+    expect(game.world.experienceCrystals).toHaveLength(0);
     expect(game.world.getRunResultSnapshot()).toBeNull();
     expect(game.getHudSnapshot().killCount).toBe(0);
+    expect(game.world.player).toMatchObject({ hp: 100, maxHp: 100, exp: 0, level: 1, moveSpeed: 220 });
+    expect(game.world.player.weaponStates.map((weapon) => weapon.id)).toEqual(['pulse-gun']);
+    expect(game.world.upgradeSystem.getLevel(upgradeId)).toBe(0);
+    expect(game.world.getBossSnapshot()).toBeNull();
   });
 });
