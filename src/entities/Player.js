@@ -34,6 +34,7 @@ export class Player {
     this.worldWidth = worldWidth;
     this.worldHeight = worldHeight;
     this.radius = radius;
+    this.baseMoveSpeed = moveSpeed;
     this.moveSpeed = moveSpeed;
     this.x = clamp(x, radius, worldWidth - radius);
     this.y = clamp(y, radius, worldHeight - radius);
@@ -63,6 +64,7 @@ export class Player {
   }
 
   #resetRunAttributes() {
+    this.moveSpeed = this.baseMoveSpeed;
     this.maxHp = PLAYER_CONFIG.maxHp;
     this.hp = this.maxHp;
     this.alive = true;

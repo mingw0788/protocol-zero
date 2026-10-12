@@ -11,6 +11,16 @@ describe('Player', () => {
     expect(player.radius).toBe(16);
   });
 
+  it('preserves a custom base move speed and restores it on reset', () => {
+    const player = new Player({ moveSpeed: 150 });
+    player.moveSpeed = 240;
+
+    player.reset();
+
+    expect(player.baseMoveSpeed).toBe(150);
+    expect(player.moveSpeed).toBe(150);
+  });
+
   it('moves cardinally and normalizes diagonal movement to the same speed', () => {
     const horizontalPlayer = new Player();
     const diagonalPlayer = new Player();
