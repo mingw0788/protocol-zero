@@ -43,27 +43,27 @@
 - Produces: 冻结 `EXPERIENCE_CRYSTAL_CONFIG = { pickupRadius: 12, lifetimeSeconds: 120, renderSize: 8, color: '#ffbf47' }`。
 - Produces: `new ExperienceCrystal({ id, x, y, expValue, pickupRadius = EXPERIENCE_CRYSTAL_CONFIG.pickupRadius, lifetimeSeconds = EXPERIENCE_CRYSTAL_CONFIG.lifetimeSeconds })`；实例字段为 `id`, `x`, `y`, `expValue`, `pickupRadius`, `remainingLifetime`, `active`。ID 必须为非空字符串；坐标有限；经验、半径、寿命为正有限数。
 
-- [ ] **Step 1: 写配置和实体校验测试**
+- [x] **Step 1: 写配置和实体校验测试**
 
 在 `tests/experience-crystal.test.js` 添加 `uses the approved frozen crystal defaults`、`copies valid crystal data and starts active`、`rejects invalid identity geometry value and lifetime`。断言配置冻结且值精确；实体默认半径为 12、剩余寿命为 120、`active === true`；分别覆盖空 ID、非有限坐标、非正/非有限经验、半径和寿命。
 
-- [ ] **Step 2: 运行定向测试确认失败**
+- [x] **Step 2: 运行定向测试确认失败**
 
 Run: `npm test -- tests/experience-crystal.test.js`
 
 Expected: 配置和实体模块尚不存在，测试失败。
 
-- [ ] **Step 3: 实现集中配置与经验晶体实体**
+- [x] **Step 3: 实现集中配置与经验晶体实体**
 
 在 `experienceCrystalConfig.js` 导出冻结配置；在 `ExperienceCrystal` 构造器校验输入并保存独立运行态字段。`remainingLifetime` 初始化为 `lifetimeSeconds`，不保存敌人引用、不访问 DOM。
 
-- [ ] **Step 4: 验证配置与实体测试通过**
+- [x] **Step 4: 验证配置与实体测试通过**
 
 Run: `npm test -- tests/experience-crystal.test.js`
 
 Expected: 配置、合法实例和所有非法输入断言通过。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/config/experienceCrystalConfig.js src/entities/ExperienceCrystal.js tests/experience-crystal.test.js
