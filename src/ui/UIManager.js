@@ -29,6 +29,12 @@ const ELEMENT_IDS = Object.freeze({
   bossName: 'boss-name',
   bossHealthValue: 'boss-health-value',
   bossHealthBar: 'boss-health-bar',
+  resultPanel: 'run-result-panel',
+  resultTitle: 'run-result-title',
+  resultKills: 'run-result-kills',
+  resultTime: 'run-result-time',
+  restartRun: 'restart-run-button',
+  resultMenu: 'result-menu-button',
 });
 const UPGRADE_CHOICE_COUNT = 3;
 
@@ -56,7 +62,9 @@ export class UIManager {
       || typeof game.getHudSnapshot !== 'function'
       || typeof game.getBossSnapshot !== 'function'
       || typeof game.getUpgradeChoices !== 'function'
-      || typeof game.chooseUpgrade !== 'function') {
+      || typeof game.chooseUpgrade !== 'function'
+      || typeof game.getRunResultSnapshot !== 'function'
+      || typeof game.restartGame !== 'function') {
       throw new TypeError('UIManager requires a game controller with state and HUD access');
     }
     this.#root = root;
@@ -98,6 +106,8 @@ export class UIManager {
       this.#renderSound();
     });
     this.#listen(e.resume, 'click', () => this.#game.resume());
+    this.#listen(e.restartRun, 'click', () => this.#game.restartGame());
+    this.#listen(e.resultMenu, 'click', () => this.#game.returnToMenu());
     this.#listen(e.returnMenu, 'click', () => {
       if (this.#game.stateManager.currentState !== GAME_STATES.PAUSED || e.dialog.open) return;
       e.dialog.showModal();
@@ -132,6 +142,7 @@ export class UIManager {
 
   renderSnapshot(snapshot, currentState, bossSnapshot = this.#game.getBossSnapshot()) {
     this.#renderBossSnapshot(bossSnapshot, currentState);
+    this.#renderRunResult(currentState);
     if (currentState !== GAME_STATES.PLAYING) return;
     const e = this.#elements;
     this.#setText(e.healthText, snapshot.health.current + ' / ' + snapshot.health.max);
@@ -178,12 +189,17 @@ export class UIManager {
     e.pause.hidden = state !== GAME_STATES.PAUSED;
     e.upgradePanel.hidden = state !== GAME_STATES.LEVEL_UP;
     e.bossHud.hidden = true;
+    e.resultPanel.hidden = state !== GAME_STATES.VICTORY && state !== GAME_STATES.DEFEAT;
     if (state !== GAME_STATES.PAUSED && e.dialog.open) e.dialog.close();
     if (state === GAME_STATES.MENU) e.start.focus();
     if (state === GAME_STATES.PAUSED) e.resume.focus();
     if (state === GAME_STATES.LEVEL_UP) {
       this.#renderUpgradeChoices();
       this.#focusFirstUpgradeChoice();
+    }
+    if (state === GAME_STATES.VICTORY || state === GAME_STATES.DEFEAT) {
+      this.#renderRunResult(state);
+      e.restartRun.focus();
     }
     if (state === GAME_STATES.PLAYING) this.#root.focus();
     this.renderSnapshot(this.#game.getHudSnapshot(), state, this.#game.getBossSnapshot());
@@ -210,6 +226,15 @@ export class UIManager {
 
   #focusFirstUpgradeChoice() {
     this.#elements.upgradeChoiceButtons.find((button) => !button.hidden)?.focus();
+  }
+
+  #renderRunResult(state) {
+    if (state !== GAME_STATES.VICTORY && state !== GAME_STATES.DEFEAT) return;
+    const snapshot = this.#game.getRunResultSnapshot();
+    if (!snapshot) return;
+    this.#setText(this.#elements.resultTitle, state === GAME_STATES.VICTORY ? '任务完成' : '任务失败');
+    this.#setText(this.#elements.resultKills, String(snapshot.killCount));
+    this.#setText(this.#elements.resultTime, formatTime(snapshot.elapsedSeconds));
   }
 
   #selectUpgrade(index) {

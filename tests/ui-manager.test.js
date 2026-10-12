@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { Game } from '../src/core/Game.js';
 import { GAME_STATES } from '../src/core/GameStateManager.js';
 import { ExperienceCrystal } from '../src/entities/ExperienceCrystal.js';
+import { Enemy } from '../src/entities/Enemy.js';
 import { UIManager } from '../src/ui/UIManager.js';
 
 // The browser tests cover native DOM/layout; these doubles isolate UI event wiring.
@@ -102,6 +103,47 @@ function triggerLevelUp(harness, expValue = 35) {
 }
 
 describe('UIManager with real Game state', () => {
+  it('shows an immutable victory summary and restarts a clean run from the result panel', () => {
+    const h = createHarness();
+    h.click('start-game-button');
+    h.game.world.bossSystem.update(0, 270);
+    h.game.world.enemies[0].hp = 0;
+    h.game.world.enemies[0].alive = false;
+    h.game.clock.advance(300);
+    h.game.world.update(1 / 60);
+
+    expect(h.game.stateManager.currentState).toBe(GAME_STATES.VICTORY);
+    expect(h.get('run-result-panel').hidden).toBe(false);
+    expect(h.get('run-result-title').textContent).toBe('任务完成');
+    expect(h.get('run-result-kills').textContent).toBe('1');
+    expect(h.get('run-result-time').textContent).toBe('05:00');
+
+    h.click('restart-run-button');
+
+    expect(h.game.stateManager.currentState).toBe(GAME_STATES.PLAYING);
+    expect(h.get('run-result-panel').hidden).toBe(true);
+    expect(h.game.getHudSnapshot().killCount).toBe(0);
+    expect(h.game.getRunResultSnapshot()).toBeNull();
+  });
+
+  it('shows defeat results and returns to a clean main menu', () => {
+    const h = createHarness();
+    h.click('start-game-button');
+    h.game.world.player.hp = 10;
+    h.game.world.enemies.push(new Enemy({
+      id: 'ui-lethal', x: h.game.world.player.x, y: h.game.world.player.y,
+    }));
+    h.game.world.update(1 / 60);
+
+    expect(h.game.stateManager.currentState).toBe(GAME_STATES.DEFEAT);
+    expect(h.get('run-result-title').textContent).toBe('任务失败');
+    h.click('result-menu-button');
+
+    expect(h.game.stateManager.currentState).toBe(GAME_STATES.MENU);
+    expect(h.get('run-result-panel').hidden).toBe(true);
+    expect(h.game.clock.elapsedSeconds).toBe(0);
+  });
+
   it('shows the live Boss snapshot as an accessible name, health value, and progress bar', () => {
     const h = createHarness();
     h.click('start-game-button');

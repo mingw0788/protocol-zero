@@ -117,9 +117,22 @@ export class Game {
   }
 
   returnToMenu() {
-    if (this.stateManager.currentState !== GAME_STATES.PAUSED) return false;
+    if (this.stateManager.currentState !== GAME_STATES.PAUSED
+      && this.stateManager.currentState !== GAME_STATES.VICTORY
+      && this.stateManager.currentState !== GAME_STATES.DEFEAT) return false;
     this.world.reset();
     return this.stateManager.returnToMenu();
+  }
+
+  restartGame() {
+    if (this.stateManager.currentState !== GAME_STATES.VICTORY
+      && this.stateManager.currentState !== GAME_STATES.DEFEAT) return false;
+    this.world.reset();
+    return this.stateManager.restartRun();
+  }
+
+  getRunResultSnapshot() {
+    return this.world.getRunResultSnapshot();
   }
 
   pause() {

@@ -16,6 +16,22 @@ function createGame() {
 }
 
 describe('Game menu and pause actions', () => {
+  it('allows only a controlled single terminal transition and restart from results', () => {
+    const game = createGame();
+
+    expect(game.stateManager.finishRun('UNKNOWN')).toBe(false);
+    expect(game.stateManager.transitionTo(GAME_STATES.VICTORY)).toBe(false);
+    expect(game.stateManager.finishRun(GAME_STATES.VICTORY)).toBe(false);
+    game.startGame();
+
+    expect(game.stateManager.finishRun(GAME_STATES.VICTORY)).toBe(true);
+    expect(game.stateManager.finishRun(GAME_STATES.DEFEAT)).toBe(false);
+    expect(game.stateManager.pause()).toBe(false);
+    expect(game.stateManager.resume()).toBe(false);
+    expect(game.stateManager.restartRun()).toBe(true);
+    expect(game.stateManager.currentState).toBe(GAME_STATES.PLAYING);
+  });
+
   it('keeps the initial menu frozen until the player starts', () => {
     const game = createGame();
     game.start();
@@ -139,5 +155,25 @@ describe('Game menu and pause actions', () => {
 
     expect(game.world.upgradeSystem.getLevel(selectedId)).toBe(0);
     expect(game.getUpgradeChoices()).toEqual([]);
+  });
+
+  it('restarts a finished run from a clean world while preserving runtime sound preference', () => {
+    const game = createGame();
+    game.toggleSound();
+    game.startGame();
+    game.world.bossSystem.update(0, 270);
+    game.world.enemies[0].hp = 0;
+    game.world.enemies[0].alive = false;
+    game.clock.advance(300);
+    game.world.update(1 / 60);
+
+    expect(game.stateManager.currentState).toBe(GAME_STATES.VICTORY);
+    expect(game.restartGame()).toBe(true);
+    expect(game.stateManager.currentState).toBe(GAME_STATES.PLAYING);
+    expect(game.soundEnabled).toBe(false);
+    expect(game.clock.elapsedSeconds).toBe(0);
+    expect(game.world.enemies).toHaveLength(0);
+    expect(game.world.getRunResultSnapshot()).toBeNull();
+    expect(game.getHudSnapshot().killCount).toBe(0);
   });
 });

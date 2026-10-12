@@ -25,6 +25,8 @@ describe('starter browser shell', () => {
       'resume-game-button', 'return-menu-button', 'return-menu-dialog',
       'cancel-return-button', 'confirm-return-button',
       'boss-hud', 'boss-name', 'boss-health-value', 'boss-health-bar',
+      'run-result-panel', 'run-result-title', 'run-result-kills', 'run-result-time',
+      'restart-run-button', 'result-menu-button',
     ]) {
       expect(html).toContain('id="' + id + '"');
     }

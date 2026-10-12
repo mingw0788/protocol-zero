@@ -101,6 +101,20 @@
             </div>
           </div>
         </section>
+        <section id="run-result-panel" class="ui-panel result-panel" role="dialog" aria-modal="true" aria-labelledby="run-result-title" hidden>
+          <div class="ui-card result-card">
+            <p class="eyebrow">ZERO / RUN REPORT</p>
+            <h2 id="run-result-title">任务结果</h2>
+            <dl class="result-stats">
+              <div><dt>击杀</dt><dd id="run-result-kills">0</dd></div>
+              <div><dt>存活时间</dt><dd id="run-result-time">00:00</dd></div>
+            </dl>
+            <div class="button-stack">
+              <button id="restart-run-button" class="button-primary" type="button">再来一局</button>
+              <button id="result-menu-button" type="button">返回主菜单</button>
+            </div>
+          </div>
+        </section>
         <dialog id="return-menu-dialog" class="confirm-dialog" aria-labelledby="return-menu-title" aria-describedby="return-menu-description">
           <p class="eyebrow">ZERO / DISCONNECT</p>
           <h2 id="return-menu-title">返回主菜单？</h2>
