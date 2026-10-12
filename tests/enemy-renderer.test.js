@@ -85,6 +85,14 @@ describe('EnemyRenderer', () => {
       x >= 64 && y >= 64 && x + width <= 96 && y + height <= 96)).toBe(true);
     expect(render(0)).toEqual(fallback);
   });
+
+  it('leaves Boss body rendering to BossRenderer', () => {
+    const boss = createEnemy('boss', 1200, 675);
+    boss.category = 'boss';
+    const context = createContext();
+    new EnemyRenderer().render(context, new Camera(), [boss]);
+    expect(context.fills).toEqual([]);
+  });
 });
 
 describe('CanvasRenderer layering', () => {

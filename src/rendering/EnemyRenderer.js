@@ -18,7 +18,7 @@ export class EnemyRenderer {
     context.clip();
 
     for (const enemy of enemies) {
-      if (!enemy.alive || enemy.hp <= 0) continue;
+      if (!enemy.alive || enemy.hp <= 0 || enemy.category === 'boss') continue;
       const position = camera.worldToScreen(enemy.x, enemy.y);
       const diameter = enemy.radius * 2;
       const x = position.x - enemy.radius;

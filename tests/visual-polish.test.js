@@ -9,6 +9,7 @@ describe('Visual polish contracts', () => {
     expect(css).toMatch(/button:focus-visible\s*\{/);
     expect(css).toMatch(/@container\s*\(max-width:\s*700px\)/);
     expect(css).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)/);
+    expect(css).toMatch(/@media\s*\(max-height:\s*480px\)/);
     expect(css).toMatch(/backdrop-filter:\s*blur/);
   });
 

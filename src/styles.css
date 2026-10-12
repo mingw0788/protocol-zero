@@ -539,6 +539,34 @@ h2 {
   }
 }
 
+@media (max-height: 480px) {
+  .ui-panel {
+    padding: 8px;
+  }
+
+  .ui-card {
+    padding: 12px;
+  }
+
+  .eyebrow {
+    margin-bottom: 8px;
+  }
+
+  .menu-description,
+  .panel-description {
+    margin: 12px 0;
+  }
+
+  .result-stats {
+    gap: 8px;
+    margin: 10px 0;
+  }
+
+  .result-stats > div {
+    padding: 8px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   button {
     transition: none;
