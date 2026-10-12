@@ -12,12 +12,21 @@ import { ProjectileRenderer } from '../rendering/ProjectileRenderer.js';
 import { ExperienceCrystalRenderer } from '../rendering/ExperienceCrystalRenderer.js';
 import { OrbitalBladeRenderer } from '../rendering/OrbitalBladeRenderer.js';
 import { BossRenderer } from '../rendering/BossRenderer.js';
+import { AudioManager } from '../audio/AudioManager.js';
 
 export class Game {
   #uiManager = null;
   #soundEnabled = true;
+  #audioManager;
+  #unsubscribeSoundEvents;
 
-  constructor({ canvas = null, loopOptions = {}, inputOptions = {} } = {}) {
+  constructor({ canvas = null, loopOptions = {}, inputOptions = {}, audioManager = new AudioManager() } = {}) {
+    if (!audioManager
+      || !['unlock', 'setEnabled', 'setVolume', 'playEvent', 'dispose'].every((method) => typeof audioManager[method] === 'function')
+      || !Number.isFinite(audioManager.volume)) {
+      throw new TypeError('Game requires a compatible audio manager');
+    }
+    this.#audioManager = audioManager;
     this.stateManager = new GameStateManager();
     this.clock = new GameClock();
     this.inputController = new InputController({ ...inputOptions, stateManager: this.stateManager });
@@ -27,6 +36,9 @@ export class Game {
       clock: this.clock,
       camera: this.camera,
       inputController: this.inputController,
+    });
+    this.#unsubscribeSoundEvents = this.world.subscribeSoundEvent(({ type }) => {
+      this.#audioManager.playEvent(type);
     });
     this.camera.follow(this.world.player);
     this.renderer = canvas
@@ -87,11 +99,22 @@ export class Game {
 
   toggleSound() {
     this.#soundEnabled = !this.#soundEnabled;
+    this.#audioManager.setEnabled(this.#soundEnabled);
+    if (this.#soundEnabled) this.#audioManager.unlock();
     return this.#soundEnabled;
+  }
+
+  get soundVolume() {
+    return this.#audioManager.volume;
+  }
+
+  setSoundVolume(volume) {
+    return this.#audioManager.setVolume(volume);
   }
 
   startGame() {
     if (this.stateManager.currentState !== GAME_STATES.MENU) return false;
+    if (this.#soundEnabled) this.#audioManager.unlock();
     this.world.reset();
     return this.stateManager.startGame();
   }
@@ -129,6 +152,7 @@ export class Game {
   restartGame() {
     if (this.stateManager.currentState !== GAME_STATES.VICTORY
       && this.stateManager.currentState !== GAME_STATES.DEFEAT) return false;
+    if (this.#soundEnabled) this.#audioManager.unlock();
     this.world.reset();
     return this.stateManager.restartRun();
   }
@@ -146,6 +170,9 @@ export class Game {
   }
 
   stop() {
+    this.#unsubscribeSoundEvents?.();
+    this.#unsubscribeSoundEvents = null;
+    this.#audioManager.dispose();
     this.loop.stop();
     this.inputController.stop();
     this.renderer?.stop();

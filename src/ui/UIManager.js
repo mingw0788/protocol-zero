@@ -14,6 +14,8 @@ const ELEMENT_IDS = Object.freeze({
   showHelp: 'show-help-button',
   hideHelp: 'hide-help-button',
   sound: 'sound-toggle-button',
+  soundVolume: 'sound-volume-slider',
+  soundVolumeValue: 'sound-volume-value',
   resume: 'resume-game-button',
   returnMenu: 'return-menu-button',
   confirmReturn: 'confirm-return-button',
@@ -64,7 +66,9 @@ export class UIManager {
       || typeof game.getUpgradeChoices !== 'function'
       || typeof game.chooseUpgrade !== 'function'
       || typeof game.getRunResultSnapshot !== 'function'
-      || typeof game.restartGame !== 'function') {
+      || typeof game.restartGame !== 'function'
+      || typeof game.setSoundVolume !== 'function'
+      || !Number.isFinite(game.soundVolume)) {
       throw new TypeError('UIManager requires a game controller with state and HUD access');
     }
     this.#root = root;
@@ -103,6 +107,11 @@ export class UIManager {
     this.#listen(e.hideHelp, 'click', () => this.#showHelp(false));
     this.#listen(e.sound, 'click', () => {
       this.#game.toggleSound();
+      this.#renderSound();
+    });
+    this.#listen(e.soundVolume, 'input', () => {
+      const volume = Number(e.soundVolume.value) / 100;
+      this.#game.setSoundVolume(volume);
       this.#renderSound();
     });
     this.#listen(e.resume, 'click', () => this.#game.resume());
@@ -258,6 +267,11 @@ export class UIManager {
     const e = this.#elements.sound;
     this.#setText(e, this.#game.soundEnabled ? '音效：开启' : '音效：关闭');
     e.setAttribute('aria-pressed', String(this.#game.soundEnabled));
+    const percentage = Math.round(this.#game.soundVolume * 100);
+    if (String(this.#elements.soundVolume.value) !== String(percentage)) {
+      this.#elements.soundVolume.value = String(percentage);
+    }
+    this.#setText(this.#elements.soundVolumeValue, percentage + '%');
   }
 
   #cancelReturn() {

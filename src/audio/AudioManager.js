@@ -72,10 +72,10 @@ export class AudioManager {
         || typeof context.createOscillator !== 'function'
         || !context.destination) return false;
       const masterGain = context.createGain();
-      masterGain.gain.value = this.#volume;
-      masterGain.connect(context.destination);
       this.#context = context;
       this.#masterGain = masterGain;
+      masterGain.gain.value = this.#volume;
+      masterGain.connect(context.destination);
       if (!this.#resumeContext()) return false;
       return true;
     } catch {
@@ -173,6 +173,13 @@ export class AudioManager {
 
   #releaseContext() {
     const context = this.#context;
+    const masterGain = this.#masterGain;
+    for (const voice of this.#voices) {
+      voice.onended = null;
+      try { voice.stop(); } catch { /* Already stopped voices are harmless. */ }
+      try { voice.disconnect(); } catch { /* API failure is a silent fallback. */ }
+    }
+    try { masterGain?.disconnect(); } catch { /* Disconnection is best effort. */ }
     this.#context = null;
     this.#masterGain = null;
     this.#voices.clear();

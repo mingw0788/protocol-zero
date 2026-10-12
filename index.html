@@ -20,6 +20,11 @@
               <button id="start-game-button" class="button-primary" type="button">开始游戏</button>
               <button id="show-help-button" type="button">操作说明</button>
               <button id="sound-toggle-button" type="button" aria-pressed="true">音效：开启</button>
+              <label class="sound-volume-control" for="sound-volume-slider">
+                <span>音效音量</span>
+                <input id="sound-volume-slider" type="range" min="0" max="100" step="5" value="65" aria-label="音效音量" />
+                <output id="sound-volume-value" for="sound-volume-slider">65%</output>
+              </label>
             </div>
           </div>
         </section>

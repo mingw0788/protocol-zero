@@ -100,6 +100,8 @@ describe('AudioManager', () => {
     }
     expect(audio.playEvent('enemy-death')).toBe(false);
     expect(harness.oscillators).toHaveLength(AUDIO_CONFIG.maxConcurrentVoices);
+    harness.oscillators[0].onended();
+    expect(audio.playEvent('enemy-death')).toBe(true);
   });
 
   it('silently degrades when Web Audio is unavailable or context creation/resume fails', () => {

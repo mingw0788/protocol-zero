@@ -6,17 +6,17 @@
 
 ## Task 1: Audio manager and settings contract
 
-- [ ] Write tests for lazy context creation, event tone, mute/volume, voice cap, unsupported API and disposal.
-- [ ] Run focused tests red.
-- [ ] Add immutable audio config and AudioManager with injectable context factory; synthesize bounded short tones using Web Audio only.
-- [ ] Run focused tests green and commit `feat: add synthesized audio manager`.
+- [x] Write tests for lazy context creation, event tone, mute/volume, voice cap, unsupported API and disposal.
+- [x] Run focused tests red.
+- [x] Add immutable audio config and AudioManager with injectable context factory; synthesize bounded short tones using Web Audio only.
+- [x] Run focused tests green and commit `feat: add synthesized audio manager`.
 
 ## Task 2: Connect actual game events
 
-- [ ] Write GameWorld/Game tests for exactly-once semantic event notifications and lifecycle behavior.
-- [ ] Add a narrow frozen sound-event subscription API to GameWorld and emit only for actual firing, damage/death, enemy death, selected upgrade, and accepted run outcome.
-- [ ] Connect one AudioManager listener in Game, unlock only on user gesture, disconnect/dispose on stop, preserve runtime settings across reset.
-- [ ] Run focused world/action tests and commit `feat: connect audio to run events`.
+- [x] Write GameWorld/Game tests for exactly-once semantic event notifications and lifecycle behavior.
+- [x] Add a narrow frozen sound-event subscription API to GameWorld and emit only for actual firing, damage/death, enemy death, selected upgrade, and accepted run outcome.
+- [x] Connect one AudioManager listener in Game, unlock only on user gesture, disconnect/dispose on stop, preserve runtime settings across reset.
+- [x] Run focused world/action tests and commit `feat: connect audio to run events`.
 
 ## Task 3: Accessible menu controls and acceptance
 

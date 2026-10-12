@@ -52,6 +52,9 @@ function createHarness({ upgradeChoices = null } = {}) {
     const element = new FakeElement();
     element.ownerDocument = documentTarget;
     element.hidden = /\bhidden(?:\s|>)/.test(match[0]);
+    for (const attribute of match[0].matchAll(/([\w-]+)="([^"]*)"/g)) {
+      element.setAttribute(attribute[1], attribute[2]);
+    }
     elements.set(match[1], element);
   }
   const root = elements.get('game-ui');
@@ -363,6 +366,29 @@ describe('UIManager with real Game state', () => {
     expect(h.game.soundEnabled).toBe(false);
     h.click('sound-toggle-button');
     expect(h.game.soundEnabled).toBe(true);
+  });
+
+  it('exposes an accessible volume slider and keeps its value independent from mute', () => {
+    const h = createHarness();
+    expect(h.get('sound-volume-slider').value).toBe('65');
+    expect(h.get('sound-volume-slider').getAttribute('aria-label')).toBe('音效音量');
+    expect(h.get('sound-volume-value').textContent).toBe('65%');
+
+    h.get('sound-volume-slider').value = '35';
+    emit(h.get('sound-volume-slider'), 'input');
+    expect(h.game.soundVolume).toBe(0.35);
+    expect(h.get('sound-volume-value').textContent).toBe('35%');
+
+    h.click('sound-toggle-button');
+    expect(h.game.soundEnabled).toBe(false);
+    expect(h.get('sound-toggle-button').getAttribute('aria-pressed')).toBe('false');
+    expect(h.get('sound-volume-slider').value).toBe('35');
+    expect(h.get('sound-volume-value').textContent).toBe('35%');
+
+    h.click('sound-toggle-button');
+    h.click('start-game-button');
+    h.game.world.reset();
+    expect(h.game.soundVolume).toBe(0.35);
   });
 
   it('pauses and resumes with Escape without toggling on repeated keydown', () => {

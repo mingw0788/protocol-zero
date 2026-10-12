@@ -43,6 +43,7 @@ export class GameWorld {
   #runResult = null;
   #playerDeathListeners = new Set();
   #enemyDeathListeners = new Set();
+  #soundEventListeners = new Set();
 
   constructor({
     stateManager = new GameStateManager(),
@@ -179,6 +180,7 @@ export class GameWorld {
     if (selection === false) return false;
     this.upgradeEffectSystem.applySelection(selection);
     if (!this.levelSystem.completePendingLevelUp()) return false;
+    this.#emitSoundEvent('upgrade');
     if (this.levelSystem.pendingLevelUps > 0) this.upgradeSystem.prepareChoices();
     return true;
   }
@@ -201,6 +203,14 @@ export class GameWorld {
     return () => this.#enemyDeathListeners.delete(listener);
   }
 
+  subscribeSoundEvent(listener) {
+    if (typeof listener !== 'function') {
+      throw new TypeError('Sound event listener must be a function');
+    }
+    this.#soundEventListeners.add(listener);
+    return () => this.#soundEventListeners.delete(listener);
+  }
+
   update(deltaSeconds) {
     if (!this.stateManager.isPlaying() || this.#playerDeathFrozen) return false;
 
@@ -215,15 +225,19 @@ export class GameWorld {
     this.bossSystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
     this.enemySystem.update(deltaSeconds);
     const damageResult = this.damageSystem.applyContactDamage(this.collisionSystem.getPlayerContacts());
-    if (damageResult.damaged && !damageResult.killed) this.particleSystem.emitPlayerHit(this.player);
+    if (damageResult.damaged && !damageResult.killed) {
+      this.particleSystem.emitPlayerHit(this.player);
+      this.#emitSoundEvent('player-hit');
+    }
     const upgradeEffects = this.upgradeEffectSystem.getSnapshot();
-    this.weaponSystem.update({
+    const firedProjectileCount = this.weaponSystem.update({
       player: this.player,
       enemies: this.enemies,
       projectiles: this.projectiles,
       deltaSeconds,
       upgradeEffects,
     });
+    if (firedProjectileCount > 0) this.#emitSoundEvent('pulse-fire');
     this.projectileSystem.update(deltaSeconds);
     this.orbitalBladeSystem.update({
       deltaSeconds,
@@ -241,6 +255,7 @@ export class GameWorld {
       this.#playerDeathFrozen = true;
       const payload = Object.freeze({ elapsedSeconds: this.clock.elapsedSeconds });
       for (const listener of [...this.#playerDeathListeners]) listener(payload);
+      this.#emitSoundEvent('player-death');
       this.#finishRun(GAME_STATES.DEFEAT);
     } else {
       const bossSnapshot = this.bossSystem.getSnapshot();
@@ -272,6 +287,7 @@ export class GameWorld {
         expDrop: enemy.expDrop,
       });
       for (const listener of [...this.#enemyDeathListeners]) listener(snapshot);
+      this.#emitSoundEvent('enemy-death');
     }
   }
 
@@ -305,6 +321,22 @@ export class GameWorld {
       killCount: this.#killCount,
       elapsedSeconds: this.clock.elapsedSeconds,
     });
-    if (!this.stateManager.finishRun(outcome)) this.#runResult = null;
+    if (!this.stateManager.finishRun(outcome)) {
+      this.#runResult = null;
+      return false;
+    }
+    this.#emitSoundEvent(outcome === GAME_STATES.VICTORY ? 'victory' : 'defeat');
+    return true;
+  }
+
+  #emitSoundEvent(type) {
+    const event = Object.freeze({ type });
+    for (const listener of [...this.#soundEventListeners]) {
+      try {
+        listener(event);
+      } catch {
+        // Presentation failures must never interrupt simulation or settlement.
+      }
+    }
   }
 }
