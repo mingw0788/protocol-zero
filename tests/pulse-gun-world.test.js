@@ -31,6 +31,22 @@ function addEnemy(world, id, offsetX = 200) {
 }
 
 describe('GameWorld pulse gun integration', () => {
+  it('targets and damages the live Boss through the shared projectile pipeline', () => {
+    const { stateManager, world } = createWorld();
+    stateManager.startGame();
+    world.clock.advance(270);
+    world.update(1 / 60);
+    const boss = world.enemies.find(({ category }) => category === 'boss');
+    boss.x = world.player.x + 200;
+    boss.y = world.player.y;
+
+    for (let step = 0; step < 20; step += 1) world.update(1 / 60);
+
+    expect(boss.hp).toBe(1780);
+    expect(world.getBossSnapshot()).toMatchObject({ hp: 1780, alive: true });
+    expect(world.killCount).toBe(0);
+  });
+
   it('automatically kills a standard enemy and emits one frozen snapshot before cleanup', () => {
     const { stateManager, world } = createWorld();
     stateManager.startGame();

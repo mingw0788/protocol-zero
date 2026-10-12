@@ -3,11 +3,13 @@ import { GAME_STATES, GameStateManager } from './GameStateManager.js';
 import { Player } from '../entities/Player.js';
 import { ENEMY_CONFIG } from '../config/enemyConfig.js';
 import { WAVE_CONFIG } from '../config/waveConfig.js';
+import { BOSS_CONFIG } from '../config/bossConfig.js';
 import { WORLD_MAP } from '../config/worldConfig.js';
 import { EnemySystem } from '../systems/EnemySystem.js';
 import { PlayerSystem } from '../systems/PlayerSystem.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
 import { WaveSystem } from '../systems/WaveSystem.js';
+import { BossSystem } from '../systems/BossSystem.js';
 import { CollisionSystem } from '../systems/CollisionSystem.js';
 import { DamageSystem } from '../systems/DamageSystem.js';
 import { EnemyDamageSystem } from '../systems/EnemyDamageSystem.js';
@@ -51,6 +53,7 @@ export class GameWorld {
     world = WORLD_MAP,
     enemyConfig = ENEMY_CONFIG,
     waveConfig = WAVE_CONFIG,
+    bossConfig = BOSS_CONFIG,
   } = {}) {
     requireCamera(camera);
     this.stateManager = stateManager;
@@ -63,6 +66,13 @@ export class GameWorld {
     this.playerSystem = new PlayerSystem({ player, inputController });
     this.camera.follow(this.player);
     this.enemySystem = new EnemySystem({ enemies: this.enemies, player, world });
+    this.bossSystem = new BossSystem({
+      enemies: this.enemies,
+      player,
+      camera,
+      world,
+      config: bossConfig,
+    });
     this.waveSystem = new WaveSystem({ config: waveConfig });
     this.collisionSystem = new CollisionSystem({ player, enemies: this.enemies });
     this.damageSystem = new DamageSystem({ player });
@@ -132,6 +142,10 @@ export class GameWorld {
     return this.waveSystem.getSnapshot(this.clock.elapsedSeconds);
   }
 
+  getBossSnapshot() {
+    return this.bossSystem.getSnapshot();
+  }
+
   getUpgradeChoices() {
     return this.upgradeSystem.getChoicesSnapshot();
   }
@@ -184,6 +198,7 @@ export class GameWorld {
     this.enemySystem.cleanup();
     const waveSnapshot = this.waveSystem.getSnapshot(this.clock.elapsedSeconds + deltaSeconds);
     this.spawnSystem.update(deltaSeconds, waveSnapshot);
+    this.bossSystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
     this.enemySystem.update(deltaSeconds);
     const damageResult = this.damageSystem.applyContactDamage(this.collisionSystem.getPlayerContacts());
     const upgradeEffects = this.upgradeEffectSystem.getSnapshot();
@@ -247,6 +262,7 @@ export class GameWorld {
     this.playerSystem.reset();
     this.camera.follow(this.player);
     this.enemies.length = 0;
+    this.bossSystem.reset();
     for (const projectile of this.projectiles) projectile.active = false;
     this.projectiles.length = 0;
     this.experienceSystem.reset();

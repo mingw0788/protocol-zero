@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Camera } from '../src/rendering/Camera.js';
 import { GameLoop } from '../src/core/GameLoop.js';
 import { GAME_STATES, GameStateManager } from '../src/core/GameStateManager.js';
 import { GameWorld } from '../src/core/GameWorld.js';
 import { Enemy } from '../src/entities/Enemy.js';
+import { ExperienceCrystal } from '../src/entities/ExperienceCrystal.js';
 
 function createAnimationFrameHarness() {
   let nextHandle = 0;
@@ -37,6 +38,143 @@ function createWorld() {
 }
 
 describe('GameWorld enemy lifecycle', () => {
+  it('spawns the Boss exactly when the fixed-step effective clock reaches 270 seconds', () => {
+    const { world, stateManager } = createWorld();
+    stateManager.startGame();
+    world.clock.advance(270 - 1 / 60);
+
+    expect(world.getBossSnapshot()).toBeNull();
+    world.update(1 / 60);
+
+    expect(world.clock.elapsedSeconds).toBe(270);
+    expect(world.getBossSnapshot()).toMatchObject({
+      typeId: 'BOSS-01',
+      hp: 1800,
+      maxHp: 1800,
+      alive: true,
+      phase: 'approach',
+    });
+    expect(world.enemies.filter(({ category }) => category === 'boss')).toHaveLength(1);
+  });
+
+  it('gives BossSystem sole movement ownership while sharing the enemy collection', () => {
+    const { world, stateManager } = createWorld();
+    stateManager.startGame();
+    world.clock.advance(270);
+    world.update(1 / 60);
+    const boss = world.enemies.find(({ category }) => category === 'boss');
+    boss.x = world.player.x - 200;
+    boss.y = world.player.y;
+    const beforeX = boss.x;
+
+    world.update(1 / 60);
+
+    expect(boss.x - beforeX).toBeCloseTo(1, 10);
+    expect(world.enemySystem.enemies).toBe(world.enemies);
+    expect(world.getBossSnapshot().x).toBe(boss.x);
+  });
+
+  it('settles Boss death once, emits zero experience, keeps the defeated snapshot, and never respawns', () => {
+    const { world, stateManager } = createWorld();
+    stateManager.startGame();
+    world.clock.advance(270);
+    world.update(1 / 60);
+    const boss = world.enemies.find(({ category }) => category === 'boss');
+    const deaths = [];
+    world.subscribeEnemyDeath((snapshot) => deaths.push(snapshot));
+    world.enemyDamageSystem.applyDamage(boss, boss.hp);
+
+    world.update(1 / 60);
+    world.update(1 / 60);
+
+    expect(world.killCount).toBe(1);
+    expect(deaths).toEqual([expect.objectContaining({ enemyId: 'boss-t01', typeId: 'BOSS-01', expDrop: 0 })]);
+    expect(Object.isFrozen(deaths[0])).toBe(true);
+    expect(world.experienceCrystals).toEqual([]);
+    expect(world.enemies).not.toContain(boss);
+    expect(world.getBossSnapshot()).toMatchObject({ alive: false, hp: 0 });
+    expect(world.enemies.filter(({ category }) => category === 'boss')).toHaveLength(0);
+  });
+
+  it('freezes Boss simulation during pause, level-up, and after player death', () => {
+    const { world, stateManager } = createWorld();
+    stateManager.startGame();
+    world.clock.advance(270);
+    world.update(1 / 60);
+
+    stateManager.pause();
+    const paused = world.getBossSnapshot();
+    const pausedClock = world.clock.elapsedSeconds;
+    expect(world.update(1)).toBe(false);
+    expect(world.getBossSnapshot()).toEqual(paused);
+    expect(world.clock.elapsedSeconds).toBe(pausedClock);
+
+    stateManager.resume();
+    world.experienceCrystals.push(new ExperienceCrystal({
+      id: 'boss-freeze-level-up',
+      x: world.player.x,
+      y: world.player.y,
+      expValue: 6,
+    }));
+    world.update(1 / 60);
+    expect(stateManager.currentState).toBe(GAME_STATES.LEVEL_UP);
+    const levelUp = world.getBossSnapshot();
+    const levelUpClock = world.clock.elapsedSeconds;
+    expect(world.update(1)).toBe(false);
+    expect(world.getBossSnapshot()).toEqual(levelUp);
+    expect(world.clock.elapsedSeconds).toBe(levelUpClock);
+    expect(world.chooseUpgrade(world.getUpgradeChoices()[0].id)).toBe(true);
+
+    const boss = world.enemies.find(({ category }) => category === 'boss');
+    boss.x = world.player.x;
+    boss.y = world.player.y;
+    world.player.hp = 1;
+    world.update(1 / 60);
+    expect(world.player.alive).toBe(false);
+    const afterDeath = world.getBossSnapshot();
+    const deathClock = world.clock.elapsedSeconds;
+    expect(world.update(1)).toBe(false);
+    expect(world.getBossSnapshot()).toEqual(afterDeath);
+    expect(world.clock.elapsedSeconds).toBe(deathClock);
+  });
+
+  it('resets the one-time Boss marker so a new run can spawn exactly one Boss', () => {
+    const { world, stateManager } = createWorld();
+    stateManager.startGame();
+    world.clock.advance(270);
+    world.update(1 / 60);
+    const firstBoss = world.enemies.find(({ category }) => category === 'boss');
+    expect(firstBoss).toBeDefined();
+
+    stateManager.pause();
+    world.reset();
+    stateManager.returnToMenu();
+    expect(world.getBossSnapshot()).toBeNull();
+    stateManager.startGame();
+    world.clock.advance(270 - 1 / 60);
+    world.update(1 / 60);
+    world.update(1 / 60);
+
+    const newBosses = world.enemies.filter(({ category }) => category === 'boss');
+    expect(newBosses).toHaveLength(1);
+    expect(newBosses[0]).not.toBe(firstBoss);
+  });
+
+  it('does not consume ordinary-spawn or upgrade randomness when the Boss appears', () => {
+    const random = vi.fn(() => 0.5);
+    const upgradeRandom = vi.fn(() => 0.5);
+    const stateManager = new GameStateManager();
+    const world = new GameWorld({ stateManager, camera: new Camera(), random, upgradeRandom });
+    stateManager.startGame();
+    world.clock.advance(270 - 1 / 60);
+
+    world.update(1 / 60);
+
+    expect(world.getBossSnapshot()).not.toBeNull();
+    expect(random).not.toHaveBeenCalled();
+    expect(upgradeRandom).not.toHaveBeenCalled();
+  });
+
   it.each([
     [60 * 60, 'opening', 'swift-intro'],
     [120 * 60, 'swift-intro', 'heavy-intro'],

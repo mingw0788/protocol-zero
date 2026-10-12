@@ -43,6 +43,26 @@ function makeEnemy(id, x, y, hp = 30) {
 }
 
 describe('GameWorld orbital blade integration', () => {
+  it('damages a Boss through the same orbital blade collision path', () => {
+    const world = createWorld();
+    grantLevelUp(world, 6);
+    selectUpgrade(world, 'UP-04');
+    const stateManager = world.stateManager;
+    stateManager.startGame();
+    world.clock.advance(270 - world.clock.elapsedSeconds);
+    world.update(1 / 60);
+    const boss = world.enemies.find(({ category }) => category === 'boss');
+    const blade = world.getOrbitalBladeSnapshot();
+    boss.x = blade.x;
+    boss.y = blade.y;
+    world.player.weaponStates.find(({ id }) => id === 'pulse-gun').cooldownRemaining = 10;
+
+    world.update(1 / 60);
+
+    expect(boss.hp).toBe(1788);
+    expect(world.getBossSnapshot()).toMatchObject({ hp: 1788, alive: true });
+  });
+
   it('unlocks the blade through a real UP-04 choice and includes it once in the HUD', () => {
     const world = createWorld();
     expect(world.getHudSnapshot().weaponIds).toEqual(['pulse-gun']);

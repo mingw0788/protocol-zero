@@ -31,7 +31,7 @@ export class EnemySystem {
     if (deltaSeconds === 0) return false;
 
     for (const enemy of this.enemies) {
-      if (!enemy.alive || enemy.hp <= 0) continue;
+      if (!enemy.alive || enemy.hp <= 0 || enemy.category === 'boss') continue;
 
       const deltaX = this.player.x - enemy.x;
       const deltaY = this.player.y - enemy.y;
