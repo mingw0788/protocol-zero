@@ -1,6 +1,6 @@
 import { GAME_STATES } from '../core/GameStateManager.js';
 
-const WEAPON_LABELS = Object.freeze({ 'pulse-gun': '脉冲枪' });
+const WEAPON_LABELS = Object.freeze({ 'pulse-gun': '脉冲枪', 'orbital-blade': '轨道刃' });
 const ELEMENT_IDS = Object.freeze({
   menu: 'main-menu-panel',
   help: 'help-panel',
@@ -134,6 +134,10 @@ export class UIManager {
     this.#setText(e.time, formatTime(snapshot.elapsedSeconds));
     this.#setText(e.kills, String(snapshot.killCount));
     this.#setText(e.weapons, snapshot.weaponIds.map((id) => WEAPON_LABELS[id] ?? id).join(' / ') || '无');
+    const orbitalBladeEquipped = String(snapshot.weaponIds.includes('orbital-blade'));
+    if (e.weapons.getAttribute('data-orbital-blade') !== orbitalBladeEquipped) {
+      e.weapons.setAttribute('data-orbital-blade', orbitalBladeEquipped);
+    }
     if (e.healthBar.max !== snapshot.health.max) e.healthBar.max = snapshot.health.max;
     if (e.healthBar.value !== snapshot.health.current) e.healthBar.value = snapshot.health.current;
   }

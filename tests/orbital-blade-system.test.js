@@ -87,6 +87,26 @@ describe('OrbitalBladeSystem', () => {
     expect([first.hp, second.hp]).toEqual([6, 6]);
   });
 
+  it('allows a target again after exactly the configured cooldown in fixed steps', () => {
+    const { enemies, system } = createHarness();
+    const target = createEnemy('exact-cooldown-target', 648, 400);
+    enemies.push(target);
+    const deltaSeconds = 1 / 60;
+
+    system.update({ deltaSeconds, upgradeEffects: effects() });
+    expect(target.hp).toBe(18);
+    for (let step = 0; step < 44; step += 1) {
+      moveEnemyToNextBladePosition(target, system.getSnapshot(), deltaSeconds);
+      system.update({ deltaSeconds, upgradeEffects: effects() });
+    }
+    expect(target.hp).toBe(18);
+
+    moveEnemyToNextBladePosition(target, system.getSnapshot(), deltaSeconds);
+    system.update({ deltaSeconds, upgradeEffects: effects() });
+
+    expect(target.hp).toBe(6);
+  });
+
   it('cleans cooldowns for dead and removed enemies', () => {
     const { enemies, system } = createHarness();
     const target = createEnemy('reused-id', 600, 448);

@@ -136,6 +136,28 @@ describe('UIManager with real Game state', () => {
     expect(h.get('hud-weapons').textContent).toBe('脉冲枪');
   });
 
+  it('shows the orbital blade name and decorative icon only while it is equipped', () => {
+    const h = createHarness();
+    h.click('start-game-button');
+    const current = h.game.getHudSnapshot();
+
+    h.ui.renderSnapshot(Object.freeze({
+      ...current,
+      weaponIds: Object.freeze(['pulse-gun', 'orbital-blade']),
+    }), GAME_STATES.PLAYING);
+
+    expect(h.get('hud-weapons').textContent).toBe('脉冲枪 / 轨道刃');
+    expect(h.get('hud-weapons').getAttribute('data-orbital-blade')).toBe('true');
+
+    h.ui.renderSnapshot(Object.freeze({
+      ...current,
+      weaponIds: Object.freeze(['pulse-gun']),
+    }), GAME_STATES.PLAYING);
+
+    expect(h.get('hud-weapons').textContent).toBe('脉冲枪');
+    expect(h.get('hud-weapons').getAttribute('data-orbital-blade')).toBe('false');
+  });
+
   it('shows upgrade choices only during LEVEL_UP and renders the current candidates', () => {
     const h = createHarness();
     expect(h.get('upgrade-panel')?.hidden).toBe(true);

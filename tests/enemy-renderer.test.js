@@ -64,7 +64,7 @@ describe('EnemyRenderer', () => {
 });
 
 describe('CanvasRenderer layering', () => {
-  it('draws the map, crystals, projectiles, enemies, then player', () => {
+  it('draws the map, crystals, projectiles, enemies, orbital blade, then player', () => {
     const events = [];
     const camera = new Camera();
     const crystals = [new ExperienceCrystal({
@@ -104,6 +104,10 @@ describe('CanvasRenderer layering', () => {
         expect(enemies).toEqual([expect.objectContaining({ id: 'layered-enemy' })]);
         events.push('enemies');
       } },
+      orbitalBladeRenderer: { render: (_context, _camera, snapshot) => {
+        expect(snapshot).toEqual(expect.objectContaining({ active: true, level: 1 }));
+        events.push('orbital-blade');
+      } },
       playerRenderer: { render: () => events.push('player') },
     });
 
@@ -112,14 +116,17 @@ describe('CanvasRenderer layering', () => {
       [createEnemy('layered-enemy', 1200, 675)],
       projectiles,
       crystals,
+      Object.freeze({ active: true, level: 1, x: 1200, y: 675, radius: 8, angleRadians: 0 }),
     );
 
-    expect(events.slice(-5)).toEqual(['map', 'crystals', 'projectiles', 'enemies', 'player']);
+    expect(events.slice(-6)).toEqual([
+      'map', 'crystals', 'projectiles', 'enemies', 'orbital-blade', 'player',
+    ]);
   });
 });
 
 describe('Game world rendering', () => {
-  it('passes the shared projectile and crystal arrays to CanvasRenderer each frame', () => {
+  it('passes the shared projectile and crystal arrays and the blade snapshot each frame', () => {
     let nextFrame;
     const canvas = {
       width: 1280,
@@ -139,6 +146,16 @@ describe('Game world rendering', () => {
     });
     const renderCalls = [];
     game.renderer.render = (...args) => renderCalls.push(args);
+    const bladeSnapshot = Object.freeze({
+      active: false,
+      level: 0,
+      x: null,
+      y: null,
+      radius: 8,
+      orbitRadius: 0,
+      angleRadians: 0,
+    });
+    game.world.getOrbitalBladeSnapshot = () => bladeSnapshot;
 
     game.startGame();
     game.world.projectiles.push(new Projectile({
@@ -161,6 +178,7 @@ describe('Game world rendering', () => {
     expect(renderCalls[0][1]).toBe(game.world.enemies);
     expect(renderCalls[0][2]).toBe(game.world.projectiles);
     expect(renderCalls[0][3]).toBe(game.world.experienceCrystals);
+    expect(renderCalls[0][4]).toBe(bladeSnapshot);
     game.stop();
   });
 });

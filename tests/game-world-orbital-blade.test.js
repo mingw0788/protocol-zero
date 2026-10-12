@@ -172,6 +172,31 @@ describe('GameWorld orbital blade integration', () => {
     expect(world.clock.elapsedSeconds).toBe(levelUpTime);
   });
 
+  it('freezes blade angle and target health after player death', () => {
+    const world = createWorld();
+    grantLevelUp(world, 6);
+    selectUpgrade(world, 'UP-04');
+    const blade = world.getOrbitalBladeSnapshot();
+    const target = makeEnemy('death-freeze-blade-target', blade.x, blade.y, 100);
+    const contact = new Enemy({
+      id: 'death-freeze-contact',
+      x: world.player.x,
+      y: world.player.y,
+      config: ENEMY_CONFIG.EN01,
+    });
+    world.enemies.push(target, contact);
+    world.player.hp = 1;
+
+    world.update(1 / 60);
+    expect(world.player.alive).toBe(false);
+    const frozenBlade = world.getOrbitalBladeSnapshot();
+    const frozenTargetHp = target.hp;
+
+    expect(world.update(0.8)).toBe(false);
+    expect(world.getOrbitalBladeSnapshot()).toEqual(frozenBlade);
+    expect(target.hp).toBe(frozenTargetHp);
+  });
+
   it('clears rank, angle, cooldown, entities, and HUD blade on reset', () => {
     const world = createWorld();
     grantLevelUp(world, 6);

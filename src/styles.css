@@ -289,6 +289,18 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+#hud-weapons[data-orbital-blade="true"]::after {
+  display: inline-block;
+  width: 0.52em;
+  height: 0.52em;
+  margin-inline-start: 0.45em;
+  background: #d66dff;
+  box-shadow: 0 0 7px rgb(214 109 255 / 75%);
+  content: "";
+  transform: rotate(45deg);
+  vertical-align: 0.06em;
+}
+
 .hud-health {
   display: grid;
   grid-template-columns: 1fr auto;

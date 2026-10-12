@@ -10,6 +10,7 @@ import { PlayerRenderer } from '../rendering/PlayerRenderer.js';
 import { EnemyRenderer } from '../rendering/EnemyRenderer.js';
 import { ProjectileRenderer } from '../rendering/ProjectileRenderer.js';
 import { ExperienceCrystalRenderer } from '../rendering/ExperienceCrystalRenderer.js';
+import { OrbitalBladeRenderer } from '../rendering/OrbitalBladeRenderer.js';
 
 export class Game {
   #uiManager = null;
@@ -35,6 +36,7 @@ export class Game {
         experienceCrystalRenderer: new ExperienceCrystalRenderer(),
         projectileRenderer: new ProjectileRenderer(),
         enemyRenderer: new EnemyRenderer(),
+        orbitalBladeRenderer: new OrbitalBladeRenderer(),
         playerRenderer: new PlayerRenderer(),
       })
       : null;
@@ -48,6 +50,7 @@ export class Game {
           this.world.enemies,
           this.world.projectiles,
           this.world.experienceCrystals,
+          this.world.getOrbitalBladeSnapshot(),
         );
         this.#uiManager?.renderSnapshot(this.getHudSnapshot(), this.stateManager.currentState);
       },
