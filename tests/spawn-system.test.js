@@ -116,7 +116,7 @@ describe('SpawnSystem cadence and limits', () => {
   it('uses the selected heavy enemy radius for viewport clearance, world bounds, and player separation', () => {
     const harness = createHarness({
       randomValues: [0, 0.5, 0.3, 0.5],
-      player: { x: 506, y: 675, radius: 16 },
+      player: { x: 540, y: 675, radius: 16 },
     });
     const wave = waveProfile({ 'EN-01': 0, 'EN-02': 0, 'EN-03': 1 });
 
@@ -134,6 +134,7 @@ describe('SpawnSystem cadence and limits', () => {
     expect(Math.hypot(dx, dy) - enemy.radius).toBeGreaterThanOrEqual(32 - 1e-9);
     expect(Math.hypot(enemy.x - harness.player.x, enemy.y - harness.player.y))
       .toBeGreaterThanOrEqual(enemy.radius + harness.player.radius);
+    expect(harness.getRandomCalls()).toBe(4);
   });
 
   it('rejects malformed or unknown enemy weights before adding an entity', () => {
