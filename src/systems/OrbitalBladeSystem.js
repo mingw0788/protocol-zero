@@ -157,15 +157,18 @@ export class OrbitalBladeSystem {
     return true;
   }
 
-  getSnapshot() {
-    const active = this.#level > 0;
+  getSnapshot(level = this.#level) {
+    if (!Number.isSafeInteger(level) || level < 0 || level > this.config.maxLevel) {
+      throw new RangeError(`orbitalBladeLevel must be an integer from 0 through ${this.config.maxLevel}`);
+    }
+    const active = level > 0;
     const orbitRadius = active
       ? this.config.baseOrbitRadius
-        + this.config.orbitRadiusPerUpgradeLevel * (this.#level - 1)
+        + this.config.orbitRadiusPerUpgradeLevel * (level - 1)
       : 0;
     return Object.freeze({
       active,
-      level: this.#level,
+      level,
       playerX: this.player.x,
       playerY: this.player.y,
       x: active ? this.player.x + orbitRadius * Math.cos(this.#angleRadians) : null,

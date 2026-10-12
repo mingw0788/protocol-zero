@@ -11,6 +11,7 @@ import { DamageSystem } from '../systems/DamageSystem.js';
 import { EnemyDamageSystem } from '../systems/EnemyDamageSystem.js';
 import { WeaponSystem } from '../systems/WeaponSystem.js';
 import { ProjectileSystem } from '../systems/ProjectileSystem.js';
+import { OrbitalBladeSystem } from '../systems/OrbitalBladeSystem.js';
 import { ExperienceSystem } from '../systems/ExperienceSystem.js';
 import { LevelSystem } from '../systems/LevelSystem.js';
 import { UpgradeSystem } from '../systems/UpgradeSystem.js';
@@ -68,6 +69,11 @@ export class GameWorld {
       enemies: this.enemies,
       enemyDamageSystem: this.enemyDamageSystem,
     });
+    this.orbitalBladeSystem = new OrbitalBladeSystem({
+      player: this.player,
+      enemies: this.enemies,
+      enemyDamageSystem: this.enemyDamageSystem,
+    });
     this.spawnSystem = new SpawnSystem({
       enemies: this.enemies,
       player,
@@ -103,12 +109,16 @@ export class GameWorld {
   }
 
   getHudSnapshot() {
+    const weaponIds = this.player.weaponStates.map((weapon) => weapon.id);
+    if (this.upgradeSystem.getLevel('UP-04') > 0 && !weaponIds.includes('orbital-blade')) {
+      weaponIds.push('orbital-blade');
+    }
     return Object.freeze({
       health: Object.freeze({ current: this.player.hp, max: this.player.maxHp }),
       experience: this.player.exp,
       level: this.player.level,
       pendingLevelUps: this.levelSystem.pendingLevelUps,
-      weaponIds: Object.freeze(this.player.weaponStates.map((weapon) => weapon.id)),
+      weaponIds: Object.freeze(weaponIds),
       killCount: this.#killCount,
       elapsedSeconds: this.clock.elapsedSeconds,
     });
@@ -120,6 +130,10 @@ export class GameWorld {
 
   getUpgradeEffectSnapshot() {
     return this.upgradeEffectSystem.getSnapshot();
+  }
+
+  getOrbitalBladeSnapshot() {
+    return this.orbitalBladeSystem.getSnapshot(this.upgradeSystem.getLevel('UP-04'));
   }
 
   chooseUpgrade(choiceId) {
@@ -163,14 +177,19 @@ export class GameWorld {
     this.spawnSystem.update(deltaSeconds);
     this.enemySystem.update(deltaSeconds);
     const damageResult = this.damageSystem.applyContactDamage(this.collisionSystem.getPlayerContacts());
+    const upgradeEffects = this.upgradeEffectSystem.getSnapshot();
     this.weaponSystem.update({
       player: this.player,
       enemies: this.enemies,
       projectiles: this.projectiles,
       deltaSeconds,
-      upgradeEffects: this.upgradeEffectSystem.getSnapshot(),
+      upgradeEffects,
     });
     this.projectileSystem.update(deltaSeconds);
+    this.orbitalBladeSystem.update({
+      deltaSeconds,
+      upgradeEffects,
+    });
     this.#settleEnemyDeaths();
     this.enemySystem.cleanup();
     this.experienceSystem.update(deltaSeconds);
@@ -224,6 +243,7 @@ export class GameWorld {
     this.experienceSystem.reset();
     this.levelSystem.reset();
     this.upgradeSystem.reset();
+    this.orbitalBladeSystem.reset();
     this.spawnSystem.reset();
     this.#simulationSteps = 0;
     this.#killCount = 0;

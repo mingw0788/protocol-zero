@@ -38,7 +38,7 @@
 
 **Interfaces:**
 - Consumes: `{ orbitalBladeLevel, damageMultiplier }` from the existing frozen upgrade-effect snapshot; shared Player, enemy array, and `EnemyDamageSystem.applyDamage(enemy, damage)`.
-- Produces: `update({ deltaSeconds, upgradeEffects })`, `getSnapshot()`, and `reset()`; immutable snapshot `{ active, level, playerX, playerY, x, y, radius, orbitRadius, angleRadians, color }`.
+- Produces: `update({ deltaSeconds, upgradeEffects })`, `getSnapshot(level = lastSimulatedLevel)`, and `reset()`; immutable snapshot `{ active, level, playerX, playerY, x, y, radius, orbitRadius, angleRadians, color }`. Explicit level is display-only; `GameWorld` passes the current UpgradeSystem rank so the render snapshot updates immediately after a choice.
 
 - [x] **Step 1: Write failing tests** named `starts locked and returns a frozen inactive snapshot`, `orbits at the configured speed and reports world coordinates`, `damages a contacting target using shared damage multiplier`, `limits repeat hits independently per target until cooldown expires`, `cleans cooldowns for dead and removed enemies`, `reset clears angle and target cooldown without changing configuration`, and `rejects invalid inputs without mutating combat state`.
 - [x] **Step 2: Run `npm test -- tests/orbital-blade-system.test.js` and observe the expected missing-module/API failures.**
@@ -56,11 +56,11 @@
 - Consumes: Task 1 `OrbitalBladeSystem`; existing `chooseUpgrade`, `UpgradeEffectSystem.getSnapshot()`, death listeners, enemy and crystal shared arrays.
 - Produces: `GameWorld.getOrbitalBladeSnapshot()` and a frozen HUD `weaponIds` list that adds one `orbital-blade` after UP-04 level exceeds zero.
 
-- [ ] **Step 1: Write failing integration tests** named `unlocks the blade through a real UP-04 choice and includes it once in the HUD`, `applies UP-04 rank growth and UP-01 shared damage to both weapons`, `settles an orbital blade kill once through the existing crystal pipeline`, `keeps pulse gun and blade active together`, `freezes blade and cooldown during PAUSED and LEVEL_UP`, and `clears rank, angle, cooldown, entities, and HUD blade on reset`.
-- [ ] **Step 2: Run `npm test -- tests/game-world-orbital-blade.test.js` and observe failures against the existing GameWorld API.**
-- [ ] **Step 3: Inject and update OrbitalBladeSystem after ProjectileSystem but before `#settleEnemyDeaths`; derive HUD equipment without mutating Player's pulse-gun cooldown state; reset blade state with the other run state.**
-- [ ] **Step 4: Run the integration test and affected existing tests: `tests/game-world-hud.test.js`, `tests/game-world-upgrade-effects.test.js`, `tests/pulse-gun-world.test.js`, `tests/experience-system.test.js`.**
-- [ ] **Step 5: Commit integration tests and GameWorld as `feat: connect orbital blade to game world`.**
+- [x] **Step 1: Write failing integration tests** named `unlocks the blade through a real UP-04 choice and includes it once in the HUD`, `applies UP-04 rank growth and UP-01 shared damage to both weapons`, `settles same-step pulse and blade kills once through the existing crystal pipeline`, `keeps pulse gun and blade active together`, `freezes blade state and target health during PAUSED and LEVEL_UP`, and `clears rank, angle, cooldown, entities, and HUD blade on reset`.
+- [x] **Step 2: Run `npm test -- tests/game-world-orbital-blade.test.js` and observe failures against the existing GameWorld API.**
+- [x] **Step 3: Inject and update OrbitalBladeSystem after ProjectileSystem but before `#settleEnemyDeaths`; derive HUD equipment without mutating Player's pulse-gun cooldown state; reset blade state with the other run state.**
+- [x] **Step 4: Run the integration test and affected existing tests: `tests/game-world-hud.test.js`, `tests/game-world-upgrade-effects.test.js`, `tests/pulse-gun-world.test.js`, `tests/experience-system.test.js`.**
+- [x] **Step 5: Commit integration tests and GameWorld as `feat: connect orbital blade to game world`.**
 
 ### Task 3: Canvas, HUD, full verification, and delivery
 

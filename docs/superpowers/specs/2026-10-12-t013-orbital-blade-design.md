@@ -42,7 +42,7 @@ UP-04 等级 0 时武器不活动。等级 `L` 为 1–5 时：
 - `update({ deltaSeconds, upgradeEffects })` 校验非负有限步长、UP-04 整数等级范围 0–5、正有限 `damageMultiplier`。仅在 `GameWorld` 的 PLAYING 固定步中调用。
 - 保有当前角度和 `Map<enemyId, remainingCooldownSeconds>`。冷却只随有效 PLAYING 步递减；暂停、LEVEL_UP、MENU、死亡冻结不调用更新。死敌或已移除敌人的冷却项被清理。
 - 每步将活动刃放置在圆轨道当前角度，对每个存活且生命大于零的敌人做圆形接触检测。接触且该 ID 无剩余冷却时，调用共享 `EnemyDamageSystem.applyDamage(enemy, damage)` 一次并设置该敌人冷却。此处不自行发放击杀、经验或死亡事件，由 GameWorld 既有结算统一执行。
-- `getSnapshot()` 返回新建冻结对象 `{ active, level, playerX, playerY, x, y, radius, orbitRadius, angleRadians, color }`；不暴露内部 Map 或可变实体。未解锁时 `active:false`，没有有效碰撞位置。
+- `getSnapshot(level = lastSimulatedLevel)` 返回新建冻结对象 `{ active, level, playerX, playerY, x, y, radius, orbitRadius, angleRadians, color }`；显式等级仅用于只读即时展示，不改变模拟角度、冷却或缓存。不暴露内部 Map 或可变实体。未解锁时 `active:false`，没有有效碰撞位置。`GameWorld` 向此接口传入 `UpgradeSystem` 当前 UP-04 等级，保证刚完成升级选择的画面立即同步。
 - `reset()` 将角度归零、清除所有逐敌冷却，并把最近渲染状态恢复为锁定/中性倍率，保证重开与主菜单帧不会残绘旧武器；不改配置、玩家属性、武器系统或任何订阅。
 
 配置构造时复制并冻结，且拒绝任一必需正数参数为非有限或非正值；颜色须为非空字符串。
