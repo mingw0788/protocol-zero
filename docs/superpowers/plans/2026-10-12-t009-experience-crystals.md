@@ -182,27 +182,27 @@ git commit -m "feat: integrate experience drops into game world"
 - Consumes: Task 3 的 `world.experienceCrystals`、`EXPERIENCE_CRYSTAL_CONFIG` 与 Camera `worldToScreen()` / 逻辑视口。
 - Produces: `ExperienceCrystalRenderer.render(context, camera, crystals)`；`CanvasRenderer.render(player = null, enemies = [], projectiles = [], experienceCrystals = [])`；Game 每帧传第四个数组。绘制顺序：地图 → 晶体 → 弹丸 → 敌人 → 玩家。
 
-- [ ] **Step 1: 写只读绘制、裁剪和图层测试**
+- [x] **Step 1: 写只读绘制、裁剪和图层测试**
 
 在 `tests/experience-crystal-renderer.test.js` 添加 `draws active crystals in camera coordinates without mutating them`、`clips partial crystals and culls offscreen or inactive crystals`。断言配置琥珀色方块尺寸 8×8、世界到屏幕转换、失效晶体跳过、完全离屏跳过、部分越界有逻辑视口 clip，绘制前后实体相等。更新 `tests/enemy-renderer.test.js` 的 Canvas 集成断言为 `map → crystals → projectiles → enemies → player`，并验证 Game 传入共享晶体数组。
 
-- [ ] **Step 2: 运行渲染测试确认失败**
+- [x] **Step 2: 运行渲染测试确认失败**
 
 Run: `npm test -- tests/experience-crystal-renderer.test.js tests/enemy-renderer.test.js`
 
 Expected: renderer 不存在且 Canvas/Game 没有晶体参数，新增断言失败。
 
-- [ ] **Step 3: 实现 renderer 并接入 Canvas**
+- [x] **Step 3: 实现 renderer 并接入 Canvas**
 
 沿用 `EnemyRenderer` 的 context/camera/数组校验和 save/clip/restore 模式。绘制只读 `active` 且坐标有限的晶体，以 `renderSize` 居中方形填充 `color`。在 `CanvasRenderer` 注入 renderer、追加第四个兼容参数并按规格排列图层；`Game` 在渲染回调传 `world.experienceCrystals`。
 
-- [ ] **Step 4: 验证渲染与既有图层测试通过**
+- [x] **Step 4: 验证渲染与既有图层测试通过**
 
 Run: `npm test -- tests/experience-crystal-renderer.test.js tests/enemy-renderer.test.js tests/projectile-renderer.test.js`
 
 Expected: 晶体像素、只读、裁剪和图层顺序正确，既有弹丸/敌人绘制继续通过。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/rendering/ExperienceCrystalRenderer.js src/rendering/CanvasRenderer.js src/core/Game.js tests/experience-crystal-renderer.test.js tests/enemy-renderer.test.js

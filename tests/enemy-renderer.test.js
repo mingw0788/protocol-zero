@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ENEMY_CONFIG } from '../src/config/enemyConfig.js';
 import { Game } from '../src/core/Game.js';
 import { Enemy } from '../src/entities/Enemy.js';
+import { ExperienceCrystal } from '../src/entities/ExperienceCrystal.js';
 import { Projectile } from '../src/entities/Projectile.js';
 import { Camera } from '../src/rendering/Camera.js';
 import { CanvasRenderer } from '../src/rendering/CanvasRenderer.js';
@@ -63,9 +64,12 @@ describe('EnemyRenderer', () => {
 });
 
 describe('CanvasRenderer layering', () => {
-  it('draws the map, projectiles, enemies, then player', () => {
+  it('draws the map, crystals, projectiles, enemies, then player', () => {
     const events = [];
     const camera = new Camera();
+    const crystals = [new ExperienceCrystal({
+      id: 'layered-crystal', x: 1200, y: 675, expValue: 1,
+    })];
     const projectiles = [new Projectile({
       id: 'layered-projectile',
       ownerId: 'player',
@@ -88,6 +92,10 @@ describe('CanvasRenderer layering', () => {
       canvas,
       camera,
       mapRenderer: { render: () => events.push('map') },
+      experienceCrystalRenderer: { render: (_context, _camera, drawnCrystals) => {
+        expect(drawnCrystals).toBe(crystals);
+        events.push('crystals');
+      } },
       projectileRenderer: { render: (_context, _camera, drawnProjectiles) => {
         expect(drawnProjectiles).toBe(projectiles);
         events.push('projectiles');
@@ -99,14 +107,19 @@ describe('CanvasRenderer layering', () => {
       playerRenderer: { render: () => events.push('player') },
     });
 
-    renderer.render({ id: 'player' }, [createEnemy('layered-enemy', 1200, 675)], projectiles);
+    renderer.render(
+      { id: 'player' },
+      [createEnemy('layered-enemy', 1200, 675)],
+      projectiles,
+      crystals,
+    );
 
-    expect(events.slice(-4)).toEqual(['map', 'projectiles', 'enemies', 'player']);
+    expect(events.slice(-5)).toEqual(['map', 'crystals', 'projectiles', 'enemies', 'player']);
   });
 });
 
-describe('Game projectile rendering', () => {
-  it('passes the shared world projectile array to CanvasRenderer each frame', () => {
+describe('Game world rendering', () => {
+  it('passes the shared projectile and crystal arrays to CanvasRenderer each frame', () => {
     let nextFrame;
     const canvas = {
       width: 1280,
@@ -147,6 +160,7 @@ describe('Game projectile rendering', () => {
     expect(renderCalls[0][0]).toBe(game.world.player);
     expect(renderCalls[0][1]).toBe(game.world.enemies);
     expect(renderCalls[0][2]).toBe(game.world.projectiles);
+    expect(renderCalls[0][3]).toBe(game.world.experienceCrystals);
     game.stop();
   });
 });

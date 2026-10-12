@@ -3,6 +3,7 @@ import { MapRenderer } from './MapRenderer.js';
 import { PlayerRenderer } from './PlayerRenderer.js';
 import { EnemyRenderer } from './EnemyRenderer.js';
 import { ProjectileRenderer } from './ProjectileRenderer.js';
+import { ExperienceCrystalRenderer } from './ExperienceCrystalRenderer.js';
 
 export class CanvasRenderer {
   #canvas;
@@ -10,6 +11,7 @@ export class CanvasRenderer {
   #camera;
   #mapRenderer;
   #projectileRenderer;
+  #experienceCrystalRenderer;
   #enemyRenderer;
   #playerRenderer;
   #windowTarget;
@@ -24,6 +26,7 @@ export class CanvasRenderer {
     canvas,
     camera,
     mapRenderer = new MapRenderer(),
+    experienceCrystalRenderer = new ExperienceCrystalRenderer(),
     projectileRenderer = new ProjectileRenderer(),
     enemyRenderer = new EnemyRenderer(),
     playerRenderer = new PlayerRenderer(),
@@ -42,6 +45,9 @@ export class CanvasRenderer {
     if (!projectileRenderer || typeof projectileRenderer.render !== 'function') {
       throw new TypeError('CanvasRenderer requires a projectile renderer');
     }
+    if (!experienceCrystalRenderer || typeof experienceCrystalRenderer.render !== 'function') {
+      throw new TypeError('CanvasRenderer requires an experience crystal renderer');
+    }
     if (!enemyRenderer || typeof enemyRenderer.render !== 'function') {
       throw new TypeError('CanvasRenderer requires an enemy renderer');
     }
@@ -57,6 +63,7 @@ export class CanvasRenderer {
     if (!this.#context) throw new Error('Canvas 2D context is unavailable');
     this.#camera = camera;
     this.#mapRenderer = mapRenderer;
+    this.#experienceCrystalRenderer = experienceCrystalRenderer;
     this.#projectileRenderer = projectileRenderer;
     this.#enemyRenderer = enemyRenderer;
     this.#playerRenderer = playerRenderer;
@@ -99,7 +106,7 @@ export class CanvasRenderer {
     this.#lastDevicePixelRatio = ratio;
   }
 
-  render(player = null, enemies = [], projectiles = []) {
+  render(player = null, enemies = [], projectiles = [], experienceCrystals = []) {
     const ratio = this.#readDevicePixelRatio();
     if (ratio !== this.#lastDevicePixelRatio) this.resize();
 
@@ -109,6 +116,7 @@ export class CanvasRenderer {
     this.#context.imageSmoothingEnabled = false;
     this.#camera.update();
     this.#mapRenderer.render(this.#context, this.#camera);
+    this.#experienceCrystalRenderer.render(this.#context, this.#camera, experienceCrystals);
     this.#projectileRenderer.render(this.#context, this.#camera, projectiles);
     this.#enemyRenderer.render(this.#context, this.#camera, enemies);
     if (player) this.#playerRenderer.render(this.#context, this.#camera, player);
