@@ -114,10 +114,10 @@ Expected: FAIL because the module/API does not exist.
 - Consumes: T011 design/implementation and automated evidence from Tasks 1–3.
 - Produces: an auditable T011 status/report; T012 remains responsible for actual attribute effects.
 
-- [ ] **Step 1: Run the full `npm test` suite, `npm run build`, and `git diff --check`; record exact results without installing dependencies.**
-- [ ] **Step 2: Start the existing local preview and use an available browser to play until a natural level-up appears; verify cards, mouse/Enter/Space activation, Escape lockout, continuous queue freeze, resume after final selection, and zero console errors.** If the flow cannot be reached in the available browser session, record it as unverified and preserve unit/integration evidence.
-- [ ] **Step 3: Update SRS/SDD status, D-030/D-031, README, task status and `docs/task-report-T011.md`; identify that actual upgrade effects remain in T012.**
-- [ ] **Step 4: Commit** as `docs: record T011 upgrade choice acceptance`.
+- [x] **Step 1: Run the full `npm test` suite, `npm run build`, and `git diff --check`; record exact results without installing dependencies.** `npm test`: 31 files / 223 passed; `npm run build`: Vite 41 modules passed; `git diff --check`: passed.
+- [x] **Step 2: Start the local development server and use the available Playwright browser for a natural level-up attempt.** Browser verified the title menu, starting a run, HUD updates, and zero console errors/warnings. Two natural attempts ended before the 6 XP threshold: at 20 seconds/10 kills/3 XP and at 44 seconds/25 kills/3 XP. Upgrade cards, mouse/Enter/Space selection, Escape lockout, and resume after the final queued choice remain unverified in browser; unit/integration tests cover these interactions.
+- [x] **Step 3: Update SRS/SDD status, D-030/D-031, README, task status and `docs/task-report-T011.md`; identify that actual upgrade effects remain in T012.** No new gameplay ruling was needed.
+- [x] **Step 4: Commit** as `docs: record T011 upgrade choice acceptance`.
 
 ## Plan Self-Review
 
