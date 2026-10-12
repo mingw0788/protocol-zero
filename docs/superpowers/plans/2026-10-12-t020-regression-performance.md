@@ -30,9 +30,9 @@
 
 **Files:** tests only if a concrete regression is found; task report/status/docs.
 
-- [ ] Inventory FR-001–FR-018 and NFR-001–NFR-010 against existing tests and T005–T019 evidence; list true coverage gaps.
-- [ ] Run full `npm test`, `npm run build`, and `git diff --check`; preserve exact results.
-- [ ] If a defect appears, add the narrowest regression test first, fix only in-scope behavior, then rerun affected and full verification.
+- [x] Inventory FR-001–FR-018 and NFR-001–NFR-010 against existing tests and T005–T019 evidence; list true coverage gaps.
+- [x] Run full `npm test`, `npm run build`, and `git diff --check`; preserve exact results.
+- [x] If a defect appears, add the narrowest regression test first, fix only in-scope behavior, then rerun affected and full verification. No source defect appeared in the baseline run.
 
 ### Task 2: Browser lifecycle and full-run scenarios
 
