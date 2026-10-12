@@ -1,0 +1,185 @@
+import { ORBITAL_BLADE_CONFIG } from '../config/orbitalBladeConfig.js';
+
+const TWO_PI = Math.PI * 2;
+
+const CONFIG_NUMERIC_FIELDS = Object.freeze([
+  'bladeRadius',
+  'baseDamage',
+  'damagePerUpgradeLevel',
+  'baseOrbitRadius',
+  'orbitRadiusPerUpgradeLevel',
+  'rotationRadiansPerSecond',
+  'hitCooldownSeconds',
+]);
+
+function requirePositiveFinite(value, name) {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new RangeError(`${name} must be a positive finite number`);
+  }
+}
+
+function copyConfig(config) {
+  if (!config || typeof config !== 'object') {
+    throw new TypeError('OrbitalBladeSystem requires a configuration object');
+  }
+  for (const field of CONFIG_NUMERIC_FIELDS) requirePositiveFinite(config[field], field);
+  if (!Number.isSafeInteger(config.maxLevel) || config.maxLevel < 1) {
+    throw new RangeError('maxLevel must be a positive safe integer');
+  }
+  if (typeof config.color !== 'string' || config.color.trim().length === 0) {
+    throw new TypeError('color must be a non-empty string');
+  }
+
+  const copied = Object.freeze({
+    id: typeof config.id === 'string' && config.id.length > 0 ? config.id : 'orbital-blade',
+    ...Object.fromEntries(CONFIG_NUMERIC_FIELDS.map((field) => [field, config[field]])),
+    maxLevel: config.maxLevel,
+    color: config.color,
+  });
+  const maxDamage = copied.baseDamage + copied.damagePerUpgradeLevel * (copied.maxLevel - 1);
+  const maxOrbitRadius = copied.baseOrbitRadius
+    + copied.orbitRadiusPerUpgradeLevel * (copied.maxLevel - 1);
+  requirePositiveFinite(maxDamage, 'maximum damage');
+  requirePositiveFinite(maxOrbitRadius, 'maximum orbit radius');
+  return copied;
+}
+
+function requireDependencies({ player, enemies, enemyDamageSystem }) {
+  if (!player || typeof player !== 'object'
+    || !Number.isFinite(player.x) || !Number.isFinite(player.y)) {
+    throw new TypeError('OrbitalBladeSystem requires a player with finite coordinates');
+  }
+  if (!Array.isArray(enemies)) throw new TypeError('OrbitalBladeSystem requires an enemy array');
+  if (typeof enemyDamageSystem?.applyDamage !== 'function') {
+    throw new TypeError('OrbitalBladeSystem requires an enemy damage system');
+  }
+}
+
+function requireUpdate({ deltaSeconds, upgradeEffects }, maxLevel) {
+  if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0) {
+    throw new RangeError('deltaSeconds must be a non-negative finite number');
+  }
+  if (!upgradeEffects || typeof upgradeEffects !== 'object') {
+    throw new TypeError('OrbitalBladeSystem requires an upgrade-effect snapshot');
+  }
+  if (!Number.isSafeInteger(upgradeEffects.orbitalBladeLevel)
+    || upgradeEffects.orbitalBladeLevel < 0
+    || upgradeEffects.orbitalBladeLevel > maxLevel) {
+    throw new RangeError(`orbitalBladeLevel must be an integer from 0 through ${maxLevel}`);
+  }
+  requirePositiveFinite(upgradeEffects.damageMultiplier, 'damageMultiplier');
+}
+
+function isLiveEnemy(enemy) {
+  return enemy?.alive === true
+    && Number.isFinite(enemy.hp)
+    && enemy.hp > 0
+    && Number.isFinite(enemy.x)
+    && Number.isFinite(enemy.y)
+    && Number.isFinite(enemy.radius)
+    && enemy.radius > 0
+    && ((typeof enemy.id === 'string' && enemy.id.length > 0)
+      || (typeof enemy.id === 'number' && Number.isFinite(enemy.id)));
+}
+
+export class OrbitalBladeSystem {
+  #angleRadians = 0;
+  #level = 0;
+  #hitCooldowns = new Map();
+
+  constructor({ player, enemies, enemyDamageSystem, config = ORBITAL_BLADE_CONFIG } = {}) {
+    requireDependencies({ player, enemies, enemyDamageSystem });
+    this.player = player;
+    this.enemies = enemies;
+    this.enemyDamageSystem = enemyDamageSystem;
+    this.config = copyConfig(config);
+  }
+
+  update({ deltaSeconds, upgradeEffects } = {}) {
+    requireUpdate({ deltaSeconds, upgradeEffects }, this.config.maxLevel);
+    if (!Number.isFinite(this.player.x) || !Number.isFinite(this.player.y)) {
+      throw new RangeError('Player coordinates must remain finite');
+    }
+    if (deltaSeconds === 0) return false;
+
+    const level = upgradeEffects.orbitalBladeLevel;
+    const nextAngle = level > 0
+      ? (this.#angleRadians + this.config.rotationRadiansPerSecond * deltaSeconds) % TWO_PI
+      : 0;
+    if (!Number.isFinite(nextAngle)) throw new RangeError('Orbital angle must remain finite');
+
+    const orbitRadius = level > 0
+      ? this.config.baseOrbitRadius + this.config.orbitRadiusPerUpgradeLevel * (level - 1)
+      : 0;
+    const damage = level > 0
+      ? (this.config.baseDamage + this.config.damagePerUpgradeLevel * (level - 1))
+        * upgradeEffects.damageMultiplier
+      : 0;
+    const bladeX = level > 0 ? this.player.x + orbitRadius * Math.cos(nextAngle) : null;
+    const bladeY = level > 0 ? this.player.y + orbitRadius * Math.sin(nextAngle) : null;
+    if (level > 0 && (!Number.isFinite(damage) || damage <= 0
+      || !Number.isFinite(orbitRadius) || orbitRadius <= 0
+      || !Number.isFinite(bladeX) || !Number.isFinite(bladeY))) {
+      throw new RangeError('Orbital blade combat values must remain finite');
+    }
+
+    this.#level = level;
+    this.#angleRadians = nextAngle;
+
+    const liveIds = new Set();
+    for (const enemy of this.enemies) {
+      if (isLiveEnemy(enemy)) liveIds.add(enemy.id);
+    }
+    for (const [enemyId, remaining] of this.#hitCooldowns) {
+      if (!liveIds.has(enemyId)) {
+        this.#hitCooldowns.delete(enemyId);
+        continue;
+      }
+      const nextRemaining = Math.max(0, remaining - deltaSeconds);
+      if (nextRemaining === 0) this.#hitCooldowns.delete(enemyId);
+      else this.#hitCooldowns.set(enemyId, nextRemaining);
+    }
+
+    if (level === 0) {
+      this.#hitCooldowns.clear();
+      return true;
+    }
+
+    for (const enemy of this.enemies) {
+      if (!isLiveEnemy(enemy) || this.#hitCooldowns.has(enemy.id)) continue;
+      const distance = Math.hypot(bladeX - enemy.x, bladeY - enemy.y);
+      if (distance > this.config.bladeRadius + enemy.radius) continue;
+
+      if (this.enemyDamageSystem.applyDamage(enemy, damage)) {
+        this.#hitCooldowns.set(enemy.id, this.config.hitCooldownSeconds);
+      }
+    }
+    return true;
+  }
+
+  getSnapshot() {
+    const active = this.#level > 0;
+    const orbitRadius = active
+      ? this.config.baseOrbitRadius
+        + this.config.orbitRadiusPerUpgradeLevel * (this.#level - 1)
+      : 0;
+    return Object.freeze({
+      active,
+      level: this.#level,
+      playerX: this.player.x,
+      playerY: this.player.y,
+      x: active ? this.player.x + orbitRadius * Math.cos(this.#angleRadians) : null,
+      y: active ? this.player.y + orbitRadius * Math.sin(this.#angleRadians) : null,
+      radius: this.config.bladeRadius,
+      orbitRadius,
+      angleRadians: this.#angleRadians,
+      color: this.config.color,
+    });
+  }
+
+  reset() {
+    this.#angleRadians = 0;
+    this.#level = 0;
+    this.#hitCooldowns.clear();
+  }
+}

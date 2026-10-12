@@ -40,11 +40,11 @@
 - Consumes: `{ orbitalBladeLevel, damageMultiplier }` from the existing frozen upgrade-effect snapshot; shared Player, enemy array, and `EnemyDamageSystem.applyDamage(enemy, damage)`.
 - Produces: `update({ deltaSeconds, upgradeEffects })`, `getSnapshot()`, and `reset()`; immutable snapshot `{ active, level, playerX, playerY, x, y, radius, orbitRadius, angleRadians, color }`.
 
-- [ ] **Step 1: Write failing tests** named `starts locked and returns a frozen inactive snapshot`, `orbits at the configured speed and reports world coordinates`, `damages a contacting target using shared damage multiplier`, `limits repeat hits independently per target until cooldown expires`, `cleans cooldowns for dead and removed enemies`, `reset clears angle and target cooldown without changing configuration`, and `rejects invalid inputs without mutating combat state`.
-- [ ] **Step 2: Run `npm test -- tests/orbital-blade-system.test.js` and observe the expected missing-module/API failures.**
-- [ ] **Step 3: Add frozen `ORBITAL_BLADE_CONFIG` and implement the validated system with the exact values and formulas in the spec.**
-- [ ] **Step 4: Re-run the focused tests; expect all named cases to pass and the injected config object to remain unchanged.**
-- [ ] **Step 5: Commit the configuration, system, and tests as `feat: add orbital blade combat system`.**
+- [x] **Step 1: Write failing tests** named `starts locked and returns a frozen inactive snapshot`, `orbits at the configured speed and reports world coordinates`, `damages a contacting target using shared damage multiplier`, `limits repeat hits independently per target until cooldown expires`, `cleans cooldowns for dead and removed enemies`, `reset clears angle and target cooldown without changing configuration`, and `rejects invalid inputs without mutating combat state`.
+- [x] **Step 2: Run `npm test -- tests/orbital-blade-system.test.js` and observe the expected missing-module/API failures.**
+- [x] **Step 3: Add frozen `ORBITAL_BLADE_CONFIG` and implement the validated system with the exact values and formulas in the spec.**
+- [x] **Step 4: Re-run the focused tests; expect all named cases to pass and the injected config object to remain unchanged.**
+- [x] **Step 5: Commit the configuration, system, and tests as `feat: add orbital blade combat system`.**
 
 ### Task 2: GameWorld and upgrade integration
 
