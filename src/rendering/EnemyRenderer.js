@@ -1,7 +1,7 @@
-import { ENEMY_CONFIG } from '../config/enemyConfig.js';
+import { drawPixelPattern, SPRITE_PALETTES, SPRITE_PATTERNS } from './spritePatterns.js';
 
 export class EnemyRenderer {
-  render(context, camera, enemies = []) {
+  render(context, camera, enemies = [], effectiveTime = 0) {
     if (!context || typeof context.fillRect !== 'function') {
       throw new TypeError('EnemyRenderer requires a Canvas 2D context');
     }
@@ -26,10 +26,20 @@ export class EnemyRenderer {
       if (x + diameter <= 0 || y + diameter <= 0
         || x >= camera.viewportWidth || y >= camera.viewportHeight) continue;
 
-      context.fillStyle = enemy.color ?? ENEMY_CONFIG.EN01.color;
-      context.fillRect(x, y, diameter, diameter);
+      const patterns = SPRITE_PATTERNS.enemies[enemy.typeId] ?? SPRITE_PATTERNS.enemies.fallback;
+      const phase = stablePhase(enemy.id);
+      const frame = Math.floor(effectiveTime * 4 + phase) % patterns.length;
+      const palette = SPRITE_PALETTES[enemy.typeId] ?? SPRITE_PALETTES.fallback;
+      drawPixelPattern(context, patterns[frame], palette, x, y, diameter);
     }
 
     context.restore();
   }
+}
+
+function stablePhase(id) {
+  const value = String(id ?? 'enemy');
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) hash = (hash * 31 + value.charCodeAt(index)) | 0;
+  return Math.abs(hash % 2);
 }

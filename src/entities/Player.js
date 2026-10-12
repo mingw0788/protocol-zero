@@ -49,6 +49,11 @@ export class Player {
     const inputX = Number.isFinite(direction?.x) ? direction.x : 0;
     const inputY = Number.isFinite(direction?.y) ? direction.y : 0;
     const magnitude = Math.hypot(inputX, inputY);
+    this.moving = magnitude > 0 && deltaSeconds > 0;
+    if (this.moving) {
+      this.facingX = inputX / magnitude;
+      this.facingY = inputY / magnitude;
+    }
     if (magnitude === 0 || deltaSeconds === 0) return false;
 
     const distance = this.moveSpeed * deltaSeconds;
@@ -69,6 +74,9 @@ export class Player {
     this.hp = this.maxHp;
     this.alive = true;
     this.invulnerabilityRemaining = 0;
+    this.moving = false;
+    this.facingX = 0;
+    this.facingY = -1;
     this.level = PLAYER_CONFIG.initialLevel;
     this.exp = PLAYER_CONFIG.initialExp;
     this.weaponStates = [{ id: PLAYER_CONFIG.startingWeaponId, cooldownRemaining: 0 }];

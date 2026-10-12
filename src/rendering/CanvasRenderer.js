@@ -127,6 +127,8 @@ export class CanvasRenderer {
     experienceCrystals = [],
     orbitalBlade = null,
     bossSnapshot = null,
+    visualEffects = [],
+    effectiveTime = 0,
   ) {
     const ratio = this.#readDevicePixelRatio();
     if (ratio !== this.#lastDevicePixelRatio) this.resize();
@@ -139,10 +141,10 @@ export class CanvasRenderer {
     this.#mapRenderer.render(this.#context, this.#camera);
     this.#experienceCrystalRenderer.render(this.#context, this.#camera, experienceCrystals);
     this.#projectileRenderer.render(this.#context, this.#camera, projectiles);
-    this.#bossRenderer.render(this.#context, this.#camera, bossSnapshot);
-    this.#enemyRenderer.render(this.#context, this.#camera, enemies);
+    this.#bossRenderer.render(this.#context, this.#camera, bossSnapshot, effectiveTime);
+    this.#enemyRenderer.render(this.#context, this.#camera, enemies, effectiveTime);
     this.#orbitalBladeRenderer.render(this.#context, this.#camera, orbitalBlade);
-    if (player) this.#playerRenderer.render(this.#context, this.#camera, player);
+    if (player) this.#playerRenderer.render(this.#context, this.#camera, player, effectiveTime);
   }
 
   #handleResize = () => {

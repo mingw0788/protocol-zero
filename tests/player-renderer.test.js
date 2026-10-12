@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { Camera } from '../src/rendering/Camera.js';
 import { PlayerRenderer } from '../src/rendering/PlayerRenderer.js';
+import { SPRITE_PATTERNS } from '../src/rendering/spritePatterns.js';
 
 describe('PlayerRenderer', () => {
-  it('draws the player placeholder at the camera-adjusted world position', () => {
+  it('draws a bounded pixel sprite at the camera-adjusted world position', () => {
     const fills = [];
     const context = {
+      fillStyle: '',
       fillRect(...args) {
-        fills.push(args);
+        fills.push({ color: this.fillStyle, rect: args });
       },
     };
     const camera = new Camera();
@@ -16,6 +18,23 @@ describe('PlayerRenderer', () => {
 
     renderer.render(context, camera, player);
 
-    expect(fills).toEqual([[624, 344, 32, 32]]);
+    expect(fills.length).toBeGreaterThan(1);
+    expect(fills.every(({ rect: [x, y, width, height] }) =>
+      x >= 624 && y >= 344 && x + width <= 656 && y + height <= 376)).toBe(true);
+    expect(SPRITE_PATTERNS.player).toBeDefined();
+  });
+
+  it('uses effective time for a two-frame idle animation and flashes while hurt', () => {
+    const render = (time, hurt = 0) => {
+      const fills = [];
+      const context = { fillStyle: '', fillRect(...rect) { fills.push([this.fillStyle, ...rect]); } };
+      new PlayerRenderer().render(context, new Camera(), {
+        x: 1200, y: 675, radius: 16, invulnerabilityRemaining: hurt,
+      }, time);
+      return fills;
+    };
+
+    expect(render(0)).not.toEqual(render(0.2));
+    expect(render(0, 0.04)).not.toEqual(render(0, 0.12));
   });
 });

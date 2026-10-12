@@ -39,7 +39,10 @@ describe('OrbitalBladeRenderer', () => {
 
     expect(context.translations).toEqual([[100, 120]]);
     expect(context.rotations[0]).toBeCloseTo(Math.PI / 2, 12);
-    expect(context.fills).toEqual([{ color: '#d66dff', rect: [-8, -8, 16, 16] }]);
+    expect(context.fills).toEqual([
+      { color: '#d66dff', rect: [-8, -8, 16, 16] },
+      { color: '#f4dcff', rect: [-4, -4, 8, 8] },
+    ]);
   });
 
   it('skips locked and fully offscreen snapshots', () => {
@@ -77,6 +80,6 @@ describe('OrbitalBladeRenderer', () => {
     });
 
     expect(drawn).toBe(true);
-    expect(context.fills).toHaveLength(1);
+    expect(context.fills).toHaveLength(2);
   });
 });

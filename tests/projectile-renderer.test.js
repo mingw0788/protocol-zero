@@ -44,10 +44,9 @@ describe('ProjectileRenderer', () => {
 
     new ProjectileRenderer().render(context, camera, projectiles);
 
-    expect(context.fills).toEqual([{
-      color: '#4cf3ff',
-      rect: [96, 116, 8, 8],
-    }]);
+    expect(context.fills).toHaveLength(2);
+    expect(context.fills[0]).toEqual({ color: '#4cf3ff', rect: [96, 116, 8, 8] });
+    expect(context.fills[1]).toEqual({ color: '#e9ffff', rect: [98, 118, 4, 4] });
     expect(projectiles).toEqual(before);
   });
 
@@ -62,10 +61,8 @@ describe('ProjectileRenderer', () => {
 
     expect(events).toContainEqual(['clipRect', 0, 0, 1280, 720]);
     expect(events.indexOf('clip')).toBeLessThan(events.indexOf('projectile'));
-    expect(context.fills).toEqual([{
-      color: '#4cf3ff',
-      rect: [-6, 96, 8, 8],
-    }]);
+    expect(context.fills).toHaveLength(2);
+    expect(context.fills[0].rect).toEqual([-6, 96, 8, 8]);
     expect(events.at(-1)).toBe('restore');
   });
 });

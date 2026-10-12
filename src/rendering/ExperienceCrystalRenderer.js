@@ -36,8 +36,13 @@ export class ExperienceCrystalRenderer {
         continue;
       }
 
+      const cell = size / 4;
       context.fillStyle = EXPERIENCE_CRYSTAL_CONFIG.color;
-      context.fillRect(x, y, size, size);
+      context.fillRect(x + cell, y, cell * 2, cell);
+      context.fillRect(x, y + cell, cell * 4, cell * 2);
+      context.fillRect(x + cell, y + cell * 3, cell * 2, cell);
+      context.fillStyle = '#fff1b8';
+      context.fillRect(x + cell * 1.5, y + cell * 0.5, cell, cell * 2);
     }
 
     context.restore();

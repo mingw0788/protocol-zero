@@ -4,8 +4,11 @@ import { BossRenderer } from '../src/rendering/BossRenderer.js';
 
 function createContext(events = []) {
   const strokes = [];
+  const fills = [];
+  let dash = [];
   return {
     strokes,
+    fills,
     save() { events.push('save'); },
     beginPath() { events.push('beginPath'); },
     rect(...args) { events.push(['clipRect', ...args]); },
@@ -13,9 +16,11 @@ function createContext(events = []) {
     moveTo(...args) { events.push(['moveTo', ...args]); },
     lineTo(...args) { events.push(['lineTo', ...args]); },
     stroke() {
-      strokes.push({ color: this.strokeStyle, width: this.lineWidth, cap: this.lineCap });
+      strokes.push({ color: this.strokeStyle, alpha: this.globalAlpha, width: this.lineWidth, cap: this.lineCap, dash });
       events.push('warning');
     },
+    fillRect(...rect) { fills.push({ color: this.fillStyle, rect }); },
+    setLineDash(value) { dash = value; },
     restore() { events.push('restore'); },
   };
 }
@@ -57,7 +62,8 @@ describe('BossRenderer', () => {
     expect(events).toContainEqual(['clipRect', 0, 0, 1280, 720]);
     expect(events).toContainEqual(['moveTo', -100, 120]);
     expect(events).toContainEqual(['lineTo', 200, 120]);
-    expect(context.strokes).toEqual([{ color: 'rgba(255, 65, 105, 0.28)', width: 112, cap: 'butt' }]);
+    expect(context.strokes).toEqual([{ color: '#ff4169', alpha: 0.23, width: 112, cap: 'butt', dash: [24, 16] }]);
+    expect(context.fills).toHaveLength(0);
     expect(events.indexOf('clip')).toBeLessThan(events.indexOf('warning'));
     expect(events.at(-1)).toBe('restore');
   });
@@ -70,5 +76,26 @@ describe('BossRenderer', () => {
     expect(renderer.render(context, camera, snapshot({ phase: 'charging' }))).toBe(true);
     expect(renderer.render(context, camera, snapshot({ alive: false }))).toBe(false);
     expect(context.strokes).toHaveLength(1);
+  });
+
+  it('draws an alive Boss as a type-specific sprite within its collision diameter', () => {
+    const camera = new Camera();
+    const context = createContext();
+    new BossRenderer().render(context, camera, snapshot({ phase: 'approach' }));
+    expect(context.fills.length).toBeGreaterThan(1);
+    expect(context.fills.every(({ rect: [x, y, width, height] }) =>
+      x >= 195.999 && y >= 40.999 && x + width <= 284.001 && y + height <= 129.001)).toBe(true);
+  });
+
+  it('pulses the segmented telegraph using effective time', () => {
+    const camera = new Camera();
+    const atStart = createContext();
+    const later = createContext();
+    const renderer = new BossRenderer();
+    renderer.render(atStart, camera, snapshot(), 0);
+    renderer.render(later, camera, snapshot(), 0.1);
+    expect(atStart.strokes[0].dash).toEqual([24, 16]);
+    expect(later.strokes[0].dash).toEqual([24, 16]);
+    expect(later.strokes[0].alpha).not.toBe(atStart.strokes[0].alpha);
   });
 });

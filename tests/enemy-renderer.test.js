@@ -7,6 +7,7 @@ import { Projectile } from '../src/entities/Projectile.js';
 import { Camera } from '../src/rendering/Camera.js';
 import { CanvasRenderer } from '../src/rendering/CanvasRenderer.js';
 import { EnemyRenderer } from '../src/rendering/EnemyRenderer.js';
+import { SPRITE_PATTERNS } from '../src/rendering/spritePatterns.js';
 
 function createContext(events = []) {
   const fills = [];
@@ -28,7 +29,7 @@ function createEnemy(id, x, y) {
 }
 
 describe('EnemyRenderer', () => {
-  it('draws live enemies in logical screen coordinates with the configured enemy color', () => {
+  it('draws live enemies as bounded pixel patterns in logical screen coordinates', () => {
     const camera = new Camera();
     const context = createContext();
     const visible = createEnemy('visible', camera.x + 100, camera.y + 120);
@@ -38,10 +39,9 @@ describe('EnemyRenderer', () => {
 
     new EnemyRenderer().render(context, camera, [visible, dead, outside]);
 
-    expect(context.fills).toEqual([{
-      color: '#ff5e70',
-      rect: [84, 104, 32, 32],
-    }]);
+    expect(context.fills.length).toBeGreaterThan(1);
+    expect(context.fills.every(({ color, rect: [x, y, width, height] }) =>
+      color !== undefined && x >= 84 && y >= 104 && x + width <= 116 && y + height <= 136)).toBe(true);
   });
 
   it('clips to the viewport and draws partial intersections while culling fully offscreen enemies', () => {
@@ -55,11 +55,35 @@ describe('EnemyRenderer', () => {
 
     expect(events).toContainEqual(['clipRect', 0, 0, 1280, 720]);
     expect(events.indexOf('clip')).toBeLessThan(events.indexOf('enemy'));
-    expect(context.fills).toEqual([{
-      color: '#ff5e70',
-      rect: [-26, 84, 32, 32],
-    }]);
+    expect(context.fills.length).toBeGreaterThan(0);
+    expect(context.fills.every(({ rect: [x, y, width, height] }) =>
+      x >= -26 && y >= 84 && x + width <= 6 && y + height <= 116)).toBe(true);
     expect(events.at(-1)).toBe('restore');
+  });
+
+  it('uses distinct silhouettes for every known enemy kind and a neutral fallback', () => {
+    expect(SPRITE_PATTERNS.enemies['EN-01']).not.toEqual(SPRITE_PATTERNS.enemies['EN-02']);
+    expect(SPRITE_PATTERNS.enemies['EN-02']).not.toEqual(SPRITE_PATTERNS.enemies['EN-03']);
+    expect(SPRITE_PATTERNS.enemies.fallback).toBeDefined();
+    expect(SPRITE_PATTERNS.boss).toBeDefined();
+  });
+
+  it('draws a neutral bounded fallback for an unknown enemy type and animates on effective time', () => {
+    const camera = new Camera();
+    const enemy = createEnemy('stable-phase', camera.x + 80, camera.y + 80);
+    const render = (time) => {
+      const context = createContext();
+      new EnemyRenderer().render(context, camera, [enemy], time);
+      return context.fills;
+    };
+    const first = render(0);
+    expect(render(0.25)).not.toEqual(first);
+    enemy.typeId = 'future-enemy';
+    const fallback = render(0);
+    expect(fallback.length).toBeGreaterThan(0);
+    expect(fallback.every(({ rect: [x, y, width, height] }) =>
+      x >= 64 && y >= 64 && x + width <= 96 && y + height <= 96)).toBe(true);
+    expect(render(0)).toEqual(fallback);
   });
 });
 
@@ -189,6 +213,8 @@ describe('Game world rendering', () => {
     expect(renderCalls[0][3]).toBe(game.world.experienceCrystals);
     expect(renderCalls[0][4]).toBe(bladeSnapshot);
     expect(renderCalls[0][5]).toBe(bossSnapshot);
+    expect(renderCalls[0][6]).toEqual([]);
+    expect(renderCalls[0][7]).toBe(0);
     game.stop();
   });
 });

@@ -39,6 +39,9 @@ export class ProjectileRenderer {
 
       context.fillStyle = PULSE_GUN_CONFIG.projectileColor;
       context.fillRect(x, y, diameter, diameter);
+      context.fillStyle = '#e9ffff';
+      const core = diameter * 0.5;
+      context.fillRect(position.x - core / 2, position.y - core / 2, core, core);
     }
 
     context.restore();

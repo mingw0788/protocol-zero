@@ -41,10 +41,11 @@ describe('ExperienceCrystalRenderer', () => {
 
     new ExperienceCrystalRenderer().render(context, camera, crystals);
 
-    expect(context.fills).toEqual([{
-      color: '#ffbf47',
-      rect: [96, 116, 8, 8],
-    }]);
+    expect(context.fills).toHaveLength(4);
+    expect(context.fills[0]).toEqual({ color: '#ffbf47', rect: [98, 116, 4, 2] });
+    expect(context.fills.at(-1).color).toBe('#fff1b8');
+    expect(context.fills.every(({ rect: [x, y, width, height] }) =>
+      x >= 96 && y >= 116 && x + width <= 104 && y + height <= 124)).toBe(true);
     expect(crystals).toEqual(before);
   });
 
@@ -62,10 +63,8 @@ describe('ExperienceCrystalRenderer', () => {
 
     expect(events).toContainEqual(['clipRect', 0, 0, 1280, 720]);
     expect(events.indexOf('clip')).toBeLessThan(events.indexOf('crystal'));
-    expect(context.fills).toEqual([{
-      color: '#ffbf47',
-      rect: [-6, 96, 8, 8],
-    }]);
+    expect(context.fills).toHaveLength(4);
+    expect(context.fills[1].rect).toEqual([-6, 98, 8, 4]);
     expect(events.at(-1)).toBe('restore');
   });
 });

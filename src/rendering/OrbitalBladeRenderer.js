@@ -37,6 +37,8 @@ export class OrbitalBladeRenderer {
     context.rotate(snapshot.angleRadians + Math.PI / 4);
     context.fillStyle = snapshot.color;
     context.fillRect(-snapshot.radius, -snapshot.radius, snapshot.radius * 2, snapshot.radius * 2);
+    context.fillStyle = '#f4dcff';
+    context.fillRect(-snapshot.radius / 2, -snapshot.radius / 2, snapshot.radius, snapshot.radius);
     context.restore();
     return true;
   }
