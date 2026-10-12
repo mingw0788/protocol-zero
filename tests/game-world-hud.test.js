@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameWorld } from '../src/core/GameWorld.js';
+import { Enemy } from '../src/entities/Enemy.js';
 import { Camera } from '../src/rendering/Camera.js';
 
 function createWorld(options = {}) {
@@ -42,6 +43,20 @@ describe('GameWorld HUD snapshots', () => {
       killCount: 2,
       elapsedSeconds: 1.5,
     });
+  });
+
+  it('reports contact damage in an immutable real-health snapshot', () => {
+    const world = createWorld();
+    world.stateManager.startGame();
+    world.enemies.push(new Enemy({ id: 'hud-contact', x: world.player.x, y: world.player.y }));
+
+    world.update(1 / 60);
+    const snapshot = world.getHudSnapshot();
+
+    expect(snapshot.health.current).toBe(90);
+    expect(Object.isFrozen(snapshot)).toBe(true);
+    expect(Object.isFrozen(snapshot.health)).toBe(true);
+    expect(() => { snapshot.health.current = 100; }).toThrow(TypeError);
   });
 
   it('prevents presentation callers from changing current or later snapshots', () => {

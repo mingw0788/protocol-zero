@@ -18,8 +18,12 @@ export class PlayerSystem {
     return this.player.update(direction, deltaSeconds);
   }
 
+  clearInput() {
+    this.inputController?.clear?.();
+  }
+
   reset() {
     this.player.reset();
-    this.inputController?.clear();
+    this.clearInput();
   }
 }
