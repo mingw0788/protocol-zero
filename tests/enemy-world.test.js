@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Camera } from '../src/rendering/Camera.js';
 import { GameLoop } from '../src/core/GameLoop.js';
-import { GameStateManager } from '../src/core/GameStateManager.js';
+import { GAME_STATES, GameStateManager } from '../src/core/GameStateManager.js';
 import { GameWorld } from '../src/core/GameWorld.js';
 import { Enemy } from '../src/entities/Enemy.js';
 
@@ -37,6 +37,68 @@ function createWorld() {
 }
 
 describe('GameWorld enemy lifecycle', () => {
+  it('reads current wave time and passes the active fixed-step endpoint profile to spawning', () => {
+    const { world, stateManager } = createWorld();
+    const observedProfiles = [];
+    const updateSpawn = world.spawnSystem.update.bind(world.spawnSystem);
+    world.spawnSystem.update = (deltaSeconds, waveSnapshot) => {
+      observedProfiles.push(waveSnapshot);
+      return updateSpawn(deltaSeconds, waveSnapshot);
+    };
+
+    expect(world.getWaveSnapshot()).toMatchObject({ phaseId: 'opening' });
+    stateManager.startGame();
+    world.clock.advance(59.999);
+    expect(world.getWaveSnapshot()).toMatchObject({ phaseId: 'opening' });
+
+    world.update(1 / 60);
+
+    expect(observedProfiles.at(-1)).toMatchObject({ phaseId: 'swift-intro', spawnIntervalSeconds: 0.9 });
+    expect(world.getWaveSnapshot()).toMatchObject({ phaseId: 'swift-intro' });
+  });
+
+  it('freezes the effective wave profile while paused and during level-up, then resets to opening', () => {
+    const { world, stateManager } = createWorld();
+    stateManager.startGame();
+    world.clock.advance(61);
+    const beforePause = world.getWaveSnapshot();
+
+    stateManager.pause();
+    expect(world.update(3)).toBe(false);
+    expect(world.getWaveSnapshot()).toEqual(beforePause);
+    expect(world.clock.elapsedSeconds).toBe(61);
+
+    stateManager.resume();
+    stateManager.beginLevelUp();
+    expect(stateManager.currentState).toBe(GAME_STATES.LEVEL_UP);
+    expect(world.update(3)).toBe(false);
+    expect(world.getWaveSnapshot()).toEqual(beforePause);
+    expect(world.clock.elapsedSeconds).toBe(61);
+
+    stateManager.completeLevelUp();
+    stateManager.pause();
+    world.reset();
+    stateManager.returnToMenu();
+    expect(world.getWaveSnapshot()).toMatchObject({ phaseId: 'opening', startSeconds: 0 });
+  });
+
+  it('keeps the last effective wave snapshot after player death freezes simulation', () => {
+    const { world, stateManager } = createWorld();
+    stateManager.startGame();
+    world.clock.advance(269.999);
+    world.player.hp = 10;
+    world.enemies.push(new Enemy({ id: 'lethal-contact', x: world.player.x, y: world.player.y }));
+
+    world.update(1 / 60);
+    const afterDeathStep = world.getWaveSnapshot();
+    const timeAtDeath = world.clock.elapsedSeconds;
+    expect(afterDeathStep.phaseId).toBe('boss-approach');
+
+    expect(world.update(1)).toBe(false);
+    expect(world.clock.elapsedSeconds).toBe(timeAtDeath);
+    expect(world.getWaveSnapshot()).toEqual(afterDeathStep);
+  });
+
   it('settles an already dead enemy before cleanup exactly once', () => {
     const { world, stateManager } = createWorld();
     stateManager.startGame();
