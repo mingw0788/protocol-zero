@@ -13,20 +13,41 @@ import { ExperienceCrystalRenderer } from '../rendering/ExperienceCrystalRendere
 import { OrbitalBladeRenderer } from '../rendering/OrbitalBladeRenderer.js';
 import { BossRenderer } from '../rendering/BossRenderer.js';
 import { AudioManager } from '../audio/AudioManager.js';
+import { LocalProgressSystem } from '../systems/LocalProgressSystem.js';
 
 export class Game {
   #uiManager = null;
   #soundEnabled = true;
   #audioManager;
   #unsubscribeSoundEvents;
+  #progressSystem;
 
-  constructor({ canvas = null, loopOptions = {}, inputOptions = {}, audioManager = new AudioManager() } = {}) {
+  constructor({
+    canvas = null,
+    loopOptions = {},
+    inputOptions = {},
+    audioManager = new AudioManager(),
+    progressSystem = new LocalProgressSystem(),
+  } = {}) {
     if (!audioManager
       || !['unlock', 'setEnabled', 'setVolume', 'playEvent', 'dispose'].every((method) => typeof audioManager[method] === 'function')
       || !Number.isFinite(audioManager.volume)) {
       throw new TypeError('Game requires a compatible audio manager');
     }
+    if (!progressSystem
+      || !['getSnapshot', 'recordRun', 'updateAudioPreferences'].every((method) => typeof progressSystem[method] === 'function')) {
+      throw new TypeError('Game requires a compatible local progress system');
+    }
+    this.#progressSystem = progressSystem;
+    const savedProgress = this.#progressSystem.getSnapshot();
+    if (!savedProgress || typeof savedProgress.soundEnabled !== 'boolean'
+      || !Number.isFinite(savedProgress.soundVolume)) {
+      throw new TypeError('Local progress system returned an invalid snapshot');
+    }
+    this.#soundEnabled = savedProgress.soundEnabled;
     this.#audioManager = audioManager;
+    this.#audioManager.setEnabled(this.#soundEnabled);
+    this.#audioManager.setVolume(savedProgress.soundVolume);
     this.stateManager = new GameStateManager();
     this.clock = new GameClock();
     this.inputController = new InputController({ ...inputOptions, stateManager: this.stateManager });
@@ -38,6 +59,9 @@ export class Game {
       inputController: this.inputController,
     });
     this.#unsubscribeSoundEvents = this.world.subscribeSoundEvent(({ type }) => {
+      if (type === 'victory' || type === 'defeat') {
+        this.#progressSystem.recordRun(this.world.getRunResultSnapshot());
+      }
       this.#audioManager.playEvent(type);
     });
     this.camera.follow(this.world.player);
@@ -101,6 +125,7 @@ export class Game {
     this.#soundEnabled = !this.#soundEnabled;
     this.#audioManager.setEnabled(this.#soundEnabled);
     if (this.#soundEnabled) this.#audioManager.unlock();
+    this.#progressSystem.updateAudioPreferences({ soundEnabled: this.#soundEnabled });
     return this.#soundEnabled;
   }
 
@@ -109,7 +134,13 @@ export class Game {
   }
 
   setSoundVolume(volume) {
-    return this.#audioManager.setVolume(volume);
+    const updatedVolume = this.#audioManager.setVolume(volume);
+    this.#progressSystem.updateAudioPreferences({ soundVolume: updatedVolume });
+    return updatedVolume;
+  }
+
+  getProgressSnapshot() {
+    return this.#progressSystem.getSnapshot();
   }
 
   startGame() {

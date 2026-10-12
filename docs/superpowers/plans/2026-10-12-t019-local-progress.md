@@ -13,10 +13,10 @@
 
 ## Task 2: Progress decisions and Game integration
 
-- [ ] Write tests for best-record update rules and Game audio preference/terminal-result persistence.
-- [ ] Implement `LocalProgressSystem`; load once, persist settings, update records only from accepted terminal snapshots.
-- [ ] Connect it to Game and audio settings; keep storage errors outside gameplay failure paths.
-- [ ] Run focused tests and commit `feat: persist run records and audio preferences`.
+- [x] Write tests for best-record update rules and Game audio preference/terminal-result persistence.
+- [x] Implement `LocalProgressSystem`; load once, persist settings, update records only from accepted terminal snapshots.
+- [x] Connect it to Game and audio settings; keep storage errors outside gameplay failure paths.
+- [x] Run focused tests and commit `feat: persist run records and audio preferences`.
 
 ## Task 3: Menu presentation and acceptance
 

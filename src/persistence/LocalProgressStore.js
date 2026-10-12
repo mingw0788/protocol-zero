@@ -17,7 +17,7 @@ function getDefaultStorage() {
   }
 }
 
-function normalizeProgress(value) {
+export function normalizeProgress(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)
     || value.version !== SAVE_VERSION
     || !Number.isSafeInteger(value.highestKillCount) || value.highestKillCount < 0
