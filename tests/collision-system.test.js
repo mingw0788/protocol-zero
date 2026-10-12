@@ -48,6 +48,10 @@ describe('CollisionSystem', () => {
     expect(() => new CollisionSystem({ player: { x: 0, y: 0, radius: 1 } })).toThrow(TypeError);
     expect(() => new CollisionSystem({ player: { x: Number.NaN, y: 0, radius: 1 }, enemies: [] })).toThrow(RangeError);
     expect(() => new CollisionSystem({ player: { x: 0, y: 0, radius: 0 }, enemies: [] })).toThrow(RangeError);
+    expect(() => new CollisionSystem({
+      player: { x: 0, y: 0, radius: 1 },
+      enemies: [{ x: 1, y: 0, radius: Number.POSITIVE_INFINITY, hp: 1, alive: true }],
+    })).toThrow(RangeError);
 
     const enemy = { id: 'mutable', x: 10, y: 0, radius: 1, hp: 1, alive: true };
     const collisions = new CollisionSystem({ player: { x: 0, y: 0, radius: 1 }, enemies: [enemy] });

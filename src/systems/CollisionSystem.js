@@ -25,6 +25,11 @@ export class CollisionSystem {
     requireGeometry(player, 'Player');
     this.#player = player;
     this.#enemies = enemies;
+
+    for (const enemy of enemies) {
+      if (!enemy || enemy.alive !== true || !(enemy.hp > 0)) continue;
+      requireGeometry(enemy, 'Enemy');
+    }
   }
 
   getPlayerContacts() {
