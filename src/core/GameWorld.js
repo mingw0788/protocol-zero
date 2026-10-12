@@ -11,6 +11,7 @@ import { DamageSystem } from '../systems/DamageSystem.js';
 import { EnemyDamageSystem } from '../systems/EnemyDamageSystem.js';
 import { WeaponSystem } from '../systems/WeaponSystem.js';
 import { ProjectileSystem } from '../systems/ProjectileSystem.js';
+import { ExperienceSystem } from '../systems/ExperienceSystem.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -49,6 +50,7 @@ export class GameWorld {
     this.camera = camera;
     this.enemies = [];
     this.projectiles = [];
+    this.experienceCrystals = [];
     this.playerSystem = new PlayerSystem({ player, inputController });
     this.camera.follow(this.player);
     this.enemySystem = new EnemySystem({ enemies: this.enemies, player, world });
@@ -68,6 +70,11 @@ export class GameWorld {
       random,
       world,
       enemyConfig,
+    });
+    this.experienceSystem = new ExperienceSystem({
+      crystals: this.experienceCrystals,
+      player: this.player,
+      subscribeEnemyDeath: (listener) => this.subscribeEnemyDeath(listener),
     });
   }
 
@@ -133,6 +140,7 @@ export class GameWorld {
     this.projectileSystem.update(deltaSeconds);
     this.#settleEnemyDeaths();
     this.enemySystem.cleanup();
+    this.experienceSystem.update(deltaSeconds);
     this.clock.advance(deltaSeconds);
     this.#simulationSteps += 1;
 
@@ -170,6 +178,7 @@ export class GameWorld {
     this.enemies.length = 0;
     for (const projectile of this.projectiles) projectile.active = false;
     this.projectiles.length = 0;
+    this.experienceSystem.reset();
     this.spawnSystem.reset();
     this.#simulationSteps = 0;
     this.#killCount = 0;

@@ -59,6 +59,27 @@ describe('GameWorld HUD snapshots', () => {
     expect(() => { snapshot.health.current = 100; }).toThrow(TypeError);
   });
 
+  it('reflects same-step crystal pickup in a new immutable experience snapshot', () => {
+    const world = createWorld();
+    const initialSnapshot = world.getHudSnapshot();
+    world.stateManager.startGame();
+    const enemy = new Enemy({
+      id: 'hud-experience-drop',
+      x: world.player.x,
+      y: world.player.y,
+    });
+    enemy.alive = false;
+    enemy.hp = 0;
+    world.enemies.push(enemy);
+
+    world.update(1 / 60);
+
+    expect(initialSnapshot.experience).toBe(0);
+    expect(world.getHudSnapshot().experience).toBe(1);
+    expect(Object.isFrozen(world.getHudSnapshot())).toBe(true);
+    expect(world.experienceCrystals).toEqual([]);
+  });
+
   it('prevents presentation callers from changing current or later snapshots', () => {
     const world = createWorld();
     const snapshot = world.getHudSnapshot();

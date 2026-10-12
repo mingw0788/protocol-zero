@@ -162,4 +162,132 @@ describe('GameWorld pulse gun integration', () => {
     expect(projectile.x).toBeGreaterThan(pausedState.x);
     expect(world.player.weaponStates[0].cooldownRemaining).toBeLessThan(pausedState.cooldown);
   });
+
+  it('drops a positive exp crystal before cleanup and awards it through the HUD snapshot', () => {
+    const { stateManager, world } = createWorld();
+    stateManager.startGame();
+    const enemy = addEnemy(world, 'experience-target');
+    enemy.alive = false;
+    enemy.hp = 0;
+    const deathPosition = { x: enemy.x, y: enemy.y };
+    const deathObservations = [];
+    world.subscribeEnemyDeath(() => {
+      deathObservations.push(world.enemies.includes(enemy));
+    });
+    const crystals = world.experienceCrystals;
+
+    world.update(1 / 60);
+
+    expect(crystals).toBeInstanceOf(Array);
+    expect(world.experienceCrystals).toBe(crystals);
+    expect(deathObservations).toEqual([true]);
+    expect(world.enemies).not.toContain(enemy);
+    expect(crystals).toHaveLength(1);
+    expect(crystals[0]).toMatchObject({
+      x: deathPosition.x,
+      y: deathPosition.y,
+      expValue: 1,
+      active: true,
+    });
+    expect(world.player.exp).toBe(0);
+
+    world.update(1 / 60);
+    expect(crystals).toHaveLength(1);
+
+    world.player.x = crystals[0].x - world.player.radius - crystals[0].pickupRadius;
+    world.player.y = crystals[0].y;
+    world.update(1 / 60);
+
+    expect(world.player.exp).toBe(1);
+    expect(world.getHudSnapshot().experience).toBe(1);
+    expect(crystals).toEqual([]);
+  });
+
+  it('does not create a crystal for a zero-exp death', () => {
+    const { stateManager, world } = createWorld();
+    stateManager.startGame();
+    const enemy = new Enemy({
+      id: 'zero-exp-target',
+      x: world.player.x + 200,
+      y: world.player.y,
+      config: { ...ENEMY_CONFIG.EN01, expDrop: 0 },
+    });
+    enemy.alive = false;
+    enemy.hp = 0;
+    world.enemies.push(enemy);
+
+    world.update(1 / 60);
+
+    expect(world.experienceCrystals).toEqual([]);
+    expect(world.killCount).toBe(1);
+  });
+
+  it('freezes crystal lifetime while paused and after player death', () => {
+    const { stateManager, world } = createWorld();
+    stateManager.startGame();
+    const droppedEnemy = addEnemy(world, 'lifetime-target', 200);
+    droppedEnemy.alive = false;
+    droppedEnemy.hp = 0;
+    world.update(1 / 60);
+    expect(world.experienceCrystals).toBeInstanceOf(Array);
+    expect(world.experienceCrystals).toHaveLength(1);
+    const crystal = world.experienceCrystals[0];
+    const beforePause = crystal.remainingLifetime;
+
+    stateManager.pause();
+    expect(world.update(1)).toBe(false);
+    expect(crystal.remainingLifetime).toBe(beforePause);
+
+    stateManager.resume();
+    world.player.hp = 10;
+    const contactEnemy = new Enemy({
+      id: 'lethal-contact',
+      x: world.player.x,
+      y: world.player.y,
+      config: { ...ENEMY_CONFIG.EN01, expDrop: 0 },
+    });
+    world.enemies.push(contactEnemy);
+    expect(world.update(1 / 60)).toBe(true);
+    expect(world.player.alive).toBe(false);
+    const frozenLifetime = crystal.remainingLifetime;
+
+    expect(world.update(1)).toBe(false);
+    expect(crystal.remainingLifetime).toBe(frozenLifetime);
+  });
+
+  it('clears crystals on reset without replay and keeps the subscription for the next run', () => {
+    const { stateManager, world } = createWorld();
+    const sharedCrystals = world.experienceCrystals;
+    const observedDeaths = [];
+    world.subscribeEnemyDeath((snapshot) => observedDeaths.push(snapshot.enemyId));
+    stateManager.startGame();
+    const first = addEnemy(world, 'first-exp-run', 200);
+    first.alive = false;
+    first.hp = 0;
+    world.update(1 / 60);
+    expect(world.experienceCrystals).toBeInstanceOf(Array);
+    expect(world.experienceCrystals).toHaveLength(1);
+    const firstCrystal = sharedCrystals[0];
+    expect(observedDeaths).toEqual(['first-exp-run']);
+
+    stateManager.pause();
+    stateManager.returnToMenu();
+    world.reset();
+
+    expect(world.experienceCrystals).toBe(sharedCrystals);
+    expect(sharedCrystals).toEqual([]);
+    expect(firstCrystal.active).toBe(false);
+    expect(observedDeaths).toEqual(['first-exp-run']);
+    expect(world.getHudSnapshot().experience).toBe(0);
+
+    stateManager.startGame();
+    const second = addEnemy(world, 'second-exp-run', 200);
+    second.alive = false;
+    second.hp = 0;
+    world.update(1 / 60);
+
+    expect(observedDeaths).toEqual(['first-exp-run', 'second-exp-run']);
+    expect(sharedCrystals).toHaveLength(1);
+    expect(sharedCrystals[0].id).toBe('experience-crystal-2');
+  });
 });

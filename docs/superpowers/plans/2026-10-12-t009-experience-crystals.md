@@ -138,31 +138,31 @@ git commit -m "feat: add experience crystal pickup system"
 - Consumes: Task 2 的 `ExperienceSystem`；现有 `subscribeEnemyDeath(listener)`、Player 的 `exp` 和只读 HUD 快照。
 - Produces: 稳定引用的 `world.experienceCrystals` 与 `world.experienceSystem`；GameWorld 在最终死亡结算/敌人清理之后、`clock.advance(deltaSeconds)` 之前调用一次 `experienceSystem.update(deltaSeconds)`；`reset()` 清空晶体但保留系统订阅。
 
-- [ ] **Step 1: 写掉落到 HUD 的 GameWorld 闭环测试**
+- [x] **Step 1: 写掉落到 HUD 的 GameWorld 闭环测试**
 
 在 `tests/pulse-gun-world.test.js` 添加 `drops a positive exp crystal before cleanup and awards it through the HUD snapshot` 和 `does not create a crystal for a zero-exp death`。以生成间隔 100 秒的 GameWorld 放置死亡 EN-01 于玩家拾取范围外，推进一个固定步，断言通知后清理、晶体死亡坐标和值正确、经验仍为 0；将玩家放到相切边界再推进一步，断言晶体移除、`player.exp === 1` 且 `getHudSnapshot().experience === 1`。零经验敌人死亡不掉落。
 
-- [ ] **Step 2: 运行集成测试确认失败**
+- [x] **Step 2: 运行集成测试确认失败**
 
 Run: `npm test -- tests/pulse-gun-world.test.js tests/game-world-hud.test.js`
 
 Expected: GameWorld 无晶体数组/系统接线，新增断言失败。
 
-- [ ] **Step 3: 写暂停、死亡冻结、reset 和订阅生命周期测试**
+- [x] **Step 3: 写暂停、死亡冻结、reset 和订阅生命周期测试**
 
 添加测试确认：同一死亡只生成一次晶体；暂停期间调用 `world.update()` 不减少 `remainingLifetime`；致死步后后续更新不再推进晶体寿命；`world.reset()` 先将旧晶体标记失效再原位清空同一数组、HUD 经验恢复 0、不回放旧通知，重开后新死亡仍能掉落且晶体 ID 不复用。
 
-- [ ] **Step 4: 接入 GameWorld 系统顺序和重置**
+- [x] **Step 4: 接入 GameWorld 系统顺序和重置**
 
 构造时建立 `experienceCrystals = []` 并创建单一 ExperienceSystem，使用 `listener => this.subscribeEnemyDeath(listener)` 适配当前死亡事件接口。固定步中在第二次 `#settleEnemyDeaths()` 与 `enemySystem.cleanup()` 之后更新经验系统，再推进时钟。`reset()` 调用系统 reset；不得替换共享数组或重新订阅。HUD 沿用现有 `player.exp` 快照字段。
 
-- [ ] **Step 5: 验证 GameWorld、HUD 与既有战斗时序**
+- [x] **Step 5: 验证 GameWorld、HUD 与既有战斗时序**
 
 Run: `npm test -- tests/pulse-gun-world.test.js tests/game-world-hud.test.js tests/enemy-world.test.js tests/player-damage-world.test.js`
 
 Expected: T009 集成与既有击杀、伤害、重开和 HUD 测试全部通过。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/core/GameWorld.js tests/pulse-gun-world.test.js tests/game-world-hud.test.js
