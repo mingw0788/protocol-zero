@@ -1,5 +1,5 @@
 import { GameClock } from './GameClock.js';
-import { GameStateManager } from './GameStateManager.js';
+import { GAME_STATES, GameStateManager } from './GameStateManager.js';
 import { Player } from '../entities/Player.js';
 import { ENEMY_CONFIG } from '../config/enemyConfig.js';
 import { WORLD_MAP } from '../config/worldConfig.js';
@@ -180,6 +180,10 @@ export class GameWorld {
   }
 
   reset() {
+    if (this.stateManager.currentState === GAME_STATES.LEVEL_UP) {
+      throw new RangeError('GameWorld cannot reset while level-up choices are pending');
+    }
+
     this.clock.reset();
     this.playerSystem.reset();
     this.camera.follow(this.player);

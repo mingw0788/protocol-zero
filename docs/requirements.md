@@ -9,7 +9,7 @@
 | 类型 | 2D 俯视角单人 Roguelite 割草生存 |
 | 平台 | Windows 桌面浏览器 Chrome / Edge |
 | 视觉 | 赛博朋克像素风 |
-| 状态 | V1 需求基线；T000–T009 已完成；T010 经验等级与连续升级队列实施中 |
+| 状态 | V1 需求基线；T000–T010 已完成；T011 提供可见升级选择 |
 
 ## 1. 项目背景与目标
 
@@ -240,4 +240,4 @@ P0 = 玩法闭环必须具备；P1 = V1 最终交付前需完成的体验功能�
 
 需求数字（敌人生命、升级加成、掉落等）为首轮平衡配置，开发和试玩阶段允许在**记录原因、更新配置与文档**后调优。不允许在未获明确指令时新增 V2/V3 功能。若需求冲突，先在 `docs/decisions.md` 记录并确认。
 
-**当前状态提醒：** 本文定义 V1 需求基线。各项功能的实现和验收状态以 `docs/task-status.md` 为准；T009 已完成实现、验证和提交，交付证据见 `docs/task-report-T009.md`。T010 设计规格与实施计划见 `docs/superpowers/specs/2026-10-12-t010-leveling-design.md` 和 `docs/superpowers/plans/2026-10-12-t010-leveling.md`；升级选择界面仍由 T011 实现。
+**当前状态提醒：** 本文定义 V1 需求基线。各项功能的实现和验收状态以 `docs/task-status.md` 为准；T010 的等级逻辑、经验阈值与连续选择队列已完成，交付证据见 `docs/task-report-T010.md`。T010 设计规格与实施计划见 `docs/superpowers/specs/2026-10-12-t010-leveling-design.md` 和 `docs/superpowers/plans/2026-10-12-t010-leveling.md`；可见升级选择界面由 T011 实现。

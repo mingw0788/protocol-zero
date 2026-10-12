@@ -148,13 +148,26 @@ describe('GameWorld HUD snapshots', () => {
     world.player.update({ x: 1, y: 1 }, 1);
     world.player.hp = 10;
     world.player.maxHp = 160;
-    world.player.exp = 8;
-    world.player.level = 1;
-    world.levelSystem.processExperience();
-    expect(world.levelSystem.pendingLevelUps).toBe(1);
+    world.experienceCrystals.push(new ExperienceCrystal({
+      id: 'reset-level-up-crystal',
+      x: world.player.x,
+      y: world.player.y,
+      expValue: 35,
+    }));
+    world.update(1 / 60);
+    expect(world.stateManager.currentState).toBe(GAME_STATES.LEVEL_UP);
+    expect(world.levelSystem.pendingLevelUps).toBe(3);
     world.player.weaponStates.push({ id: 'orbital-blade' });
     world.recordKill();
 
+    expect(() => world.reset()).toThrow(RangeError);
+    expect(world.stateManager.currentState).toBe(GAME_STATES.LEVEL_UP);
+    expect(world.getHudSnapshot()).toMatchObject({ level: 4, experience: 5, pendingLevelUps: 3 });
+
+    while (world.levelSystem.pendingLevelUps > 0) {
+      expect(world.levelSystem.completePendingLevelUp()).toBe(true);
+    }
+    expect(world.stateManager.pause()).toBe(true);
     world.reset();
 
     expect(world.getHudSnapshot()).toEqual({
@@ -168,5 +181,10 @@ describe('GameWorld HUD snapshots', () => {
     });
     expect(world.simulationSteps).toBe(0);
     expect({ x: world.player.x, y: world.player.y }).toEqual({ x: 1200, y: 675 });
+    expect(world.stateManager.currentState).toBe(GAME_STATES.PAUSED);
+    expect(world.stateManager.returnToMenu()).toBe(true);
+    expect(world.stateManager.startGame()).toBe(true);
+    expect(world.stateManager.currentState).toBe(GAME_STATES.PLAYING);
+    expect(world.getHudSnapshot()).toMatchObject({ level: 1, experience: 0, pendingLevelUps: 0 });
   });
 });

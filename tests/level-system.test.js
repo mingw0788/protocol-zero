@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
 import { LEVEL_CONFIG } from '../src/config/levelConfig.js';
 import { GameStateManager } from '../src/core/GameStateManager.js';
 import { Player } from '../src/entities/Player.js';
@@ -30,6 +31,10 @@ describe('getExperienceToNextLevel', () => {
       expect(() => getExperienceToNextLevel(level)).toThrow(RangeError);
     },
   );
+
+  it('rejects a threshold that cannot be represented exactly', () => {
+    expect(() => getExperienceToNextLevel(2 ** 52)).toThrow(RangeError);
+  });
 });
 
 describe('LevelSystem experience accounting', () => {
@@ -69,6 +74,52 @@ describe('LevelSystem experience accounting', () => {
     expect(player.level).toBe(4);
     expect(player.exp).toBe(5);
     expect(levelSystem.pendingLevelUps).toBe(3);
+  });
+
+  it('does not award a level when the exact threshold is below Number precision', () => {
+    const { player, levelSystem } = createLevelSystem({ level: 2 ** 52, exp: 2 ** 54 });
+
+    expect(() => levelSystem.processExperience()).toThrow(RangeError);
+    expect(player.level).toBe(2 ** 52);
+    expect(player.exp).toBe(2 ** 54);
+    expect(levelSystem.pendingLevelUps).toBe(0);
+  });
+
+  it('processes a large but representable experience value with bounded arithmetic', () => {
+    const { player, levelSystem } = createLevelSystem({ exp: 1e30 });
+
+    const gainedLevels = levelSystem.processExperience();
+
+    expect(gainedLevels).toBeGreaterThan(1e14);
+    expect(player.level).toBe(gainedLevels + 1);
+    expect(player.exp).toBeLessThan(getExperienceToNextLevel(player.level));
+    expect(levelSystem.pendingLevelUps).toBe(gainedLevels);
+  });
+
+  it('rejects an experience amount beyond the exact level range without blocking', () => {
+    const playerUrl = new URL('../src/entities/Player.js', import.meta.url).href;
+    const stateManagerUrl = new URL('../src/core/GameStateManager.js', import.meta.url).href;
+    const levelSystemUrl = new URL('../src/systems/LevelSystem.js', import.meta.url).href;
+    const script = `
+      import { Player } from ${JSON.stringify(playerUrl)};
+      import { GameStateManager } from ${JSON.stringify(stateManagerUrl)};
+      import { LevelSystem } from ${JSON.stringify(levelSystemUrl)};
+      const player = new Player();
+      player.exp = Number.MAX_VALUE;
+      const system = new LevelSystem({ player, stateManager: new GameStateManager() });
+      try {
+        system.processExperience();
+        process.exitCode = 2;
+      } catch (error) {
+        if (!(error instanceof RangeError)) process.exitCode = 3;
+        else process.stdout.write('RangeError');
+      }
+    `;
+
+    expect(execFileSync(process.execPath, ['--input-type=module', '--eval', script], {
+      encoding: 'utf8',
+      timeout: 1500,
+    })).toBe('RangeError');
   });
 
   it('exposes pending count without a writable property', () => {

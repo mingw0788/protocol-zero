@@ -6,7 +6,7 @@
 | 项目 | Protocol Zero / 零号协议：失控之城 |
 | 版本 | 1.0 |
 | 依赖 | `docs/requirements.md` PZ-SRS-001 |
-| 状态 | T000–T009 已完成；T010 经验阈值、等级和待选队列实施中 |
+| 状态 | T000–T010 已完成；T011 提供可见升级选择界面 |
 
 ## 1. 架构目标与选型
 
@@ -371,9 +371,10 @@ UI 不直接绕过升级系统修改玩家属性。菜单与 HUD 显示采用游
 ### 11.5 T010 等级与待选升级队列
 
 - `LevelSystem` 读取真实 Player 的 `level/exp`；阈值为 `6 + 4 × (level − 1)`，每次满足阈值都扣除余量、递增等级并新增一个待选计数。
+- 阈值使用精确整数累计和对数步数查找；Number 安全整数范围之外的阈值或结算结果快速原子拒绝，不构成玩法等级上限。
 - `GameWorld` 在经验拾取后结算所有新跨越等级，完成当前固定步时钟/步数推进后进入 `LEVEL_UP`；模拟冻结直至 T011 的合法选择逐项消费待选计数。
 - `GameStateManager` 只允许 `PLAYING → LEVEL_UP` 和待选全部完成后的 `LEVEL_UP → PLAYING`；普通暂停、继续或返回菜单动作不能绕过待选升级。
-- `GameWorld.reset()` 清空待选计数；Player 重置回等级 1、经验 0。HUD 快照提供 `pendingLevelUps` 数值，不暴露 LevelSystem 内部状态。
+- `GameWorld.reset()` 在 `LEVEL_UP` 中先拒绝且不改动队列/状态；有效重置时清空待选计数，Player 回到等级 1、经验 0。HUD 快照提供 `pendingLevelUps` 数值，不暴露 LevelSystem 内部状态。
 
 ### 11.6 后续音效与本地存储
 
