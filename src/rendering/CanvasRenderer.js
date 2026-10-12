@@ -5,6 +5,7 @@ import { EnemyRenderer } from './EnemyRenderer.js';
 import { ProjectileRenderer } from './ProjectileRenderer.js';
 import { ExperienceCrystalRenderer } from './ExperienceCrystalRenderer.js';
 import { OrbitalBladeRenderer } from './OrbitalBladeRenderer.js';
+import { BossRenderer } from './BossRenderer.js';
 
 export class CanvasRenderer {
   #canvas;
@@ -16,6 +17,7 @@ export class CanvasRenderer {
   #enemyRenderer;
   #playerRenderer;
   #orbitalBladeRenderer;
+  #bossRenderer;
   #windowTarget;
   #devicePixelRatio;
   #started = false;
@@ -32,6 +34,7 @@ export class CanvasRenderer {
     projectileRenderer = new ProjectileRenderer(),
     enemyRenderer = new EnemyRenderer(),
     orbitalBladeRenderer = new OrbitalBladeRenderer(),
+    bossRenderer = new BossRenderer(),
     playerRenderer = new PlayerRenderer(),
     windowTarget = globalThis.window ?? null,
     devicePixelRatio = () => globalThis.devicePixelRatio || 1,
@@ -60,6 +63,9 @@ export class CanvasRenderer {
     if (!orbitalBladeRenderer || typeof orbitalBladeRenderer.render !== 'function') {
       throw new TypeError('CanvasRenderer requires an orbital blade renderer');
     }
+    if (!bossRenderer || typeof bossRenderer.render !== 'function') {
+      throw new TypeError('CanvasRenderer requires a Boss renderer');
+    }
     if (typeof devicePixelRatio !== 'function') {
       throw new TypeError('devicePixelRatio must be provided as a function');
     }
@@ -73,6 +79,7 @@ export class CanvasRenderer {
     this.#projectileRenderer = projectileRenderer;
     this.#enemyRenderer = enemyRenderer;
     this.#orbitalBladeRenderer = orbitalBladeRenderer;
+    this.#bossRenderer = bossRenderer;
     this.#playerRenderer = playerRenderer;
     this.#windowTarget = windowTarget;
     this.#devicePixelRatio = devicePixelRatio;
@@ -113,7 +120,14 @@ export class CanvasRenderer {
     this.#lastDevicePixelRatio = ratio;
   }
 
-  render(player = null, enemies = [], projectiles = [], experienceCrystals = [], orbitalBlade = null) {
+  render(
+    player = null,
+    enemies = [],
+    projectiles = [],
+    experienceCrystals = [],
+    orbitalBlade = null,
+    bossSnapshot = null,
+  ) {
     const ratio = this.#readDevicePixelRatio();
     if (ratio !== this.#lastDevicePixelRatio) this.resize();
 
@@ -125,6 +139,7 @@ export class CanvasRenderer {
     this.#mapRenderer.render(this.#context, this.#camera);
     this.#experienceCrystalRenderer.render(this.#context, this.#camera, experienceCrystals);
     this.#projectileRenderer.render(this.#context, this.#camera, projectiles);
+    this.#bossRenderer.render(this.#context, this.#camera, bossSnapshot);
     this.#enemyRenderer.render(this.#context, this.#camera, enemies);
     this.#orbitalBladeRenderer.render(this.#context, this.#camera, orbitalBlade);
     if (player) this.#playerRenderer.render(this.#context, this.#camera, player);

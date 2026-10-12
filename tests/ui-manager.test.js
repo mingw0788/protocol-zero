@@ -102,6 +102,49 @@ function triggerLevelUp(harness, expValue = 35) {
 }
 
 describe('UIManager with real Game state', () => {
+  it('shows the live Boss snapshot as an accessible name, health value, and progress bar', () => {
+    const h = createHarness();
+    h.click('start-game-button');
+    expect(h.get('boss-hud').hidden).toBe(true);
+
+    h.game.world.getBossSnapshot = () => Object.freeze({
+      id: 'boss-t01', typeId: 'BOSS-01', name: '机械暴君 T-01',
+      hp: 900, maxHp: 1800, alive: true,
+    });
+    h.ui.renderSnapshot(h.game.getHudSnapshot(), GAME_STATES.PLAYING);
+
+    expect(h.get('boss-hud').hidden).toBe(false);
+    expect(h.get('boss-name').textContent).toBe('机械暴君 T-01');
+    expect(h.get('boss-health-value').textContent).toBe('900 / 1800');
+    expect(h.get('boss-health-bar').value).toBe(900);
+    expect(h.get('boss-health-bar').max).toBe(1800);
+
+    h.game.world.getBossSnapshot = () => Object.freeze({
+      id: 'boss-t01', typeId: 'BOSS-01', name: '机械暴君 T-01',
+      hp: 0, maxHp: 1800, alive: false,
+    });
+    h.ui.renderSnapshot(h.game.getHudSnapshot(), GAME_STATES.PLAYING);
+    expect(h.get('boss-hud').hidden).toBe(true);
+  });
+
+  it('hides Boss health outside active play and before a Boss snapshot exists', () => {
+    const h = createHarness();
+    h.click('start-game-button');
+    h.game.world.getBossSnapshot = () => Object.freeze({
+      id: 'boss-t01', typeId: 'BOSS-01', name: '机械暴君 T-01',
+      hp: 1200, maxHp: 1800, alive: true,
+    });
+    h.ui.renderSnapshot(h.game.getHudSnapshot(), GAME_STATES.PLAYING);
+    expect(h.get('boss-hud').hidden).toBe(false);
+
+    h.game.stateManager.pause();
+    expect(h.get('boss-hud').hidden).toBe(true);
+    h.game.stateManager.resume();
+    h.game.world.getBossSnapshot = () => null;
+    h.ui.renderSnapshot(h.game.getHudSnapshot(), GAME_STATES.PLAYING);
+    expect(h.get('boss-hud').hidden).toBe(true);
+  });
+
   it('opens on a frozen title menu and switches help without starting a run', () => {
     const h = createHarness();
     h.frame(0);

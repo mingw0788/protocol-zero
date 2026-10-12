@@ -104,6 +104,10 @@ describe('CanvasRenderer layering', () => {
         expect(enemies).toEqual([expect.objectContaining({ id: 'layered-enemy' })]);
         events.push('enemies');
       } },
+      bossRenderer: { render: (_context, _camera, boss) => {
+        expect(boss).toEqual(expect.objectContaining({ typeId: 'BOSS-01', phase: 'telegraph' }));
+        events.push('boss-warning');
+      } },
       orbitalBladeRenderer: { render: (_context, _camera, snapshot) => {
         expect(snapshot).toEqual(expect.objectContaining({ active: true, level: 1 }));
         events.push('orbital-blade');
@@ -117,10 +121,11 @@ describe('CanvasRenderer layering', () => {
       projectiles,
       crystals,
       Object.freeze({ active: true, level: 1, x: 1200, y: 675, radius: 8, angleRadians: 0 }),
+      Object.freeze({ typeId: 'BOSS-01', phase: 'telegraph' }),
     );
 
-    expect(events.slice(-6)).toEqual([
-      'map', 'crystals', 'projectiles', 'enemies', 'orbital-blade', 'player',
+    expect(events.slice(-7)).toEqual([
+      'map', 'crystals', 'projectiles', 'boss-warning', 'enemies', 'orbital-blade', 'player',
     ]);
   });
 });
@@ -155,7 +160,11 @@ describe('Game world rendering', () => {
       orbitRadius: 0,
       angleRadians: 0,
     });
+    const bossSnapshot = Object.freeze({
+      typeId: 'BOSS-01', phase: 'telegraph', hp: 1000, maxHp: 1800, alive: true,
+    });
     game.world.getOrbitalBladeSnapshot = () => bladeSnapshot;
+    game.world.getBossSnapshot = () => bossSnapshot;
 
     game.startGame();
     game.world.projectiles.push(new Projectile({
@@ -179,6 +188,7 @@ describe('Game world rendering', () => {
     expect(renderCalls[0][2]).toBe(game.world.projectiles);
     expect(renderCalls[0][3]).toBe(game.world.experienceCrystals);
     expect(renderCalls[0][4]).toBe(bladeSnapshot);
+    expect(renderCalls[0][5]).toBe(bossSnapshot);
     game.stop();
   });
 });

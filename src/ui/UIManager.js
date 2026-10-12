@@ -25,6 +25,10 @@ const ELEMENT_IDS = Object.freeze({
   time: 'hud-time',
   kills: 'hud-kills',
   weapons: 'hud-weapons',
+  bossHud: 'boss-hud',
+  bossName: 'boss-name',
+  bossHealthValue: 'boss-health-value',
+  bossHealthBar: 'boss-health-bar',
 });
 const UPGRADE_CHOICE_COUNT = 3;
 
@@ -50,6 +54,7 @@ export class UIManager {
     }
     if (!game?.stateManager
       || typeof game.getHudSnapshot !== 'function'
+      || typeof game.getBossSnapshot !== 'function'
       || typeof game.getUpgradeChoices !== 'function'
       || typeof game.chooseUpgrade !== 'function') {
       throw new TypeError('UIManager requires a game controller with state and HUD access');
@@ -125,7 +130,8 @@ export class UIManager {
     if (this.#elements.dialog.open) this.#elements.dialog.close();
   }
 
-  renderSnapshot(snapshot, currentState) {
+  renderSnapshot(snapshot, currentState, bossSnapshot = this.#game.getBossSnapshot()) {
+    this.#renderBossSnapshot(bossSnapshot, currentState);
     if (currentState !== GAME_STATES.PLAYING) return;
     const e = this.#elements;
     this.#setText(e.healthText, snapshot.health.current + ' / ' + snapshot.health.max);
@@ -142,6 +148,28 @@ export class UIManager {
     if (e.healthBar.value !== snapshot.health.current) e.healthBar.value = snapshot.health.current;
   }
 
+  #renderBossSnapshot(snapshot, currentState) {
+    const e = this.#elements;
+    const isActive = currentState === GAME_STATES.PLAYING
+      && snapshot?.alive === true
+      && typeof snapshot.name === 'string'
+      && snapshot.name.trim().length > 0
+      && Number.isFinite(snapshot.hp)
+      && Number.isFinite(snapshot.maxHp)
+      && snapshot.maxHp > 0;
+    e.bossHud.hidden = !isActive;
+    if (!isActive) return;
+
+    this.#setText(e.bossName, snapshot.name);
+    this.#setText(e.bossHealthValue, snapshot.hp + ' / ' + snapshot.maxHp);
+    if (e.bossHealthBar.max !== snapshot.maxHp) e.bossHealthBar.max = snapshot.maxHp;
+    if (e.bossHealthBar.value !== snapshot.hp) e.bossHealthBar.value = snapshot.hp;
+    const label = snapshot.name + '生命值';
+    if (e.bossHealthBar.getAttribute('aria-label') !== label) {
+      e.bossHealthBar.setAttribute('aria-label', label);
+    }
+  }
+
   #renderState(state) {
     const e = this.#elements;
     e.menu.hidden = state !== GAME_STATES.MENU;
@@ -149,6 +177,7 @@ export class UIManager {
     e.hud.hidden = state !== GAME_STATES.PLAYING;
     e.pause.hidden = state !== GAME_STATES.PAUSED;
     e.upgradePanel.hidden = state !== GAME_STATES.LEVEL_UP;
+    e.bossHud.hidden = true;
     if (state !== GAME_STATES.PAUSED && e.dialog.open) e.dialog.close();
     if (state === GAME_STATES.MENU) e.start.focus();
     if (state === GAME_STATES.PAUSED) e.resume.focus();
@@ -157,7 +186,7 @@ export class UIManager {
       this.#focusFirstUpgradeChoice();
     }
     if (state === GAME_STATES.PLAYING) this.#root.focus();
-    this.renderSnapshot(this.#game.getHudSnapshot(), state);
+    this.renderSnapshot(this.#game.getHudSnapshot(), state, this.#game.getBossSnapshot());
   }
 
   #renderUpgradeChoices() {

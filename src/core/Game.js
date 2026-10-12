@@ -11,6 +11,7 @@ import { EnemyRenderer } from '../rendering/EnemyRenderer.js';
 import { ProjectileRenderer } from '../rendering/ProjectileRenderer.js';
 import { ExperienceCrystalRenderer } from '../rendering/ExperienceCrystalRenderer.js';
 import { OrbitalBladeRenderer } from '../rendering/OrbitalBladeRenderer.js';
+import { BossRenderer } from '../rendering/BossRenderer.js';
 
 export class Game {
   #uiManager = null;
@@ -37,6 +38,7 @@ export class Game {
         projectileRenderer: new ProjectileRenderer(),
         enemyRenderer: new EnemyRenderer(),
         orbitalBladeRenderer: new OrbitalBladeRenderer(),
+        bossRenderer: new BossRenderer(),
         playerRenderer: new PlayerRenderer(),
       })
       : null;
@@ -51,8 +53,13 @@ export class Game {
           this.world.projectiles,
           this.world.experienceCrystals,
           this.world.getOrbitalBladeSnapshot(),
+          this.world.getBossSnapshot(),
         );
-        this.#uiManager?.renderSnapshot(this.getHudSnapshot(), this.stateManager.currentState);
+        this.#uiManager?.renderSnapshot(
+          this.getHudSnapshot(),
+          this.stateManager.currentState,
+          this.world.getBossSnapshot(),
+        );
       },
     });
   }
@@ -89,6 +96,10 @@ export class Game {
 
   getHudSnapshot() {
     return this.world.getHudSnapshot();
+  }
+
+  getBossSnapshot() {
+    return this.world.getBossSnapshot();
   }
 
   getUpgradeChoices() {
