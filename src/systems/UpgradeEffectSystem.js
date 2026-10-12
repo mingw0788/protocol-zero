@@ -114,6 +114,9 @@ export class UpgradeEffectSystem {
     const currentLevel = this.upgradeSystem.getLevel(selection.id);
     if (!configured
       || !Number.isSafeInteger(selection.previousLevel)
+      || selection.previousLevel < 0
+      || !Number.isSafeInteger(selection.level)
+      || selection.level < 1
       || selection.level !== selection.previousLevel + 1
       || selection.level !== currentLevel
       || selection.maxLevel !== configured.maxLevel

@@ -127,4 +127,17 @@ describe('UpgradeEffectSystem', () => {
     expect(player.hp).toBe(75);
     expect(player.maxHp).toBe(100);
   });
+
+  it('rejects fabricated zero-rank selections before applying nano armor', () => {
+    const player = new Player();
+    player.hp = 80;
+    const system = new UpgradeEffectSystem({
+      player,
+      upgradeSystem: makeUpgradeSystem(),
+    });
+
+    expect(() => system.applySelection(makeSelection('UP-06', -1, 0))).toThrow(RangeError);
+    expect(player.hp).toBe(80);
+    expect(player.maxHp).toBe(100);
+  });
 });
