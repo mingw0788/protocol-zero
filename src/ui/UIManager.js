@@ -6,6 +6,9 @@ const ELEMENT_IDS = Object.freeze({
   help: 'help-panel',
   hud: 'game-hud',
   pause: 'pause-panel',
+  upgradePanel: 'upgrade-panel',
+  upgradeTitle: 'upgrade-title',
+  upgradeRemaining: 'upgrade-remaining',
   dialog: 'return-menu-dialog',
   start: 'start-game-button',
   showHelp: 'show-help-button',
@@ -23,6 +26,7 @@ const ELEMENT_IDS = Object.freeze({
   kills: 'hud-kills',
   weapons: 'hud-weapons',
 });
+const UPGRADE_CHOICE_COUNT = 3;
 
 function formatTime(elapsedSeconds) {
   const seconds = Math.floor(elapsedSeconds);
@@ -38,12 +42,16 @@ export class UIManager {
   #started = false;
   #unsubscribe = null;
   #removeListeners = [];
+  #displayedChoices = Object.freeze([]);
 
   constructor({ root, game, windowTarget = globalThis.window ?? null } = {}) {
     if (!root || typeof root.querySelector !== 'function') {
       throw new TypeError('UI root must be an element with querySelector');
     }
-    if (!game?.stateManager || typeof game.getHudSnapshot !== 'function') {
+    if (!game?.stateManager
+      || typeof game.getHudSnapshot !== 'function'
+      || typeof game.getUpgradeChoices !== 'function'
+      || typeof game.chooseUpgrade !== 'function') {
       throw new TypeError('UIManager requires a game controller with state and HUD access');
     }
     this.#root = root;
@@ -53,6 +61,23 @@ export class UIManager {
       const element = root.querySelector('#' + id);
       if (!element) throw new Error('Missing required UI control: #' + id);
       this.#elements[name] = element;
+    }
+    this.#elements.upgradeChoiceButtons = [];
+    this.#elements.upgradeChoiceNames = [];
+    this.#elements.upgradeChoiceLevels = [];
+    this.#elements.upgradeChoiceDescriptions = [];
+    for (let index = 0; index < UPGRADE_CHOICE_COUNT; index += 1) {
+      const slots = [
+        ['upgradeChoiceButtons', `upgrade-choice-${index}`],
+        ['upgradeChoiceNames', `upgrade-choice-${index}-name`],
+        ['upgradeChoiceLevels', `upgrade-choice-${index}-level`],
+        ['upgradeChoiceDescriptions', `upgrade-choice-${index}-description`],
+      ];
+      for (const [name, id] of slots) {
+        const element = root.querySelector('#' + id);
+        if (!element) throw new Error('Missing required UI control: #' + id);
+        this.#elements[name].push(element);
+      }
     }
   }
 
@@ -78,6 +103,9 @@ export class UIManager {
       e.dialog.close();
       this.#game.returnToMenu();
     });
+    for (let index = 0; index < UPGRADE_CHOICE_COUNT; index += 1) {
+      this.#listen(e.upgradeChoiceButtons[index], 'click', () => this.#selectUpgrade(index));
+    }
     this.#listen(e.dialog, 'cancel', (event) => {
       event.preventDefault();
       this.#cancelReturn();
@@ -116,11 +144,49 @@ export class UIManager {
     e.help.hidden = true;
     e.hud.hidden = state !== GAME_STATES.PLAYING;
     e.pause.hidden = state !== GAME_STATES.PAUSED;
+    e.upgradePanel.hidden = state !== GAME_STATES.LEVEL_UP;
     if (state !== GAME_STATES.PAUSED && e.dialog.open) e.dialog.close();
     if (state === GAME_STATES.MENU) e.start.focus();
     if (state === GAME_STATES.PAUSED) e.resume.focus();
+    if (state === GAME_STATES.LEVEL_UP) {
+      this.#renderUpgradeChoices();
+      this.#focusFirstUpgradeChoice();
+    }
     if (state === GAME_STATES.PLAYING) this.#root.focus();
     this.renderSnapshot(this.#game.getHudSnapshot(), state);
+  }
+
+  #renderUpgradeChoices() {
+    const choices = this.#game.getUpgradeChoices();
+    this.#displayedChoices = choices;
+    const pendingLevelUps = this.#game.getHudSnapshot().pendingLevelUps;
+    this.#setText(this.#elements.upgradeRemaining, `剩余升级选择：${pendingLevelUps}`);
+
+    for (let index = 0; index < UPGRADE_CHOICE_COUNT; index += 1) {
+      const choice = choices[index];
+      this.#elements.upgradeChoiceButtons[index].hidden = !choice;
+      if (!choice) continue;
+      this.#setText(this.#elements.upgradeChoiceNames[index], choice.name);
+      const levelText = choice.repeatable
+        ? '可重复恢复'
+        : `等级 ${choice.currentLevel} → ${choice.targetLevel} / ${choice.maxLevel}`;
+      this.#setText(this.#elements.upgradeChoiceLevels[index], levelText);
+      this.#setText(this.#elements.upgradeChoiceDescriptions[index], choice.description);
+    }
+  }
+
+  #focusFirstUpgradeChoice() {
+    this.#elements.upgradeChoiceButtons.find((button) => !button.hidden)?.focus();
+  }
+
+  #selectUpgrade(index) {
+    const choice = this.#displayedChoices[index];
+    if (!choice || !this.#game.chooseUpgrade(choice.id)) return false;
+    if (this.#game.stateManager.currentState === GAME_STATES.LEVEL_UP) {
+      this.#renderUpgradeChoices();
+      this.#focusFirstUpgradeChoice();
+    }
+    return true;
   }
 
   #showHelp(visible) {
@@ -143,13 +209,30 @@ export class UIManager {
   }
 
   #handleKeyDown = (event) => {
+    const state = this.#game.stateManager.currentState;
+    if (state === GAME_STATES.LEVEL_UP) {
+      if (event.code === 'Escape') {
+        event.preventDefault();
+        return;
+      }
+      if (event.code === 'Tab') {
+        const visibleButtons = this.#elements.upgradeChoiceButtons.filter((button) => !button.hidden);
+        const first = visibleButtons[0];
+        const last = visibleButtons.at(-1);
+        const active = this.#windowTarget?.document?.activeElement;
+        if ((event.shiftKey && active === first) || (!event.shiftKey && active === last)) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus();
+        }
+      }
+      return;
+    }
     if (event.code !== 'Escape' || event.repeat) return;
     if (this.#elements.dialog.open) {
       event.preventDefault();
       this.#cancelReturn();
       return;
     }
-    const state = this.#game.stateManager.currentState;
     if (state === GAME_STATES.PLAYING || state === GAME_STATES.PAUSED) {
       event.preventDefault();
       this.#game.togglePause();

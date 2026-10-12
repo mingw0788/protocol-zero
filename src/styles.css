@@ -113,6 +113,75 @@ button:focus-visible {
   box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
 }
 
+.upgrade-card {
+  width: min(100%, 920px);
+  border-top-color: #b37cff;
+}
+
+.upgrade-card > .eyebrow,
+.upgrade-card > h2,
+.upgrade-card > .panel-description {
+  text-align: center;
+}
+
+.upgrade-card .eyebrow {
+  color: #c5a0ff;
+}
+
+.upgrade-card .panel-description {
+  margin: 12px 0 22px;
+}
+
+.upgrade-choice-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.upgrade-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+  min-width: 0;
+  min-height: 170px;
+  padding: 18px;
+  border-color: #624b86;
+  background: linear-gradient(150deg, #1b2340, #10192c);
+  text-align: left;
+  letter-spacing: 0;
+  white-space: normal;
+}
+
+.upgrade-choice:hover {
+  border-color: #c5a0ff;
+  background: linear-gradient(150deg, #2b2d55, #142238);
+}
+
+.upgrade-choice-heading {
+  display: grid;
+  gap: 8px;
+}
+
+.upgrade-choice-heading strong {
+  color: #ecdfff;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.upgrade-choice-level {
+  color: #ae9ac8;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.upgrade-choice-description {
+  color: #bed0dc;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
 .menu-card {
   text-align: center;
 }
@@ -300,6 +369,17 @@ h2 {
   .hud-item strong,
   .hud-item time {
     font-size: 12px;
+  }
+
+  .upgrade-choice-list {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .upgrade-choice {
+    min-height: 112px;
+    gap: 8px;
+    padding: 12px;
   }
 }
 

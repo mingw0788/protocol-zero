@@ -58,6 +58,44 @@
             </div>
           </div>
         </section>
+        <section
+          id="upgrade-panel"
+          class="ui-panel upgrade-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="upgrade-title"
+          aria-describedby="upgrade-remaining"
+          hidden
+        >
+          <div class="ui-card upgrade-card">
+            <p class="eyebrow">ZERO / CORE EVOLUTION</p>
+            <h2 id="upgrade-title">选择一项升级</h2>
+            <p id="upgrade-remaining" class="panel-description" aria-live="polite"></p>
+            <div class="upgrade-choice-list">
+              <button id="upgrade-choice-0" class="upgrade-choice" type="button" hidden>
+                <span class="upgrade-choice-heading">
+                  <strong id="upgrade-choice-0-name"></strong>
+                  <span id="upgrade-choice-0-level" class="upgrade-choice-level"></span>
+                </span>
+                <span id="upgrade-choice-0-description" class="upgrade-choice-description"></span>
+              </button>
+              <button id="upgrade-choice-1" class="upgrade-choice" type="button" hidden>
+                <span class="upgrade-choice-heading">
+                  <strong id="upgrade-choice-1-name"></strong>
+                  <span id="upgrade-choice-1-level" class="upgrade-choice-level"></span>
+                </span>
+                <span id="upgrade-choice-1-description" class="upgrade-choice-description"></span>
+              </button>
+              <button id="upgrade-choice-2" class="upgrade-choice" type="button" hidden>
+                <span class="upgrade-choice-heading">
+                  <strong id="upgrade-choice-2-name"></strong>
+                  <span id="upgrade-choice-2-level" class="upgrade-choice-level"></span>
+                </span>
+                <span id="upgrade-choice-2-description" class="upgrade-choice-description"></span>
+              </button>
+            </div>
+          </div>
+        </section>
         <dialog id="return-menu-dialog" class="confirm-dialog" aria-labelledby="return-menu-title" aria-describedby="return-menu-description">
           <p class="eyebrow">ZERO / DISCONNECT</p>
           <h2 id="return-menu-title">返回主菜单？</h2>

@@ -2,11 +2,13 @@ import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Game } from '../src/core/Game.js';
 import { GAME_STATES } from '../src/core/GameStateManager.js';
+import { ExperienceCrystal } from '../src/entities/ExperienceCrystal.js';
 import { UIManager } from '../src/ui/UIManager.js';
 
 // The browser tests cover native DOM/layout; these doubles isolate UI event wiring.
 class FakeElement extends EventTarget {
   #textContent = '';
+  ownerDocument = null;
   attributes = new Map();
   hidden = false;
   open = false;
@@ -17,7 +19,10 @@ class FakeElement extends EventTarget {
   set textContent(value) { this.#textContent = value; this.textWrites += 1; }
   setAttribute(name, value) { this.attributes.set(name, String(value)); }
   getAttribute(name) { return this.attributes.get(name) ?? null; }
-  focus() { this.focusCount += 1; }
+  focus() {
+    this.focusCount += 1;
+    if (this.ownerDocument) this.ownerDocument.activeElement = this;
+  }
   showModal() { this.open = true; }
   close() { this.open = false; }
 }
@@ -34,19 +39,22 @@ afterEach(() => {
   for (const game of activeGames.splice(0)) game.stop();
 });
 
-function createHarness() {
+function createHarness({ upgradeChoices = null } = {}) {
   const elements = new Map();
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const windowTarget = new EventTarget();
+  const documentTarget = new EventTarget();
+  documentTarget.hidden = false;
+  documentTarget.activeElement = null;
+  windowTarget.document = documentTarget;
   for (const match of html.matchAll(/<[a-z][\w-]*\b[^>]*\bid="([^"]+)"[^>]*>/g)) {
     const element = new FakeElement();
+    element.ownerDocument = documentTarget;
     element.hidden = /\bhidden(?:\s|>)/.test(match[0]);
     elements.set(match[1], element);
   }
   const root = elements.get('game-ui');
   root.querySelector = (selector) => elements.get(selector.slice(1)) ?? null;
-  const windowTarget = new EventTarget();
-  const documentTarget = new EventTarget();
-  documentTarget.hidden = false;
   const pendingFrames = new Map();
   let nextFrame = 0;
   const game = new Game({
@@ -62,21 +70,35 @@ function createHarness() {
       cancelAnimationFrame(id) { pendingFrames.delete(id); },
     },
   });
+  if (upgradeChoices) game.getUpgradeChoices = () => upgradeChoices;
   const ui = new UIManager({ root, game, windowTarget });
   game.attachUIManager(ui);
   game.start();
   activeGames.push(game);
   return {
-    game, ui, root, elements, windowTarget,
+    game, ui, root, elements, windowTarget, documentTarget,
     get: (id) => elements.get(id),
     click: (id) => emit(elements.get(id), 'click'),
     escape: (repeat = false) => emit(windowTarget, 'keydown', { code: 'Escape', repeat }),
+    key: (code, properties = {}) => emit(windowTarget, 'keydown', { code, repeat: false, ...properties }),
     frame(timestamp) {
       const callbacks = [...pendingFrames.values()];
       pendingFrames.clear();
       for (const callback of callbacks) callback(timestamp);
     },
   };
+}
+
+function triggerLevelUp(harness, expValue = 35) {
+  harness.click('start-game-button');
+  harness.game.world.experienceCrystals.push(new ExperienceCrystal({
+    id: `ui-upgrade-${expValue}`,
+    x: harness.game.world.player.x,
+    y: harness.game.world.player.y,
+    expValue,
+  }));
+  harness.game.world.update(1 / 60);
+  return harness.game.getUpgradeChoices();
 }
 
 describe('UIManager with real Game state', () => {
@@ -112,6 +134,105 @@ describe('UIManager with real Game state', () => {
     expect(h.get('hud-time').textContent).toBe('00:00');
     expect(h.get('hud-kills').textContent).toBe('0');
     expect(h.get('hud-weapons').textContent).toBe('脉冲枪');
+  });
+
+  it('shows upgrade choices only during LEVEL_UP and renders the current candidates', () => {
+    const h = createHarness();
+    expect(h.get('upgrade-panel')?.hidden).toBe(true);
+    const choices = triggerLevelUp(h);
+
+    expect(h.game.stateManager.currentState).toBe(GAME_STATES.LEVEL_UP);
+    expect(h.get('upgrade-panel')?.hidden).toBe(false);
+    expect(h.get('main-menu-panel').hidden).toBe(true);
+    expect(h.get('pause-panel').hidden).toBe(true);
+    expect(h.get('game-hud').hidden).toBe(true);
+    expect(h.get('upgrade-remaining')?.textContent).toBe('剩余升级选择：3');
+    expect(h.get('upgrade-choice-0-name')?.textContent).toBe(choices[0].name);
+    expect(h.get('upgrade-choice-0-description')?.textContent).toBe(choices[0].description);
+    expect(h.get('upgrade-choice-0-level')?.textContent)
+      .toBe(`等级 0 → 1 / ${choices[0].maxLevel}`);
+    expect(h.get('upgrade-choice-0')?.focusCount).toBeGreaterThan(0);
+  });
+
+  it('hides unused card slots when fewer than three candidates are legal', () => {
+    const upgradeChoices = Object.freeze([
+      Object.freeze({
+        id: 'one', name: '一项', description: '第一项描述',
+        currentLevel: 0, targetLevel: 1, maxLevel: 1, repeatable: false,
+      }),
+      Object.freeze({
+        id: 'two', name: '二项', description: '第二项描述',
+        currentLevel: 1, targetLevel: 2, maxLevel: 2, repeatable: false,
+      }),
+    ]);
+    const h = createHarness({ upgradeChoices });
+    triggerLevelUp(h);
+
+    expect(h.get('upgrade-choice-0')?.hidden).toBe(false);
+    expect(h.get('upgrade-choice-1')?.hidden).toBe(false);
+    expect(h.get('upgrade-choice-2')?.hidden).toBe(true);
+    expect(h.get('upgrade-choice-1-level')?.textContent).toBe('等级 1 → 2 / 2');
+  });
+
+  it('refreshes choices for the next queued level and resumes after the final card', () => {
+    const h = createHarness();
+    triggerLevelUp(h);
+    expect(h.get('upgrade-choice-0')?.hidden).toBe(false);
+
+    for (let selection = 0; selection < 3; selection += 1) {
+      const [choice] = h.game.getUpgradeChoices();
+      h.click(`upgrade-choice-0`);
+      if (selection < 2) {
+        expect(h.game.stateManager.currentState).toBe(GAME_STATES.LEVEL_UP);
+        expect(h.game.world.levelSystem.pendingLevelUps).toBe(2 - selection);
+        expect(h.get('upgrade-remaining')?.textContent).toBe(`剩余升级选择：${2 - selection}`);
+        expect(h.get('upgrade-choice-0-name')?.textContent).toBe(h.game.getUpgradeChoices()[0].name);
+      } else {
+        expect(h.game.stateManager.currentState).toBe(GAME_STATES.PLAYING);
+        expect(h.get('upgrade-panel')?.hidden).toBe(true);
+        expect(h.get('game-hud').hidden).toBe(false);
+        expect(h.get('game-ui')).toBe(h.documentTarget.activeElement);
+      }
+      expect(choice.id).toBeTruthy();
+    }
+  });
+
+  it('keeps LEVEL_UP open on Escape and traps Tab focus among visible choices', () => {
+    const h = createHarness();
+    triggerLevelUp(h);
+    const firstChoice = h.get('upgrade-choice-0');
+    const lastChoice = h.get('upgrade-choice-2');
+
+    const escape = h.escape();
+    expect(escape.defaultPrevented).toBe(true);
+    expect(h.game.stateManager.currentState).toBe(GAME_STATES.LEVEL_UP);
+    expect(h.game.world.levelSystem.pendingLevelUps).toBe(3);
+
+    const backwardTab = h.key('Tab', { shiftKey: true });
+    expect(backwardTab.defaultPrevented).toBe(true);
+    expect(h.documentTarget.activeElement).toBe(lastChoice);
+    expect(lastChoice?.focusCount).toBeGreaterThan(0);
+
+    lastChoice?.focus();
+    const forwardTab = h.key('Tab');
+    expect(forwardTab.defaultPrevented).toBe(true);
+    expect(h.documentTarget.activeElement).toBe(firstChoice);
+    expect(firstChoice?.focusCount).toBeGreaterThan(1);
+    expect(h.game.stateManager.currentState).toBe(GAME_STATES.LEVEL_UP);
+  });
+
+  it('removes upgrade listeners across repeated start and stop', () => {
+    const h = createHarness();
+    h.ui.stop();
+    h.ui.start();
+    triggerLevelUp(h);
+    h.ui.stop();
+    h.ui.start();
+
+    h.click('upgrade-choice-0');
+
+    expect(h.game.world.levelSystem.pendingLevelUps).toBe(2);
+    expect(h.game.stateManager.currentState).toBe(GAME_STATES.LEVEL_UP);
   });
 
   it('retains the runtime sound preference when returning to the menu', () => {

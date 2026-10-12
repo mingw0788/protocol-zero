@@ -89,14 +89,15 @@ Expected: FAIL because the module/API does not exist.
 - Consumes: `Game.getUpgradeChoices()` and `Game.chooseUpgrade(id)` from Task 2; `GAME_STATES.LEVEL_UP`.
 - Produces: a hidden-by-default upgrade panel with a dialog title, live remaining-choice count and three static card buttons; `UIManager` shows it only during LEVEL_UP and re-renders the next candidate snapshot after a successful choice.
 
-- [ ] **Step 1: Add failing tests** `shows choices only during LEVEL_UP` and `hides unused slots and refreshes each queued choice`; assert dialog/HUD/menu visibility, card names/descriptions/levels, 1/2-slot hiding, button activation, and next-choice content.
-- [ ] **Step 2: Run the focused tests and confirm they fail** because the panel and event wiring are absent.
-- [ ] **Step 3: Add the failing test** `traps keyboard focus and prevents Escape from skipping choices`; assert first-card focus, Enter/Space selection, Tab/Shift+Tab wrap, and unchanged state/queue on Escape. Add `removes upgrade listeners across repeated start and stop` and assert no duplicate selection after restart.
-- [ ] **Step 4: Run the focused UI tests again and confirm keyboard/lifecycle assertions fail** for the expected missing behavior.
-- [ ] **Step 5: Add three static semantic card buttons** and dialog/live-region labels to `index.html`; style the panel/card layout with existing colors and narrow-screen scroll behavior.
-- [ ] **Step 6: Implement UIManager rendering and action wiring**; activation calls only `Game.chooseUpgrade`, successful multi-choice selection refreshes the snapshot, and final selection relies on the state subscription to hide the panel and restore game focus.
-- [ ] **Step 7: Run `npm test -- tests/ui-manager.test.js` and confirm all UI cases pass.**
-- [ ] **Step 8: Commit** as `feat: add level-up choice interface`.
+- [x] **Step 1: Add failing tests** `shows choices only during LEVEL_UP` and `hides unused slots and refreshes each queued choice`; assert dialog/HUD/menu visibility, card names/descriptions/levels, 1/2-slot hiding, button activation, and next-choice content.
+- [x] **Step 2: Run the focused tests and confirm they fail** because the panel and event wiring are absent.
+- [x] **Step 3: Add the failing test** `traps keyboard focus and prevents Escape from skipping choices`; assert first-card focus, button-click selection, Tab/Shift+Tab wrap, and unchanged state/queue on Escape. Add `removes upgrade listeners across repeated start and stop` and assert no duplicate selection after restart. Native Enter/Space button activation is verified in the browser.
+- [x] **Step 4: Run the focused UI tests again and confirm missing panel/keyboard behavior fails** for the expected absent UI.
+- [x] **Step 5: Add three static semantic card buttons** and dialog/live-region labels to `index.html`; style the panel/card layout with existing colors and narrow-screen scroll behavior.
+- [x] **Step 6: Implement UIManager rendering and action wiring**; activation calls only `Game.chooseUpgrade`, successful multi-choice selection refreshes the snapshot, and final selection relies on the state subscription to hide the panel and restore game focus.
+- [x] **Step 7: Run `npm test -- tests/ui-manager.test.js` and confirm all 14 UI cases pass.**
+- [ ] **Step 8: Run full `npm test` and record the task-wide result.**
+- [ ] **Step 9: Commit** as `feat: add level-up choice interface`.
 
 ### Task 4: T011 acceptance, browser check, and report
 
@@ -114,7 +115,7 @@ Expected: FAIL because the module/API does not exist.
 - Produces: an auditable T011 status/report; T012 remains responsible for actual attribute effects.
 
 - [ ] **Step 1: Run the full `npm test` suite, `npm run build`, and `git diff --check`; record exact results without installing dependencies.**
-- [ ] **Step 2: Start the existing local preview and use an available browser to play until a natural level-up appears; verify cards, Escape lockout, continuous queue freeze, resume after final selection, and zero console errors.** If the flow cannot be reached in the available browser session, record it as unverified and preserve unit/integration evidence.
+- [ ] **Step 2: Start the existing local preview and use an available browser to play until a natural level-up appears; verify cards, mouse/Enter/Space activation, Escape lockout, continuous queue freeze, resume after final selection, and zero console errors.** If the flow cannot be reached in the available browser session, record it as unverified and preserve unit/integration evidence.
 - [ ] **Step 3: Update SRS/SDD status, D-030/D-031, README, task status and `docs/task-report-T011.md`; identify that actual upgrade effects remain in T012.**
 - [ ] **Step 4: Commit** as `docs: record T011 upgrade choice acceptance`.
 
