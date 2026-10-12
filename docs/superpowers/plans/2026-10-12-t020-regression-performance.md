@@ -38,23 +38,23 @@
 
 **Files:** tests only if required; task report/browser artifacts remain ignored.
 
-- [ ] Run the current build in Chromium; check start/help/mute/volume, active battle/HUD, upgrades, pause/return confirmation, results/restart, saved progress refresh and malformed-save fallback.
-- [ ] Check window visibility loss/restoration, repeated resize and at least three restart cycles; inspect UI/console and storage side effects.
-- [ ] Locate and run installed Microsoft Edge if available. Record exact browser version and skipped cases if no executable/runtime is available.
-- [ ] Attempt a normal-input five-minute playthrough; separately run controlled fixed-step boundary scenarios if survival or wall-clock constraints prevent a natural clear. Never label controlled time as natural play.
+- [x] Run the current build in Chromium; check start/help/mute/volume, active battle/HUD, upgrades, pause/return confirmation, results/restart, saved progress refresh and malformed-save fallback.
+- [x] Check window visibility loss/restoration events, repeated resize and at least three restart cycles; inspect UI/console and storage side effects. Real background-tab visibility was not exposed by this headless browser context and remains explicitly unverified.
+- [x] Locate and run installed Microsoft Edge; record exact browser version and cases.
+- [x] Attempt a normal-input five-minute playthrough; a 00:32 natural defeat prevented a natural clear. Controlled boundary evidence remains separately documented in T016 and the T020 report.
 
 ### Task 3: High-density rendering and object stability
 
-- [ ] Render a repeatable 100-normal-enemy view with Boss, crystals, projectiles and capped particles using the real Canvas renderer.
-- [ ] Warm up and collect frame-draw duration samples; report median/p95, equivalent throughput and runtime/device conditions.
-- [ ] Run repeated GameWorld reset/restart and entity expiry under load; verify arrays/listeners/counts remain bounded and no console errors occur.
-- [ ] Optimize only a demonstrated regression without changing simulation or gameplay rules; add a focused test and repeat measurements.
+- [x] Render a repeatable 100-normal-enemy view with Boss, crystals, projectiles and capped particles using the real Canvas renderer.
+- [x] Warm up and collect frame-draw duration samples; report median/p95, equivalent throughput and runtime/device conditions.
+- [x] Run repeated GameWorld reset/restart and entity expiry under load; verify arrays/listeners/counts remain bounded and no console errors occur.
+- [x] Review for a demonstrated regression; none was found, so no optimization or gameplay change was warranted.
 
 ### Task 4: Acceptance report and project baseline
 
-- [ ] Update SRS acceptance marks only where evidence satisfies the item; leave unsupported platform/performance claims open with reason.
-- [ ] Update architecture, D-016/decision backlog if new evidence changes it, development plan, task status and T020 report.
-- [ ] Commit `docs: record T020 regression and performance acceptance` after final verification.
+- [x] Update SRS acceptance marks only where evidence satisfies the item; leave unsupported platform/performance claims open with reason.
+- [x] Update architecture, D-016/decision backlog if new evidence changes it, development plan, task status and T020 report.
+- [x] Commit `docs: record T020 regression and performance acceptance` after final verification.
 
 ## Expected evidence
 

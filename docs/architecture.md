@@ -6,7 +6,7 @@
 | 项目 | Protocol Zero / 零号协议：失控之城 |
 | 版本 | 1.0 |
 | 依赖 | `docs/requirements.md` PZ-SRS-001 |
-| 状态 | T000–T019 已完成；当前进入 T020 |
+| 状态 | T000–T020 已完成；当前进入 T021 |
 
 ## 1. 架构目标与选型
 
@@ -63,7 +63,7 @@ CanvasRenderer + Camera | HTML/CSS UI | AudioManager
 - `Game`：单次应用生命周期、控制器装配、状态切换入口。
 - `GameLoop`：以 `requestAnimationFrame` 驱动画面，用固定时间步长推进模拟。
 - `GameClock`：战局有效时间，与网页真实时间分离。
-- `GameStateManager`：管理 BOOT、MENU、PLAYING、LEVEL_UP、PAUSED、VICTORY、DEFEAT。
+- `GameStateManager`：管理 MENU、PLAYING、LEVEL_UP、PAUSED、VICTORY、DEFEAT；入口初始化失败由 `main.js` 的错误兜底呈现，不设 BOOT 游戏状态。
 - `GameWorld`：当前局实体集合、战局时序及一次性事件标记；T007 编排接触碰撞/伤害，并发布每局一次的玩家死亡事件。
 - `InputController`：收集 WASD/方向键输入；失焦、隐藏标签页或离开 PLAYING 时清除按键状态。
 - `PlayerSystem`：在固定模拟步中读取移动向量并更新玩家实体。
@@ -76,11 +76,11 @@ CanvasRenderer + Camera | HTML/CSS UI | AudioManager
 
 ### 2.4 表现与服务层
 
-- `CanvasRenderer` 按图层绘制地图 → 经验晶体 → 子弹 → 敌人 → 玩家 → 特效；展示层只读战局实体。
+- `CanvasRenderer` 按图层绘制地图 → 经验晶体 → 子弹 → 粒子 → Boss → 普通敌人 → 轨道刃 → 玩家；展示层只读战局实体。
 - `Camera` 世界/屏幕坐标转换、居中跟随、地图边界约束。
 - `UIManager` 管理主菜单、HUD、暂停、升级、结算 UI。
-- `AudioManager` 管理事件音效、背景音乐、静音与音量。
-- `StorageService` 读取/保存本地成绩和设置；失败时自动回退默认值。
+- `AudioManager` 在用户操作后惰性创建 Web Audio，管理合成事件音效、静音与音量；V1 不含背景音乐（D-015）。
+- `LocalProgressSystem` / `LocalProgressStore` 读取和保存版本化本地成绩与音效设置；异常时使用安全默认值，写入失败不会阻止运行。
 
 ## 3. 目标目录结构
 
@@ -97,11 +97,6 @@ protocol-zero/
 │   ├── development-plan.md
 │   ├── task-status.md
 │   └── decisions.md
-├── public/
-│   ├── sprites/
-│   ├── tiles/
-│   ├── audio/
-│   └── ui/
 ├── src/
 │   ├── main.js
 │   ├── core/
@@ -109,13 +104,13 @@ protocol-zero/
 │   │   ├── GameLoop.js
 │   │   ├── GameClock.js
 │   │   ├── GameStateManager.js
-│   │   └── GameWorld.js
+│   │   ├── GameWorld.js
+│   │   └── createRandomStream.js
 │   ├── input/
 │   │   └── InputController.js
 │   ├── entities/
 │   │   ├── Player.js
 │   │   ├── Enemy.js
-│   │   ├── Boss.js
 │   │   ├── Projectile.js
 │   │   └── ExperienceCrystal.js
 │   ├── systems/
@@ -130,10 +125,11 @@ protocol-zero/
 │   │   ├── ExperienceSystem.js
 │   │   ├── UpgradeSystem.js
 │   │   ├── UpgradeEffectSystem.js
-│   │   └── WaveSystem.js
-│   ├── weapons/
-│   │   ├── PulseGun.js
-│   │   └── OrbitalBlade.js
+│   │   ├── WaveSystem.js
+│   │   ├── OrbitalBladeSystem.js
+│   │   ├── BossSystem.js
+│   │   ├── ParticleSystem.js
+│   │   └── LocalProgressSystem.js
 │   ├── rendering/
 │   │   ├── CanvasRenderer.js
 │   │   ├── Camera.js
@@ -142,38 +138,42 @@ protocol-zero/
 │   │   ├── EnemyRenderer.js
 │   │   ├── ProjectileRenderer.js
 │   │   ├── ExperienceCrystalRenderer.js
-│   │   └── ParticleSystem.js
+│   │   ├── OrbitalBladeRenderer.js
+│   │   ├── BossRenderer.js
+│   │   ├── ParticleRenderer.js
+│   │   └── spritePatterns.js
 │   ├── ui/
-│   │   ├── UIManager.js
-│   │   └── screens/
-│   ├── services/
-│   │   ├── AudioManager.js
-│   │   ├── StorageService.js
-│   │   └── ResourceManager.js
+│   │   └── UIManager.js
+│   ├── audio/
+│   │   └── AudioManager.js
+│   ├── persistence/
+│   │   └── LocalProgressStore.js
 │   ├── config/
-│   │   ├── gameConfig.js
 │   │   ├── worldConfig.js
 │   │   ├── playerConfig.js
 │   │   ├── enemyConfig.js
 │   │   ├── weaponConfig.js
-│   │   ├── experienceConfig.js
+│   │   ├── experienceCrystalConfig.js
+│   │   ├── levelConfig.js
+│   │   ├── orbitalBladeConfig.js
+│   │   ├── bossConfig.js
+│   │   ├── audioConfig.js
+│   │   ├── particleConfig.js
 │   │   ├── upgradeConfig.js
 │   │   ├── upgradeEffectConfig.js
 │   │   └── waveConfig.js
-│   └── utils/
-├── tests/
-│   ├── unit/
-│   └── integration/
+│   └── styles.css
+├── tests/ (Vitest unit/integration files)
 ├── index.html
 └── package.json
 ```
 
-**注意：** 上面是按任务逐步建立的目标目录；当前已建立 T001 工程骨架、T002 `src/core/`、T003 `src/config/` 和 `src/rendering/`、T004 `src/entities/`、`src/input/` 与 `src/systems/`、T005 `src/ui/UIManager.js` 中的实际模块。其余模块在对应任务中按需创建，不要求提前建立空文件。
+**注意：** 上图依据 T001–T020 当前已实现源码目录同步；目录仅列实际存在的源码，不要求为未规划功能预建空文件。测试由根目录 `tests/` 按模块拆分。
 
 ## 4. 状态机与游戏生命周期
 
 ```text
-BOOT --> MENU --> PLAYING --> LEVEL_UP --> PLAYING
+MENU --> PLAYING --> LEVEL_UP --> PLAYING
                    |  ^          |
                    v  |          +-- 选择升级完成 --> PLAYING
                  PAUSED
@@ -187,7 +187,6 @@ VICTORY/DEFEAT --> MENU or NEW PLAYING
 
 | 状态 | 更新模拟 | 接受移动 | UI 行为 |
 |---|---|---|---|
-| BOOT | 否 | 否 | 资源加载 |
 | MENU | 否 | 否 | 开始、设置、帮助 |
 | PLAYING | 是 | 是 | HUD / Esc 可暂停 |
 | PAUSED | 否 | 否 | 继续、退出 |
