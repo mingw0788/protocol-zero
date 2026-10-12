@@ -6,10 +6,10 @@
 
 ## Task 1: Versioned storage adapter
 
-- [ ] Write storage tests for missing/corrupt/unsupported records, validation, and throwing storage APIs.
-- [ ] Run focused tests red.
-- [ ] Implement immutable save schema defaults and exception-safe `LocalProgressStore`.
-- [ ] Run focused tests green and commit `feat: add versioned local progress storage`.
+- [x] Write storage tests for missing/corrupt/unsupported records, validation, and throwing storage APIs.
+- [x] Run focused tests red.
+- [x] Implement immutable save schema defaults and exception-safe `LocalProgressStore`.
+- [x] Run focused tests green and commit `feat: add versioned local progress storage`.
 
 ## Task 2: Progress decisions and Game integration
 
