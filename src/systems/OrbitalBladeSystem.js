@@ -83,6 +83,7 @@ function isLiveEnemy(enemy) {
 }
 
 export class OrbitalBladeSystem {
+  #config;
   #angleRadians = 0;
   #level = 0;
   #hitCooldowns = new Map();
@@ -92,11 +93,15 @@ export class OrbitalBladeSystem {
     this.player = player;
     this.enemies = enemies;
     this.enemyDamageSystem = enemyDamageSystem;
-    this.config = copyConfig(config);
+    this.#config = copyConfig(config);
+  }
+
+  get config() {
+    return this.#config;
   }
 
   update({ deltaSeconds, upgradeEffects } = {}) {
-    requireUpdate({ deltaSeconds, upgradeEffects }, this.config.maxLevel);
+    requireUpdate({ deltaSeconds, upgradeEffects }, this.#config.maxLevel);
     if (!Number.isFinite(this.player.x) || !Number.isFinite(this.player.y)) {
       throw new RangeError('Player coordinates must remain finite');
     }
@@ -104,15 +109,15 @@ export class OrbitalBladeSystem {
 
     const level = upgradeEffects.orbitalBladeLevel;
     const nextAngle = level > 0
-      ? (this.#angleRadians + this.config.rotationRadiansPerSecond * deltaSeconds) % TWO_PI
+      ? (this.#angleRadians + this.#config.rotationRadiansPerSecond * deltaSeconds) % TWO_PI
       : 0;
     if (!Number.isFinite(nextAngle)) throw new RangeError('Orbital angle must remain finite');
 
     const orbitRadius = level > 0
-      ? this.config.baseOrbitRadius + this.config.orbitRadiusPerUpgradeLevel * (level - 1)
+      ? this.#config.baseOrbitRadius + this.#config.orbitRadiusPerUpgradeLevel * (level - 1)
       : 0;
     const damage = level > 0
-      ? (this.config.baseDamage + this.config.damagePerUpgradeLevel * (level - 1))
+      ? (this.#config.baseDamage + this.#config.damagePerUpgradeLevel * (level - 1))
         * upgradeEffects.damageMultiplier
       : 0;
     const bladeX = level > 0 ? this.player.x + orbitRadius * Math.cos(nextAngle) : null;
@@ -148,23 +153,23 @@ export class OrbitalBladeSystem {
     for (const enemy of this.enemies) {
       if (!isLiveEnemy(enemy) || this.#hitCooldowns.has(enemy.id)) continue;
       const distance = Math.hypot(bladeX - enemy.x, bladeY - enemy.y);
-      if (distance > this.config.bladeRadius + enemy.radius) continue;
+      if (distance > this.#config.bladeRadius + enemy.radius) continue;
 
       if (this.enemyDamageSystem.applyDamage(enemy, damage)) {
-        this.#hitCooldowns.set(enemy.id, this.config.hitCooldownSeconds);
+        this.#hitCooldowns.set(enemy.id, this.#config.hitCooldownSeconds);
       }
     }
     return true;
   }
 
   getSnapshot(level = this.#level) {
-    if (!Number.isSafeInteger(level) || level < 0 || level > this.config.maxLevel) {
-      throw new RangeError(`orbitalBladeLevel must be an integer from 0 through ${this.config.maxLevel}`);
+    if (!Number.isSafeInteger(level) || level < 0 || level > this.#config.maxLevel) {
+      throw new RangeError(`orbitalBladeLevel must be an integer from 0 through ${this.#config.maxLevel}`);
     }
     const active = level > 0;
     const orbitRadius = active
-      ? this.config.baseOrbitRadius
-        + this.config.orbitRadiusPerUpgradeLevel * (level - 1)
+      ? this.#config.baseOrbitRadius
+        + this.#config.orbitRadiusPerUpgradeLevel * (level - 1)
       : 0;
     return Object.freeze({
       active,
@@ -173,10 +178,10 @@ export class OrbitalBladeSystem {
       playerY: this.player.y,
       x: active ? this.player.x + orbitRadius * Math.cos(this.#angleRadians) : null,
       y: active ? this.player.y + orbitRadius * Math.sin(this.#angleRadians) : null,
-      radius: this.config.bladeRadius,
+      radius: this.#config.bladeRadius,
       orbitRadius,
       angleRadians: this.#angleRadians,
-      color: this.config.color,
+      color: this.#config.color,
     });
   }
 

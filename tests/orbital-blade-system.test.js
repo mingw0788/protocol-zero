@@ -144,6 +144,20 @@ describe('OrbitalBladeSystem', () => {
     expect(injectedConfig.bladeRadius).toBe(99);
   });
 
+  it('does not allow callers to replace the validated combat configuration', () => {
+    const { enemies, system } = createHarness();
+    const target = createEnemy('config-replacement-target', 600, 448);
+    enemies.push(target);
+    system.update({ deltaSeconds: 0.25, upgradeEffects: effects() });
+
+    expect(() => {
+      system.config = { ...ORBITAL_BLADE_CONFIG, hitCooldownSeconds: 0 };
+    }).toThrow(TypeError);
+
+    system.update({ deltaSeconds: 1 / 60, upgradeEffects: effects() });
+    expect(target.hp).toBe(18);
+  });
+
   it('rejects invalid inputs without mutating combat state', () => {
     const { enemies, system } = createHarness();
     const target = createEnemy('invalid-input-target', 600, 448);
