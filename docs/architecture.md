@@ -6,7 +6,7 @@
 | 项目 | Protocol Zero / 零号协议：失控之城 |
 | 版本 | 1.0 |
 | 依赖 | `docs/requirements.md` PZ-SRS-001 |
-| 状态 | T000–T021 已交付；V1.0.0 静态版已发布，托管环境的胜利流程尚未验证，见 `docs/task-report-T021.md` |
+| 状态 | T000–T021 已交付；V1.0.0 静态版已发布；Chrome 托管胜利/重开受控验证通过，自然完整通关限制见 `docs/task-report-T021.md` |
 
 ## 1. 架构目标与选型
 
