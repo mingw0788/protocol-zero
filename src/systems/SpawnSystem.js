@@ -39,7 +39,72 @@ function validateCamera(camera) {
   }
 }
 
+function copyEnemyConfigs(enemyConfig) {
+  if (!enemyConfig || typeof enemyConfig !== 'object' || !enemyConfig.EN01) {
+    throw new TypeError('SpawnSystem requires an EN01 enemy config');
+  }
+
+  const configByTypeId = new Map();
+  const copiedConfigs = {};
+  for (const [key, config] of Object.entries(enemyConfig)) {
+    if (key === 'spawn') continue;
+    if (!config || typeof config !== 'object'
+      || typeof config.typeId !== 'string' || config.typeId.trim().length === 0) {
+      throw new TypeError(`Enemy config ${key} must provide a typeId`);
+    }
+    if (configByTypeId.has(config.typeId)) throw new RangeError('Enemy type IDs must be unique');
+    const category = config.category ?? 'normal';
+    if (category !== 'normal' && category !== 'boss') {
+      throw new TypeError(`Enemy config ${key} has an invalid category`);
+    }
+    const copied = Object.freeze({ ...config, category });
+    configByTypeId.set(copied.typeId, copied);
+    copiedConfigs[key] = copied;
+  }
+  if (!configByTypeId.has(enemyConfig.EN01.typeId)) {
+    throw new TypeError('SpawnSystem requires its EN01 config to be available by typeId');
+  }
+
+  return { configByTypeId, copiedConfigs: Object.freeze(copiedConfigs) };
+}
+
+function validateWaveSnapshot(waveSnapshot, configByTypeId) {
+  if (!waveSnapshot || typeof waveSnapshot !== 'object') {
+    throw new TypeError('SpawnSystem requires a wave profile');
+  }
+  if (typeof waveSnapshot.phaseId !== 'string' || waveSnapshot.phaseId.trim().length === 0) {
+    throw new TypeError('Wave profile requires a non-empty phaseId');
+  }
+  requirePositiveFinite(waveSnapshot.spawnIntervalSeconds, 'spawnIntervalSeconds');
+  if (!waveSnapshot.enemyWeights || typeof waveSnapshot.enemyWeights !== 'object'
+    || Array.isArray(waveSnapshot.enemyWeights)) {
+    throw new TypeError('Wave profile requires an enemyWeights object');
+  }
+
+  const weightedConfigs = [];
+  let totalWeight = 0;
+  for (const [typeId, weight] of Object.entries(waveSnapshot.enemyWeights)) {
+    const config = configByTypeId.get(typeId);
+    if (!config) throw new RangeError(`Wave profile references unknown enemy type ${typeId}`);
+    if (config.category !== 'normal') {
+      throw new RangeError('Wave profiles may only spawn normal enemy categories');
+    }
+    if (!Number.isFinite(weight) || weight < 0) {
+      throw new RangeError('Enemy weights must be non-negative finite numbers');
+    }
+    totalWeight += weight;
+    if (weight > 0) weightedConfigs.push({ config, weight });
+  }
+  if (weightedConfigs.length === 0 || Math.abs(totalWeight - 1) > 1e-9) {
+    throw new RangeError('Wave profile enemy weights must sum to 1 and include a positive weight');
+  }
+  return weightedConfigs;
+}
+
 export class SpawnSystem {
+  #enemyConfig;
+  #enemyConfigsByTypeId;
+  #defaultWaveSnapshot;
   #elapsedSeconds = 0;
   #nextId = 1;
 
@@ -59,7 +124,7 @@ export class SpawnSystem {
     if (typeof random !== 'function') throw new TypeError('random must be a function');
     validateWorld(world);
     validateCamera(camera);
-    if (!enemyConfig?.EN01) throw new TypeError('SpawnSystem requires an EN01 enemy config');
+    const { configByTypeId, copiedConfigs } = copyEnemyConfigs(enemyConfig);
     validateSpawnConfig(enemyConfig.spawn);
 
     this.enemies = enemies;
@@ -67,20 +132,32 @@ export class SpawnSystem {
     this.camera = camera;
     this.random = random;
     this.world = world;
-    this.enemyConfig = enemyConfig;
+    this.#enemyConfigsByTypeId = configByTypeId;
+    this.#enemyConfig = Object.freeze({
+      ...copiedConfigs,
+      spawn: Object.freeze({ ...enemyConfig.spawn }),
+    });
+    this.#defaultWaveSnapshot = Object.freeze({
+      phaseId: 'default',
+      startSeconds: 0,
+      endSeconds: null,
+      spawnIntervalSeconds: this.#enemyConfig.spawn.intervalSeconds,
+      enemyWeights: Object.freeze({ [this.#enemyConfig.EN01.typeId]: 1 }),
+    });
   }
 
   get elapsedSeconds() {
     return this.#elapsedSeconds;
   }
 
-  update(deltaSeconds) {
+  update(deltaSeconds, waveSnapshot = this.#defaultWaveSnapshot) {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0) {
       throw new RangeError('deltaSeconds must be a non-negative finite number');
     }
     if (deltaSeconds === 0) return 0;
 
-    const interval = this.enemyConfig.spawn.intervalSeconds;
+    const weightedConfigs = validateWaveSnapshot(waveSnapshot, this.#enemyConfigsByTypeId);
+    const interval = waveSnapshot.spawnIntervalSeconds;
     const totalElapsed = this.#elapsedSeconds + deltaSeconds;
     if (!Number.isFinite(totalElapsed)) throw new RangeError('Accumulated spawn time must be finite');
 
@@ -89,8 +166,8 @@ export class SpawnSystem {
     const remainder = totalElapsed % interval;
     this.#elapsedSeconds = remainder <= tolerance || interval - remainder <= tolerance ? 0 : remainder;
 
-    const attempts = Math.min(spawnTokens, this.enemyConfig.spawn.maxActive);
-    for (let token = 0; token < attempts; token += 1) this.#trySpawn();
+    const attempts = Math.min(spawnTokens, this.#enemyConfig.spawn.maxActive);
+    for (let token = 0; token < attempts; token += 1) this.#trySpawn(weightedConfigs);
     return attempts;
   }
 
@@ -98,15 +175,19 @@ export class SpawnSystem {
     this.#elapsedSeconds = 0;
   }
 
-  #trySpawn() {
-    const { spawn, EN01 } = this.enemyConfig;
+  #trySpawn(weightedConfigs) {
+    const { spawn } = this.#enemyConfig;
     const activeCount = this.enemies.reduce(
-      (count, enemy) => count + (enemy.alive && enemy.hp > 0 ? 1 : 0),
+      (count, enemy) => count + (enemy.category === 'normal' && enemy.alive && enemy.hp > 0 ? 1 : 0),
       0,
     );
     if (activeCount >= spawn.maxActive) return false;
 
-    const segments = this.#getSpawnSegments(EN01.radius + spawn.viewportClearance);
+    const enemyConfig = this.#selectEnemyConfig(weightedConfigs);
+    const segments = this.#getSpawnSegments(
+      enemyConfig.radius + spawn.viewportClearance,
+      enemyConfig.radius,
+    );
     const totalLength = segments.reduce((length, segment) => length + segment.length, 0);
     if (totalLength <= 0) return false;
 
@@ -115,13 +196,13 @@ export class SpawnSystem {
       const along = this.#randomValue() * segment.length;
       const x = segment.axis === 'x' ? segment.position : segment.start + along;
       const y = segment.axis === 'y' ? segment.position : segment.start + along;
-      if (!this.#isValidPosition(x, y, EN01.radius, spawn.viewportClearance)) continue;
+      if (!this.#isValidPosition(x, y, enemyConfig.radius, spawn.viewportClearance)) continue;
 
       const enemy = new Enemy({
         id: `enemy-${this.#nextId}`,
         x,
         y,
-        config: EN01,
+        config: enemyConfig,
         worldWidth: this.world.width,
         worldHeight: this.world.height,
       });
@@ -133,15 +214,26 @@ export class SpawnSystem {
     return false;
   }
 
-  #getSpawnSegments(clearance) {
+  #selectEnemyConfig(weightedConfigs) {
+    if (weightedConfigs.length === 1) return weightedConfigs[0].config;
+
+    let selection = this.#randomValue();
+    for (const { config, weight } of weightedConfigs) {
+      if (selection < weight) return config;
+      selection -= weight;
+    }
+    return weightedConfigs.at(-1).config;
+  }
+
+  #getSpawnSegments(clearance, radius) {
     const left = this.camera.x;
     const right = left + this.camera.viewportWidth;
     const top = this.camera.y;
     const bottom = top + this.camera.viewportHeight;
-    const minX = this.enemyConfig.EN01.radius;
-    const maxX = this.world.width - this.enemyConfig.EN01.radius;
-    const minY = this.enemyConfig.EN01.radius;
-    const maxY = this.world.height - this.enemyConfig.EN01.radius;
+    const minX = radius;
+    const maxX = this.world.width - radius;
+    const minY = radius;
+    const maxY = this.world.height - radius;
 
     return [
       this.#verticalSegment(left - clearance, top, bottom, minX, maxX, minY, maxY),
