@@ -44,6 +44,45 @@ function addEnemyAtPlayer(world, id = 'contact-enemy') {
 }
 
 describe('GameWorld player damage', () => {
+  it('finishes the lethal step then freezes projectile and cooldown simulation', () => {
+    const { stateManager, world } = createHarness();
+    stateManager.startGame();
+    world.player.hp = 10;
+    const enemy = new Enemy({
+      id: 'lethal-contact-with-target',
+      x: world.player.x + 33,
+      y: world.player.y,
+    });
+    world.enemies.push(enemy);
+
+    expect(world.update(1 / 60)).toBe(true);
+    expect(world.player.hp).toBe(0);
+    expect(world.projectiles).toHaveLength(1);
+    expect(world.player.weaponStates[0].cooldownRemaining).toBe(0.8);
+    expect(world.clock.elapsedSeconds).toBe(1 / 60);
+
+    const projectile = world.projectiles[0];
+    const frozenState = {
+      x: projectile.x,
+      y: projectile.y,
+      remainingLife: projectile.remainingLife,
+      cooldown: world.player.weaponStates[0].cooldownRemaining,
+      elapsed: world.clock.elapsedSeconds,
+      steps: world.simulationSteps,
+    };
+
+    expect(world.update(1 / 60)).toBe(false);
+    expect({
+      x: projectile.x,
+      y: projectile.y,
+      remainingLife: projectile.remainingLife,
+      cooldown: world.player.weaponStates[0].cooldownRemaining,
+      elapsed: world.clock.elapsedSeconds,
+      steps: world.simulationSteps,
+    }).toEqual(frozenState);
+    expect(enemy.hp).toBe(30);
+  });
+
   it('damages after player and enemy have moved', () => {
     const { inputController, stateManager, windowTarget, world } = createHarness();
     stateManager.startGame();

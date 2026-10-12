@@ -8,6 +8,9 @@ import { PlayerSystem } from '../systems/PlayerSystem.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
 import { CollisionSystem } from '../systems/CollisionSystem.js';
 import { DamageSystem } from '../systems/DamageSystem.js';
+import { EnemyDamageSystem } from '../systems/EnemyDamageSystem.js';
+import { WeaponSystem } from '../systems/WeaponSystem.js';
+import { ProjectileSystem } from '../systems/ProjectileSystem.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -27,6 +30,7 @@ export class GameWorld {
   #killCount = 0;
   #playerDeathFrozen = false;
   #playerDeathListeners = new Set();
+  #enemyDeathListeners = new Set();
 
   constructor({
     stateManager = new GameStateManager(),
@@ -44,11 +48,19 @@ export class GameWorld {
     this.player = player;
     this.camera = camera;
     this.enemies = [];
+    this.projectiles = [];
     this.playerSystem = new PlayerSystem({ player, inputController });
     this.camera.follow(this.player);
     this.enemySystem = new EnemySystem({ enemies: this.enemies, player, world });
     this.collisionSystem = new CollisionSystem({ player, enemies: this.enemies });
     this.damageSystem = new DamageSystem({ player });
+    this.enemyDamageSystem = new EnemyDamageSystem();
+    this.weaponSystem = new WeaponSystem();
+    this.projectileSystem = new ProjectileSystem({
+      projectiles: this.projectiles,
+      enemies: this.enemies,
+      enemyDamageSystem: this.enemyDamageSystem,
+    });
     this.spawnSystem = new SpawnSystem({
       enemies: this.enemies,
       player,
@@ -92,16 +104,35 @@ export class GameWorld {
     return () => this.#playerDeathListeners.delete(listener);
   }
 
+  subscribeEnemyDeath(listener) {
+    if (typeof listener !== 'function') {
+      throw new TypeError('Enemy death listener must be a function');
+    }
+
+    this.#enemyDeathListeners.add(listener);
+    return () => this.#enemyDeathListeners.delete(listener);
+  }
+
   update(deltaSeconds) {
     if (!this.stateManager.isPlaying() || this.#playerDeathFrozen) return false;
 
     this.damageSystem.update(deltaSeconds);
     this.playerSystem.update(deltaSeconds);
     this.camera.follow(this.player);
+    this.#settleEnemyDeaths();
     this.enemySystem.cleanup();
     this.spawnSystem.update(deltaSeconds);
     this.enemySystem.update(deltaSeconds);
     const damageResult = this.damageSystem.applyContactDamage(this.collisionSystem.getPlayerContacts());
+    this.weaponSystem.update({
+      player: this.player,
+      enemies: this.enemies,
+      projectiles: this.projectiles,
+      deltaSeconds,
+    });
+    this.projectileSystem.update(deltaSeconds);
+    this.#settleEnemyDeaths();
+    this.enemySystem.cleanup();
     this.clock.advance(deltaSeconds);
     this.#simulationSteps += 1;
 
@@ -115,11 +146,30 @@ export class GameWorld {
     return true;
   }
 
+  #settleEnemyDeaths() {
+    for (const enemy of [...this.enemies]) {
+      if ((enemy.alive === true && enemy.hp > 0) || enemy.deathProcessed === true) continue;
+
+      enemy.deathProcessed = true;
+      this.recordKill();
+      const snapshot = Object.freeze({
+        enemyId: enemy.id,
+        typeId: enemy.typeId,
+        x: enemy.x,
+        y: enemy.y,
+        expDrop: enemy.expDrop,
+      });
+      for (const listener of [...this.#enemyDeathListeners]) listener(snapshot);
+    }
+  }
+
   reset() {
     this.clock.reset();
     this.playerSystem.reset();
     this.camera.follow(this.player);
     this.enemies.length = 0;
+    for (const projectile of this.projectiles) projectile.active = false;
+    this.projectiles.length = 0;
     this.spawnSystem.reset();
     this.#simulationSteps = 0;
     this.#killCount = 0;

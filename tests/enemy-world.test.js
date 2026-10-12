@@ -3,6 +3,7 @@ import { Camera } from '../src/rendering/Camera.js';
 import { GameLoop } from '../src/core/GameLoop.js';
 import { GameStateManager } from '../src/core/GameStateManager.js';
 import { GameWorld } from '../src/core/GameWorld.js';
+import { Enemy } from '../src/entities/Enemy.js';
 
 function createAnimationFrameHarness() {
   let nextHandle = 0;
@@ -36,6 +37,36 @@ function createWorld() {
 }
 
 describe('GameWorld enemy lifecycle', () => {
+  it('settles an already dead enemy before cleanup exactly once', () => {
+    const { world, stateManager } = createWorld();
+    stateManager.startGame();
+    const enemy = new Enemy({ id: 'pre-dead', x: world.player.x + 100, y: world.player.y });
+    enemy.hp = 0;
+    enemy.alive = false;
+    world.enemies.push(enemy);
+    const observations = [];
+    world.subscribeEnemyDeath((snapshot) => {
+      observations.push({ snapshot, stillPresent: world.enemies.includes(enemy) });
+    });
+
+    world.update(1 / 60);
+    world.update(1 / 60);
+
+    expect(world.killCount).toBe(1);
+    expect(enemy.deathProcessed).toBe(true);
+    expect(world.enemies).not.toContain(enemy);
+    expect(observations).toEqual([{
+      snapshot: {
+        enemyId: 'pre-dead',
+        typeId: 'EN-01',
+        x: enemy.x,
+        y: enemy.y,
+        expDrop: 1,
+      },
+      stillPresent: true,
+    }]);
+  });
+
   it('keeps menu idle, then spawns and tracks only during active play', () => {
     const { world, stateManager, camera } = createWorld();
 
@@ -70,7 +101,10 @@ describe('GameWorld enemy lifecycle', () => {
 
     stateManager.resume();
     world.update(0.6);
-    expect(world.enemies).toHaveLength(2);
+    expect(world.spawnSystem.elapsedSeconds).toBe(0);
+    expect(world.enemies).toHaveLength(1);
+    expect(world.enemies[0].id).toBe('enemy-2');
+    expect(world.killCount).toBe(1);
     expect(world.clock.elapsedSeconds).toBeCloseTo(2, 10);
   });
 
