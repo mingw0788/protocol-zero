@@ -77,11 +77,11 @@
 - Consumes: Task 1 `UpgradeEffectSystem` and Task 2 `WeaponSystem.update(..., upgradeEffects)`.
 - Produces: `GameWorld.getUpgradeEffectSnapshot()` as a frozen read-only snapshot for T013, applies a successful choice result exactly once, passes current effects to `WeaponSystem`, and restores neutral effects on reset.
 
-- [ ] **Step 1: Add failing integration tests** `applies each selected upgrade to live gameplay`, `does not apply effects for an invalid choice`, `passes pulse modifiers to the next shot`, and `clears every upgrade effect on a fresh run`. Use real crystals to enter `LEVEL_UP`, choose offered IDs, and assert movement, health, next-shot data, queue freeze, and reset values.
-- [ ] **Step 2: Run `npm test -- tests/game-world-upgrades.test.js tests/game-world-hud.test.js` and confirm the new assertions fail because GameWorld does not yet connect effects.**
-- [ ] **Step 3: Construct `UpgradeEffectSystem` after `UpgradeSystem`; apply successful selection results before consuming the pending choice; pass `getSnapshot()` into `WeaponSystem.update()`; expose only a frozen snapshot; rely on Player/UpgradeSystem reset to restore base values and neutral modifiers.**
+- [x] **Step 1: Add failing integration tests** `applies each selected upgrade to live gameplay`, `does not apply effects for an invalid choice`, `passes pulse modifiers to the next shot`, and `clears every upgrade effect on a fresh run`. Use real crystals to enter `LEVEL_UP`, choose offered IDs, and assert movement, health, next-shot data, queue freeze, and reset values.
+- [x] **Step 2: Run `npm test -- tests/game-world-upgrade-effects.test.js tests/game-world-hud.test.js` and confirm the new assertions fail because GameWorld does not yet connect effects.** Initial red run had 9 failing integration assertions on the missing GameWorld effect connection and unmodified next volley.
+- [x] **Step 3: Construct `UpgradeEffectSystem` after `UpgradeSystem`; apply successful selection results before consuming the pending choice; pass `getSnapshot()` into `WeaponSystem.update()`; expose only a frozen snapshot; rely on Player/UpgradeSystem reset to restore base values and neutral modifiers.**
 - [ ] **Step 4: Run `npm test -- tests/game-world-upgrades.test.js tests/game-world-hud.test.js tests/game-actions.test.js tests/weapon-system.test.js` and verify consecutive choices remain frozen and final selection resumes.**
-- [ ] **Step 5: Commit** as `feat: connect upgrades to game world`.
+- [x] **Step 5: Commit** as `feat: connect upgrades to game world`.
 
 ### Task 4: T012 acceptance, documentation, and report
 

@@ -14,6 +14,7 @@ import { ProjectileSystem } from '../systems/ProjectileSystem.js';
 import { ExperienceSystem } from '../systems/ExperienceSystem.js';
 import { LevelSystem } from '../systems/LevelSystem.js';
 import { UpgradeSystem } from '../systems/UpgradeSystem.js';
+import { UpgradeEffectSystem } from '../systems/UpgradeEffectSystem.js';
 import { createRandomStream } from './createRandomStream.js';
 
 function requireCamera(camera) {
@@ -82,6 +83,10 @@ export class GameWorld {
     });
     this.levelSystem = new LevelSystem({ player: this.player, stateManager: this.stateManager });
     this.upgradeSystem = new UpgradeSystem({ player: this.player, random: upgradeRandom });
+    this.upgradeEffectSystem = new UpgradeEffectSystem({
+      player: this.player,
+      upgradeSystem: this.upgradeSystem,
+    });
   }
 
   get simulationSteps() {
@@ -113,12 +118,17 @@ export class GameWorld {
     return this.upgradeSystem.getChoicesSnapshot();
   }
 
+  getUpgradeEffectSnapshot() {
+    return this.upgradeEffectSystem.getSnapshot();
+  }
+
   chooseUpgrade(choiceId) {
     if (this.stateManager.currentState !== GAME_STATES.LEVEL_UP
       || this.levelSystem.pendingLevelUps === 0) return false;
 
     const selection = this.upgradeSystem.select(choiceId);
     if (selection === false) return false;
+    this.upgradeEffectSystem.applySelection(selection);
     if (!this.levelSystem.completePendingLevelUp()) return false;
     if (this.levelSystem.pendingLevelUps > 0) this.upgradeSystem.prepareChoices();
     return true;
@@ -158,6 +168,7 @@ export class GameWorld {
       enemies: this.enemies,
       projectiles: this.projectiles,
       deltaSeconds,
+      upgradeEffects: this.upgradeEffectSystem.getSnapshot(),
     });
     this.projectileSystem.update(deltaSeconds);
     this.#settleEnemyDeaths();
