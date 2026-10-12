@@ -6,7 +6,7 @@
 | 项目 | Protocol Zero / 零号协议：失控之城 |
 | 版本 | 1.0 |
 | 依赖 | `docs/requirements.md` PZ-SRS-001 |
-| 状态 | T000–T011 已完成；T012 实现六类升级实际效果 |
+| 状态 | T000–T012 已完成；T013 实现轨道刃攻击 |
 
 ## 1. 架构目标与选型
 
@@ -38,7 +38,8 @@ Game [GameLoop, GameClock, GameStateManager, GameWorld]
 | PlayerSystem   | EnemySystem  | BossSystem|
 | SpawnSystem    | WeaponSystem | DamageSys |
 | ProjectileSys  | CollisionSys | ExpSys    |
-| UpgradeSystem  | WaveSystem   | Cleanups  |
+| UpgradeSystem  | UpgradeEffectSystem | WaveSystem |
+| Cleanups       |             |           |
 +------+---------+-------------+-----------+
        |
 Immutable/Read-only Game State Snapshot for Presentation
@@ -128,6 +129,7 @@ protocol-zero/
 │   │   ├── DamageSystem.js
 │   │   ├── ExperienceSystem.js
 │   │   ├── UpgradeSystem.js
+│   │   ├── UpgradeEffectSystem.js
 │   │   └── WaveSystem.js
 │   ├── weapons/
 │   │   ├── PulseGun.js
@@ -156,6 +158,7 @@ protocol-zero/
 │   │   ├── weaponConfig.js
 │   │   ├── experienceConfig.js
 │   │   ├── upgradeConfig.js
+│   │   ├── upgradeEffectConfig.js
 │   │   └── waveConfig.js
 │   └── utils/
 ├── tests/
@@ -230,14 +233,14 @@ T002 按任务范围先实现 `MENU`、`PLAYING`、`PAUSED` 三态；T005 加入
 ### 6.1 Player
 
 ```text
-id, x, y, radius, hp, maxHp, moveSpeed,
+id, x, y, radius, hp, maxHp, baseMoveSpeed, moveSpeed,
 level, exp, invulnerabilityRemaining,
 weaponStates, upgradeLevels, alive
 ```
 
 由 PlayerSystem 管理运动，DamageSystem 负责受伤与生命钳制，ExperienceSystem 负责拾取并增加经验，LevelSystem 负责当前等级余量、阈值换算、等级递增和待选队列。
 
-T005 已建立 `hp/maxHp`、`level`、`exp` 和独立的 `weaponStates` 运行数据，初值为 100/100、1、0 和 `pulse-gun`。T007 增加每局独立的 `alive`（初始 `true`）和 `invulnerabilityRemaining`（初始 0）；`Player.reset()` 恢复生命、存活状态、无敌余量和位置。`player.exp` 始终表示当前等级的余量；T010 的 LevelSystem 按 `6 + 4 × (level − 1)` 消费阈值，每跨一级增加一个待选升级。Player 保存等级与余量，LevelSystem 不修改全局配置。
+T005 已建立 `hp/maxHp`、`level`、`exp` 和独立的 `weaponStates` 运行数据，初值为 100/100、1、0 和 `pulse-gun`。T007 增加每局独立的 `alive`（初始 `true`）和 `invulnerabilityRemaining`（初始 0）；T012 保存构造时的 `baseMoveSpeed`，速度升级始终以此基值派生当前速度。`Player.reset()` 恢复基础速度、生命、存活状态、无敌余量和位置。`player.exp` 始终表示当前等级的余量；T010 的 LevelSystem 按 `6 + 4 × (level − 1)` 消费阈值，每跨一级增加一个待选升级。Player 保存等级与余量，LevelSystem 不修改全局配置。
 
 ### 6.2 Enemy / Boss
 
@@ -328,7 +331,7 @@ id, x, y, expValue, pickupRadius, remainingLifetime, active
 
 ## 11. UI 通信与资源
 
-**调用示例（概念流程）：** 战斗中获取经验 → ExperienceSystem 增加经验 → LevelSystem 结算阈值并申请 `LEVEL_UP` → UIManager 展示卡片 → 玩家选择 → UpgradeSystem 验证并应用 → 消费一项待选升级 → 队列清空后返回 `PLAYING`。
+**调用示例（概念流程）：** 战斗中获取经验 → ExperienceSystem 增加经验 → LevelSystem 结算阈值并申请 `LEVEL_UP` → UIManager 展示卡片 → 玩家选择 → UpgradeSystem 验证并记录等级 → UpgradeEffectSystem 应用玩家属性并生成只读效果快照 → 消费一项待选升级 → 队列清空后返回 `PLAYING`。
 
 UI 不直接绕过升级系统修改玩家属性。菜单与 HUD 显示采用游戏状态快照或只读访问接口。
 
@@ -383,9 +386,19 @@ UI 不直接绕过升级系统修改玩家属性。菜单与 HUD 显示采用游
 - `GameWorld` 校验候选选择并每次消费一个 T010 待选升级；队列未空时同步准备下一组并保持模拟冻结，队列清空后回到 `PLAYING`。有效重开清除升级等级与候选。
 - `Game` 只读暴露候选并转发选择动作；UIManager 根据只读快照填充固定 DOM 卡片，不在渲染帧重抽候选或直接修改游戏状态。
 - `LEVEL_UP` 面板使用模态对话框语义和 `aria-live` 剩余次数提示；鼠标、Enter/Space 激活卡片即提交，Tab 焦点限制于可见选项，Escape 不得关闭或消费待选队列（D-031）。
-- T011 只记录升级等级和实现满血恢复；实际属性及脉冲枪修正由 T012 接入，轨道刃攻击由 T013 接入。
+- T011 负责候选、等级与满级治疗兜底；六类实际效果及脉冲枪修正由 T012 接入，轨道刃攻击仍归 T013。
 
-### 11.7 后续音效与本地存储
+### 11.7 T012 升级效果与属性快照
+
+- 冻结的 `UPGRADE_EFFECT_CONFIG` 集中保存六类升级效果参数；`UpgradeEffectSystem` 根据 `UpgradeSystem` 等级快照派生冻结的 `{ damageMultiplier, pulseGunFireRateMultiplier, pulseGunProjectileCount, moveSpeedMultiplier, orbitalBladeLevel }`，不修改共享基础配置。
+- 百分比效果统一使用 D-032 的 `base × (1 + perLevelBonus × level)`，保留内部数值精度。UP-01 的伤害倍率供全部武器共用；T012 的 WeaponSystem 消费伤害、射速和弹丸数量倍率。
+- UP-02 只改变下一次脉冲枪发射后的冷却间隔；当前正在递减的冷却仍是绝对剩余秒数。弹丸在创建时保存伤害，之后的升级不会改变在途弹丸。
+- UP-03 用配置中的 12 度相邻间隔围绕最近目标方向对称排列弹丸（D-033），总数为 1 加升级等级，最多三枚。
+- UP-05 按 `Player.baseMoveSpeed × moveSpeedMultiplier` 计算当前速度，不逐级累乘；UP-06 每级增加 20 最大生命和最多 20 当前生命，并钳制在新上限内。
+- UP-04 只通过 `orbitalBladeLevel` 暴露等级；T012 不装备或攻击轨道刃。`GameWorld.getUpgradeEffectSnapshot()` 向后续武器系统提供冻结快照。
+- `GameWorld` 只对成功选择应用一次效果；有效重开先恢复 Player 基础属性并清零 UpgradeSystem 等级，因此后续快照回到中性值。非法选择不得改变等级、玩家数值或待选队列。
+
+### 11.8 后续音效与本地存储
 
 音效：用户交互后再启动音频上下文；资源缺失则静音降级，不阻断游戏。
 

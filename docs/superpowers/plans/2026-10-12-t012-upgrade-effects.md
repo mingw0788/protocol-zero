@@ -64,7 +64,7 @@
 - [x] **Step 2: Run `npm test -- tests/weapon-system.test.js` and confirm each new assertion fails for the expected missing modifier behavior.** Initial red run failed 8 new modifier/config assertions; implementation then exposed one tiny baseline direction-rounding regression, fixed by rotating the normalized aim vector and preserving the center shot exactly.
 - [x] **Step 3: Implement finite/range validation, base damage scaling, fire interval scaling, and symmetric projectile generation.** Keep target selection, range, projectile speed/lifetime, collision, and damage ownership unchanged.
 - [x] **Step 4: Run `npm test -- tests/weapon-system.test.js` and confirm the upgraded and baseline weapon cases pass.** 1 file / 25 tests passed.
-- [ ] **Step 5: Commit** as `feat: apply pulse gun upgrades`.
+- [x] **Step 5: Commit** as `feat: apply pulse gun upgrades`.
 
 ### Task 3: Connect effects to GameWorld choices and reset
 
@@ -80,7 +80,7 @@
 - [x] **Step 1: Add failing integration tests** `applies each selected upgrade to live gameplay`, `does not apply effects for an invalid choice`, `passes pulse modifiers to the next shot`, and `clears every upgrade effect on a fresh run`. Use real crystals to enter `LEVEL_UP`, choose offered IDs, and assert movement, health, next-shot data, queue freeze, and reset values.
 - [x] **Step 2: Run `npm test -- tests/game-world-upgrade-effects.test.js tests/game-world-hud.test.js` and confirm the new assertions fail because GameWorld does not yet connect effects.** Initial red run had 9 failing integration assertions on the missing GameWorld effect connection and unmodified next volley.
 - [x] **Step 3: Construct `UpgradeEffectSystem` after `UpgradeSystem`; apply successful selection results before consuming the pending choice; pass `getSnapshot()` into `WeaponSystem.update()`; expose only a frozen snapshot; rely on Player/UpgradeSystem reset to restore base values and neutral modifiers.**
-- [ ] **Step 4: Run `npm test -- tests/game-world-upgrades.test.js tests/game-world-hud.test.js tests/game-actions.test.js tests/weapon-system.test.js` and verify consecutive choices remain frozen and final selection resumes.**
+- [x] **Step 4: Run `npm test -- tests/game-world-upgrade-effects.test.js tests/game-world-hud.test.js tests/game-actions.test.js tests/weapon-system.test.js` and verify consecutive choices remain frozen and final selection resumes.** 4 files / 47 tests passed.
 - [x] **Step 5: Commit** as `feat: connect upgrades to game world`.
 
 ### Task 4: T012 acceptance, documentation, and report
@@ -94,10 +94,10 @@
 - Create: `docs/task-report-T012.md`
 - Modify: this plan
 
-- [ ] **Step 1: Run `npm test`, `npm run build`, and `git diff --check`; record exact results without installing dependencies.**
-- [ ] **Step 2: Attempt available browser verification of actual upgrade effects only if normal gameplay reaches an upgrade.** Record the exact run facts and console output; if no upgrade appears before death, mark UI/effect behavior unverified in browser and retain automated evidence without claiming a browser pass.
-- [ ] **Step 3: Record D-012/D-032/D-033 implementation status, T012 boundaries, verification evidence, and the T013 orbital blade handoff in SRS/SDD/README/task status/report.**
-- [ ] **Step 4: Commit** as `docs: record T012 upgrade effects acceptance`.
+- [x] **Step 1: Run `npm test`, `npm run build`, and `git diff --check`; record exact results without installing dependencies.** Final post-review-fix run: 34 files / 250 tests passed; Vite transformed 44 modules; diff check passed.
+- [x] **Step 2: Attempt available browser verification of actual upgrade effects only if normal gameplay reaches an upgrade.** HeadlessChrome 154 confirmed title/start/HUD with 0 console errors and warnings. Natural movement ended at 00:24 with 15 kills, 4 experience, and 0 HP before the 6-experience threshold; the upgrade panel and effects remain browser-unverified and are assigned to T020/T021 regression.
+- [x] **Step 3: Record D-012/D-032/D-033 implementation status, T012 boundaries, verification evidence, and the T013 orbital blade handoff in SRS/SDD/README/task status/report.**
+- [x] **Step 4: Commit** as `docs: record T012 upgrade effects acceptance`.
 
 ## Plan Self-Review
 
