@@ -27,12 +27,13 @@ export class ParticleSystem {
       || !Number.isSafeInteger(config.enemyDeathCount) || config.enemyDeathCount <= 0
       || !Number.isSafeInteger(config.playerHitCount) || config.playerHitCount <= 0
       || !Number.isSafeInteger(config.playerDeathCount) || config.playerDeathCount <= 0
+      || !Number.isFinite(config.playerDeathSpreadRadius) || config.playerDeathSpreadRadius <= 0
       || !Number.isFinite(config.minimumSpeed) || config.minimumSpeed <= 0
       || !Number.isFinite(config.maximumSpeed) || config.maximumSpeed < config.minimumSpeed
       || !Number.isFinite(config.radius) || config.radius <= 0) {
       throw new RangeError('ParticleSystem configuration contains invalid limits');
     }
-    this.#config = config;
+    this.#config = Object.freeze({ ...config });
   }
 
   emitEnemyDeath(event) {
@@ -47,7 +48,13 @@ export class ParticleSystem {
 
   emitPlayerDeath(player) {
     requirePosition(player, 'Player death effect');
-    this.#emit(player, this.#config.playerDeathCount, this.#config.playerDeathColor, 'player-death');
+    this.#emit(
+      player,
+      this.#config.playerDeathCount,
+      this.#config.playerDeathColor,
+      'player-death',
+      this.#config.playerDeathSpreadRadius,
+    );
   }
 
   update(deltaSeconds) {
@@ -72,16 +79,17 @@ export class ParticleSystem {
     this.#nextId = 1;
   }
 
-  #emit(position, count, color, seed) {
+  #emit(position, count, color, seed, spreadRadius = 0) {
     const offset = (stableHash(seed) / 0x100000000) * Math.PI * 2;
     for (let index = 0; index < count; index += 1) {
       const angle = offset + (index / count) * Math.PI * 2;
+      const initialRadius = spreadRadius * ((index % 3) + 1) / 3;
       const speedRange = this.#config.maximumSpeed - this.#config.minimumSpeed;
       const speed = this.#config.minimumSpeed + speedRange * ((index % 4) / 3);
       this.#particles.push({
         id: `particle-${this.#nextId++}`,
-        x: position.x,
-        y: position.y,
+        x: position.x + Math.cos(angle) * initialRadius,
+        y: position.y + Math.sin(angle) * initialRadius,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         radius: this.#config.radius,

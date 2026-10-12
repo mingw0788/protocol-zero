@@ -27,6 +27,26 @@ describe('ParticleSystem', () => {
     expect(system.getSnapshot().length).toBeGreaterThan(0);
   });
 
+  it('spreads the terminal player burst before the frozen world can update particles', () => {
+    const system = new ParticleSystem();
+    system.emitPlayerDeath({ x: 10, y: 20 });
+    const particles = system.getSnapshot();
+    expect(particles).toHaveLength(PARTICLE_CONFIG.playerDeathCount);
+    expect(new Set(particles.map(({ x, y }) => `${x.toFixed(3)},${y.toFixed(3)}`)).size).toBeGreaterThan(1);
+    expect(particles.every((particle) => Object.isFrozen(particle))).toBe(true);
+  });
+
+  it('copies validated custom configuration so caller mutation cannot bypass the cap', () => {
+    const customConfig = { ...PARTICLE_CONFIG, maxActive: 12 };
+    const system = new ParticleSystem(customConfig);
+    customConfig.maxActive = 1000;
+    customConfig.enemyDeathCount = 100;
+
+    system.emitEnemyDeath(death('first'));
+    system.emitEnemyDeath(death('second'));
+    expect(system.getSnapshot()).toHaveLength(12);
+  });
+
   it('expires at configured lifetime and caps the active collection', () => {
     const system = new ParticleSystem();
     for (let index = 0; index < 100; index += 1) system.emitEnemyDeath(death(`death-${index}`));

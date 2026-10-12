@@ -4,6 +4,7 @@ export const PARTICLE_CONFIG = Object.freeze({
   enemyDeathCount: 8,
   playerHitCount: 6,
   playerDeathCount: 14,
+  playerDeathSpreadRadius: 12,
   minimumSpeed: 32,
   maximumSpeed: 96,
   radius: 2,
