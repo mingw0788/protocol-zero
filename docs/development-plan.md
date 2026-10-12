@@ -6,7 +6,7 @@
 | 项目 | 《零号协议：失控之城》/ Protocol Zero |
 | 版本 | 1.0 |
 | 依赖 | `docs/requirements.md`、`docs/architecture.md` |
-| 当前状态 | T000–T020 已完成；当前进入 T021 |
+| 当前状态 | T000–T021 已完成；V1.0.0 已发布，验收限制见 `docs/task-report-T021.md` |
 | 实施目标 | 完成 V1 网页版 5 分钟完整生存游戏 |
 
 ## 1. 开发总原则
