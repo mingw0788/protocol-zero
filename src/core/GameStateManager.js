@@ -2,12 +2,14 @@ export const GAME_STATES = Object.freeze({
   MENU: 'MENU',
   PLAYING: 'PLAYING',
   PAUSED: 'PAUSED',
+  LEVEL_UP: 'LEVEL_UP',
 });
 
 const ALLOWED_TRANSITIONS = Object.freeze({
   [GAME_STATES.MENU]: new Set([GAME_STATES.PLAYING]),
-  [GAME_STATES.PLAYING]: new Set([GAME_STATES.PAUSED]),
+  [GAME_STATES.PLAYING]: new Set([GAME_STATES.PAUSED, GAME_STATES.LEVEL_UP]),
   [GAME_STATES.PAUSED]: new Set([GAME_STATES.PLAYING, GAME_STATES.MENU]),
+  [GAME_STATES.LEVEL_UP]: new Set([GAME_STATES.PLAYING]),
 });
 
 export class GameStateManager {
@@ -48,7 +50,22 @@ export class GameStateManager {
     return this.transitionTo(GAME_STATES.MENU);
   }
 
+  beginLevelUp() {
+    if (this.#currentState !== GAME_STATES.PLAYING) return false;
+    return this.#transitionTo(GAME_STATES.LEVEL_UP);
+  }
+
+  completeLevelUp() {
+    if (this.#currentState !== GAME_STATES.LEVEL_UP) return false;
+    return this.#transitionTo(GAME_STATES.PLAYING);
+  }
+
   transitionTo(nextState) {
+    if (nextState === GAME_STATES.LEVEL_UP || this.#currentState === GAME_STATES.LEVEL_UP) return false;
+    return this.#transitionTo(nextState);
+  }
+
+  #transitionTo(nextState) {
     if (!Object.hasOwn(ALLOWED_TRANSITIONS, nextState)) return false;
     if (!ALLOWED_TRANSITIONS[this.#currentState].has(nextState)) return false;
 

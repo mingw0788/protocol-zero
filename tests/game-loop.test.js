@@ -82,6 +82,22 @@ describe('GameStateManager', () => {
     expect(states.resume()).toBe(false);
     expect(states.startGame()).toBe(true);
   });
+
+  it('allows only controlled entry to and completion of LEVEL_UP', () => {
+    const states = new GameStateManager();
+
+    expect(states.beginLevelUp()).toBe(false);
+    states.startGame();
+    expect(states.beginLevelUp()).toBe(true);
+    expect(states.currentState).toBe(GAME_STATES.LEVEL_UP);
+    expect(states.transitionTo(GAME_STATES.PLAYING)).toBe(false);
+    expect(states.pause()).toBe(false);
+    expect(states.resume()).toBe(false);
+    expect(states.returnToMenu()).toBe(false);
+    expect(states.completeLevelUp()).toBe(true);
+    expect(states.currentState).toBe(GAME_STATES.PLAYING);
+    expect(states.completeLevelUp()).toBe(false);
+  });
 });
 
 describe('GameWorld and GameClock', () => {

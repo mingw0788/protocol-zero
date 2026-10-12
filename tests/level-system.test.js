@@ -102,4 +102,34 @@ describe('LevelSystem experience accounting', () => {
     expect(player.level).toBe(2);
     expect(player.exp).toBe(2);
   });
+
+  it('does not consume a choice outside LEVEL_UP', () => {
+    const { stateManager, levelSystem } = createLevelSystem({ exp: 6 });
+    levelSystem.processExperience();
+
+    expect(levelSystem.completePendingLevelUp()).toBe(false);
+    expect(levelSystem.pendingLevelUps).toBe(1);
+    expect(stateManager.currentState).toBe('MENU');
+    stateManager.startGame();
+    expect(levelSystem.completePendingLevelUp()).toBe(false);
+    expect(levelSystem.pendingLevelUps).toBe(1);
+  });
+
+  it('consumes each queued choice and resumes only after the final one', () => {
+    const { stateManager, levelSystem } = createLevelSystem({ exp: 35 });
+    levelSystem.processExperience();
+    stateManager.startGame();
+    stateManager.beginLevelUp();
+
+    expect(levelSystem.completePendingLevelUp()).toBe(true);
+    expect(levelSystem.pendingLevelUps).toBe(2);
+    expect(stateManager.currentState).toBe('LEVEL_UP');
+    expect(levelSystem.completePendingLevelUp()).toBe(true);
+    expect(levelSystem.pendingLevelUps).toBe(1);
+    expect(stateManager.currentState).toBe('LEVEL_UP');
+    expect(levelSystem.completePendingLevelUp()).toBe(true);
+    expect(levelSystem.pendingLevelUps).toBe(0);
+    expect(stateManager.currentState).toBe('PLAYING');
+    expect(levelSystem.completePendingLevelUp()).toBe(false);
+  });
 });

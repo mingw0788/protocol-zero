@@ -1,4 +1,5 @@
 import { LEVEL_CONFIG } from '../config/levelConfig.js';
+import { GAME_STATES } from '../core/GameStateManager.js';
 
 function requirePlayer(player) {
   if (!player || typeof player !== 'object') {
@@ -69,5 +70,18 @@ export class LevelSystem {
 
   reset() {
     this.#pendingLevelUps = 0;
+  }
+
+  completePendingLevelUp() {
+    if (this.stateManager.currentState !== GAME_STATES.LEVEL_UP || this.#pendingLevelUps === 0) {
+      return false;
+    }
+
+    if (this.#pendingLevelUps === 1 && !this.stateManager.completeLevelUp()) {
+      return false;
+    }
+
+    this.#pendingLevelUps -= 1;
+    return true;
   }
 }
