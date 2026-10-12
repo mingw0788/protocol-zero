@@ -6,7 +6,7 @@
 | 项目 | Protocol Zero / 零号协议：失控之城 |
 | 版本 | 1.0 |
 | 依赖 | `docs/requirements.md` PZ-SRS-001 |
-| 状态 | T000–T008 已完成；T009 书面规格已批准，实施计划待审阅 |
+| 状态 | T000–T009 已完成；T010 经验阈值、等级和待选队列实施中 |
 
 ## 1. 架构目标与选型
 
@@ -192,7 +192,7 @@ VICTORY/DEFEAT --> MENU or NEW PLAYING
 | VICTORY | 否 | 否 | 结算、重来、返回 |
 | DEFEAT | 否 | 否 | 结算、重来、返回 |
 
-T002 按任务范围先实现 `MENU`、`PLAYING`、`PAUSED` 三态；T005 加入 PAUSED → MENU，首次加载保持 MENU，开始新局和确认返回均先清理本局。取消返回确认保持 PAUSED；Esc 只切换 PLAYING/PAUSED，并忽略重复 keydown。`LEVEL_UP`、`VICTORY`、`DEFEAT` 将由对应升级与结算任务接入。
+T002 按任务范围先实现 `MENU`、`PLAYING`、`PAUSED` 三态；T005 加入 PAUSED → MENU，首次加载保持 MENU，开始新局和确认返回均先清理本局。取消返回确认保持 PAUSED；Esc 只切换 PLAYING/PAUSED，并忽略重复 keydown。T010 接入 `PLAYING → LEVEL_UP → PLAYING` 受控迁移；T011 提供选择界面。`VICTORY`、`DEFEAT` 仍由 T016 接入。
 
 约束：状态迁移应由单一管理器协调，不允许多个系统各自把游戏标记“结束”。死亡检查与胜利检查采用固定优先级：**死亡优先**。
 
@@ -206,7 +206,7 @@ T002 按任务范围先实现 `MENU`、`PLAYING`、`PAUSED` 三态；T005 加入
 - 窗口失焦或标签页隐藏时自动切入 `PAUSED`；恢复焦点不自动继续。进入或离开暂停状态时清空 accumulator，并重置上一帧时间戳，避免恢复后“瞬移”和集中生成事件。
 - `GameClock` 只在 `PLAYING` 推进；武器冷却、Boss 计时、无敌倒计时等均基于逻辑时间。
 
-### 5.2 T007–T009 固定模拟步顺序
+### 5.2 T007–T010 固定模拟步顺序
 
 每个有效 `PLAYING` 步按以下顺序处理：
 
@@ -218,10 +218,12 @@ T002 按任务范围先实现 `MENU`、`PLAYING`、`PAUSED` 三态；T005 加入
 6. `WeaponSystem` 发射弹丸，`ProjectileSystem` 推进弹丸并结算命中；
 7. `GameWorld` 在敌人清理前结算本步死亡并同步发布死亡快照；
 8. `ExperienceSystem` 更新晶体、拾取与寿命；只有存活玩家能拾取。有效模拟步内刚产生且已与玩家重叠的晶体可在本步拾取；
-9. 推进 `GameClock` 和模拟步计数，确保致死固定步计入完整时间；
-10. 若本步令玩家死亡，清除移动输入、锁定本局冻结并同步发布冻结 payload `{ elapsedSeconds }`。
+9. `LevelSystem` 根据本步拾取后的当前等级经验余量，扣除已满足阈值、递增等级并为每次升级建立待选项；
+10. 推进 `GameClock` 和模拟步计数，确保触发等级或致死的固定步计入完整时间；
+11. 若本步令玩家死亡，清除移动输入、锁定本局冻结并同步发布冻结 payload `{ elapsedSeconds }`；
+12. 若本步新增待选升级且玩家存活，从 `PLAYING` 转入 `LEVEL_UP`。此后 GameLoop 停止本帧后续补算步并清空 accumulator。
 
-菜单、暂停和失焦自动暂停不推进战局寿命。T007 的死亡冻结不改变 `GameStateManager` 状态；当前仍为 `PLAYING`，正式 `DEFEAT` 转换由 T016 消费死亡事件接入。系统顺序须保持：T007 接触伤害、T008 投射物死亡通知、T009 晶体拾取均在本步时钟推进及最终玩家死亡冻结之前完成；冻结生效后不再更新任何系统。
+菜单、暂停、升级选择和失焦自动暂停不推进战局寿命。T007 的死亡冻结不改变 `GameStateManager` 状态；当前仍为 `PLAYING`，正式 `DEFEAT` 转换由 T016 消费死亡事件接入。系统顺序须保持：T007 接触伤害、T008 投射物死亡通知、T009 晶体拾取、T010 阈值结算均在本步时钟推进前完成；时钟推进后先处理玩家死亡，再在玩家存活时进入 `LEVEL_UP`。冻结生效后不再更新任何系统。
 
 ## 6. 核心数据设计
 
@@ -233,9 +235,9 @@ level, exp, invulnerabilityRemaining,
 weaponStates, upgradeLevels, alive
 ```
 
-由 PlayerSystem 管理运动，DamageSystem 负责受伤与生命钳制，ExperienceSystem 负责经验。
+由 PlayerSystem 管理运动，DamageSystem 负责受伤与生命钳制，ExperienceSystem 负责拾取并增加经验，LevelSystem 负责当前等级余量、阈值换算、等级递增和待选队列。
 
-T005 已建立 `hp/maxHp`、`level`、`exp` 和独立的 `weaponStates` 运行数据，初值为 100/100、1、0 和 `pulse-gun`。T007 增加每局独立的 `alive`（初始 `true`）和 `invulnerabilityRemaining`（初始 0）；`Player.reset()` 恢复生命、存活状态、无敌余量和位置。`DamageSystem` 负责接触伤害、生命钳制与无敌计时；经验和武器行为仍由后续对应系统实现。
+T005 已建立 `hp/maxHp`、`level`、`exp` 和独立的 `weaponStates` 运行数据，初值为 100/100、1、0 和 `pulse-gun`。T007 增加每局独立的 `alive`（初始 `true`）和 `invulnerabilityRemaining`（初始 0）；`Player.reset()` 恢复生命、存活状态、无敌余量和位置。`player.exp` 始终表示当前等级的余量；T010 的 LevelSystem 按 `6 + 4 × (level − 1)` 消费阈值，每跨一级增加一个待选升级。Player 保存等级与余量，LevelSystem 不修改全局配置。
 
 ### 6.2 Enemy / Boss
 
@@ -326,18 +328,18 @@ id, x, y, expValue, pickupRadius, remainingLifetime, active
 
 ## 11. UI 通信与资源
 
-**调用示例（概念流程）：** 战斗中获取经验 → ExperienceSystem 判断等级提升 → 申请 `LEVEL_UP` → UIManager 展示卡片 → 玩家选择 → UpgradeSystem 验证并应用 → 返回 `PLAYING`。
+**调用示例（概念流程）：** 战斗中获取经验 → ExperienceSystem 增加经验 → LevelSystem 结算阈值并申请 `LEVEL_UP` → UIManager 展示卡片 → 玩家选择 → UpgradeSystem 验证并应用 → 消费一项待选升级 → 队列清空后返回 `PLAYING`。
 
 UI 不直接绕过升级系统修改玩家属性。菜单与 HUD 显示采用游戏状态快照或只读访问接口。
 
 ### 11.1 T005 已实现的菜单与 HUD 合约
 
-- `GameWorld.getHudSnapshot()` 汇总真实 Player、GameClock 和本局击杀数，返回 `{ health: { current, max }, experience, level, weaponIds, killCount, elapsedSeconds }`。快照、生命对象、武器 ID 数组均新建并冻结，不泄露实体引用。
+- `GameWorld.getHudSnapshot()` 汇总真实 Player、GameClock 和本局击杀数，返回 `{ health: { current, max }, experience, level, pendingLevelUps, weaponIds, killCount, elapsedSeconds }`。快照、生命对象、武器 ID 数组均新建并冻结，不泄露实体引用。
 - `GameWorld.recordKill()` 提供本局击杀累加入口；T008 负责在真实死亡结算时只调用一次。`GameWorld.reset()` 清理时钟、玩家、输入、击杀和模拟步数。
 - `Game` 通过 `getHudSnapshot()` 提供读取，使用受状态约束的 `startGame/togglePause/returnToMenu` 接受界面操作。重复开始不能重置活动局。
 - `UIManager` 管理 DOM 菜单、帮助、基础 HUD、暂停和原生返回确认对话框。开始/停止负责订阅及事件绑定/解除，不直接修改世界或玩家。
 - `Game.attachUIManager()` 在应用启动前连接展示端口。每帧 Canvas 绘制后传入最新快照；状态迁移时同步切换界面和焦点。仅展示值变化时写入 DOM。
-- HUD 只在 PLAYING 显示；经验暂为数值，不提前定义 T010 的升级阈值。主菜单和暂停时不推进有效时间。
+- HUD 只在 PLAYING 显示；经验数值表示当前等级余量，T010 的待选数通过只读快照提供给后续升级界面。主菜单、暂停和升级选择时不推进有效时间。
 - `Game.soundEnabled` 默认开启，`toggleSound()` 更新本次页面运行期偏好，返回菜单保留偏好；T005 不创建音频上下文或写入存储。T018 接入音效，T019 接入持久化。
 
 ### 11.2 T006 敌人子系统
@@ -363,10 +365,17 @@ UI 不直接绕过升级系统修改玩家属性。菜单与 HUD 显示采用游
 - 系统将冻结死亡快照复制成独立 `ExperienceCrystal`；`expDrop > 0` 时生成一枚，晶体位置和经验值分别取快照 `x/y` 与 `expDrop`。敌人清理不影响掉落。
 - `GameWorld.experienceCrystals` 与系统共享同一数组。更新时执行圆形拾取、120 秒寿命递减和原位清理，避免替换共享数组引用；拾取先置 `active = false` 再增加 `player.exp`。
 - 重置使旧晶体失效并清空数组，保留死亡事件订阅；晶体 ID 在 ExperienceSystem 生命周期内递增，避免跨局复用。
-- T009 仅增加经验并更新既有 HUD 快照；经验升级阈值、暂停升级界面和连续升级留给 T010/T011。
+- T009 仅拾取并增加经验；T010 的 LevelSystem 处理阈值、等级和连续升级队列，并在待选数大于零时转入冻结的 `LEVEL_UP`。T011 展示合法选项并逐项消费队列。
 - `ExperienceCrystalRenderer` 只读活动晶体，在逻辑视口内绘制琥珀色 8×8 占位方块。图层顺序为地图 → 晶体 → 弹丸 → 敌人 → 玩家；正式晶体素材留给 T017。
 
-### 11.5 后续音效与本地存储
+### 11.5 T010 等级与待选升级队列
+
+- `LevelSystem` 读取真实 Player 的 `level/exp`；阈值为 `6 + 4 × (level − 1)`，每次满足阈值都扣除余量、递增等级并新增一个待选计数。
+- `GameWorld` 在经验拾取后结算所有新跨越等级，完成当前固定步时钟/步数推进后进入 `LEVEL_UP`；模拟冻结直至 T011 的合法选择逐项消费待选计数。
+- `GameStateManager` 只允许 `PLAYING → LEVEL_UP` 和待选全部完成后的 `LEVEL_UP → PLAYING`；普通暂停、继续或返回菜单动作不能绕过待选升级。
+- `GameWorld.reset()` 清空待选计数；Player 重置回等级 1、经验 0。HUD 快照提供 `pendingLevelUps` 数值，不暴露 LevelSystem 内部状态。
+
+### 11.6 后续音效与本地存储
 
 音效：用户交互后再启动音频上下文；资源缺失则静音降级，不阻断游戏。
 
