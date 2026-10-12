@@ -40,7 +40,7 @@
 - Consumes: `{ orbitalBladeLevel, damageMultiplier }` from the existing frozen upgrade-effect snapshot; shared Player, enemy array, and `EnemyDamageSystem.applyDamage(enemy, damage)`.
 - Produces: `update({ deltaSeconds, upgradeEffects })`, `getSnapshot(level = lastSimulatedLevel)`, and `reset()`; immutable snapshot `{ active, level, playerX, playerY, x, y, radius, orbitRadius, angleRadians, color }`. Explicit level is display-only; `GameWorld` passes the current UpgradeSystem rank so the render snapshot updates immediately after a choice.
 
-- [x] **Step 1: Write failing tests** named `starts locked and returns a frozen inactive snapshot`, `orbits at the configured speed and reports world coordinates`, `damages a contacting target using shared damage multiplier`, `limits repeat hits independently per target until cooldown expires`, `allows a target again after exactly the configured cooldown in fixed steps`, `cleans cooldowns for dead and removed enemies`, `reset clears angle and target cooldown without changing configuration`, and `rejects invalid inputs without mutating combat state`.
+- [x] **Step 1: Write failing tests** for locked state, configured orbit and damage, per-target cooldown and cleanup, reset/configuration isolation, invalid inputs, and rejection of validated configuration replacement.
 - [x] **Step 2: Run `npm test -- tests/orbital-blade-system.test.js` and observe the expected missing-module/API failures.**
 - [x] **Step 3: Add frozen `ORBITAL_BLADE_CONFIG` and implement the validated system with the exact values and formulas in the spec.**
 - [x] **Step 4: Re-run the focused tests; expect all named cases to pass and the injected config object to remain unchanged.**
@@ -89,7 +89,7 @@
 - [x] **Step 3: Implement simple clipped purple diamond drawing using rotated bounds for culling; pass the snapshot through Game/CanvasRenderer; render the unlocked blade icon without changing readable weapon names.**
 - [x] **Step 4: Run all tests (`npm test`), production build (`npm run build`), and `git diff --check`.**
 - [x] **Step 5: Browser-check menu/start, orbital renderer output, HUD unlock/upgraded state, no console errors, and reset where the available browser allows. Record limitations honestly.**
-- [ ] **Step 6: Update architecture and D-013/D-034 decision status; complete T013 status and task report with exact test/build/browser/review results.**
-- [ ] **Step 7: Commit the display and architecture/decision documentation as `feat: render orbital blade and sync HUD`.**
+- [x] **Step 6: Update architecture and D-013/D-034 decision status; complete T013 status and task report with exact test/build/browser/review results.**
+- [x] **Step 7: Commit the display and architecture/decision documentation as `feat: render orbital blade and sync HUD`.**
 
-After all tasks, run a fresh independent read-only review of the full T013 change range. Fix Critical/Important findings using RED→GREEN tests, rerun the complete test suite/build, then complete `docs/task-report-T013.md` and `docs/task-status.md` and commit the acceptance record as `docs: record T013 orbital blade acceptance`. Do not push, merge, publish, or start T014.
+After the independent read-only review, the Important configuration-replacement finding was fixed using RED→GREEN tests; the reviewer confirmed the fix and found no new issues. The complete suite/build were rerun, and `docs/task-report-T013.md` and `docs/task-status.md` now contain acceptance evidence. Commit the acceptance record separately. Do not push, merge, or publish. After T013 is accepted, continue with T014 under the user's standing authorization.

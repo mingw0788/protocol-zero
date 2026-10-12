@@ -6,7 +6,7 @@
 | 项目 | Protocol Zero / 零号协议：失控之城 |
 | 版本 | 1.0 |
 | 依赖 | `docs/requirements.md` PZ-SRS-001 |
-| 状态 | T000–T012 已完成；T013 实现轨道刃攻击 |
+| 状态 | T000–T013 已完成；当前进入 T014 |
 
 ## 1. 架构目标与选型
 
@@ -406,7 +406,7 @@ UI 不直接绕过升级系统修改玩家属性。菜单与 HUD 显示采用游
 
 ### 11.9 T013 轨道刃系统
 
-- 冻结的 `ORBITAL_BLADE_CONFIG` 集中保存碰撞半径、等级 1 基础伤害、每级强化增量、轨道半径、旋转速度、逐敌冷却和占位颜色；D-034 的值是可调首轮平衡参数。系统构造时复制并冻结配置，不修改共享基础武器配置。
+- 冻结的 `ORBITAL_BLADE_CONFIG` 集中保存碰撞半径、等级 1 基础伤害、每级强化增量、轨道半径、旋转速度、逐敌冷却和占位颜色；D-034 的值是可调首轮平衡参数。系统构造时复制并冻结配置，以私有字段保存并通过无 setter 的只读访问器暴露；调用方不能替换已校验的运行配置，也不会修改共享基础武器配置。
 - `OrbitalBladeSystem` 持有轨道角度和 `Map<enemyId, remainingCooldownSeconds>`，消费只读升级效果 `{ orbitalBladeLevel, damageMultiplier }`。等级 0 不活动；等级 1–5 使伤害按 `(12 + 4 × (level − 1)) × damageMultiplier` 计算，轨道半径按 `48 + 8 × (level − 1)` 计算。每个有效模拟步推进 `2π rad/s`，接触条件为中心距不超过 `bladeRadius + enemy.radius`。
 - 碰撞使用 `EnemyDamageSystem.applyDamage()`；系统不直接结算击杀或经验。`GameWorld` 在 `ProjectileSystem` 后更新轨道刃，再调用原有 `#settleEnemyDeaths()`，因此两种武器同一步击杀仍走唯一幂等收尾。
 - 命中冷却以有效 PLAYING 时间逐敌递减，清除死亡或不存在实体的键；暂停、LEVEL_UP、MENU 和玩家死亡冻结均不调用更新。重置清空角度/冷却/最近活动等级，保留配置。
