@@ -20,9 +20,9 @@
 
 ## Task 3: Accessible menu controls and acceptance
 
-- [ ] Add labeled 0–100 volume control alongside the existing mute switch; test changes and runtime preference retention.
-- [ ] Run `npm test`, `npm run build`, `git diff --check`; check browser playback, controls, polyphony behavior, unsupported API fallback and console.
-- [ ] Update architecture, SRS trace, D-015 decision, status and T018 report; commit `docs: record T018 audio acceptance`.
+- [x] Add labeled 0–100 volume control alongside the existing mute switch; test changes and runtime preference retention.
+- [x] Run `npm test`, `npm run build`, `git diff --check`; check browser playback, controls, polyphony behavior, unsupported API fallback and console.
+- [x] Update architecture, SRS trace, D-015 decision, status and T018 report; commit `docs: record T018 audio acceptance`.
 
 ## Constraints
 
