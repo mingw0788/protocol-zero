@@ -2,12 +2,14 @@ import { LOGICAL_VIEWPORT } from '../config/worldConfig.js';
 import { MapRenderer } from './MapRenderer.js';
 import { PlayerRenderer } from './PlayerRenderer.js';
 import { EnemyRenderer } from './EnemyRenderer.js';
+import { ProjectileRenderer } from './ProjectileRenderer.js';
 
 export class CanvasRenderer {
   #canvas;
   #context;
   #camera;
   #mapRenderer;
+  #projectileRenderer;
   #enemyRenderer;
   #playerRenderer;
   #windowTarget;
@@ -22,6 +24,7 @@ export class CanvasRenderer {
     canvas,
     camera,
     mapRenderer = new MapRenderer(),
+    projectileRenderer = new ProjectileRenderer(),
     enemyRenderer = new EnemyRenderer(),
     playerRenderer = new PlayerRenderer(),
     windowTarget = globalThis.window ?? null,
@@ -35,6 +38,9 @@ export class CanvasRenderer {
     }
     if (!mapRenderer || typeof mapRenderer.render !== 'function') {
       throw new TypeError('CanvasRenderer requires a map renderer');
+    }
+    if (!projectileRenderer || typeof projectileRenderer.render !== 'function') {
+      throw new TypeError('CanvasRenderer requires a projectile renderer');
     }
     if (!enemyRenderer || typeof enemyRenderer.render !== 'function') {
       throw new TypeError('CanvasRenderer requires an enemy renderer');
@@ -51,6 +57,7 @@ export class CanvasRenderer {
     if (!this.#context) throw new Error('Canvas 2D context is unavailable');
     this.#camera = camera;
     this.#mapRenderer = mapRenderer;
+    this.#projectileRenderer = projectileRenderer;
     this.#enemyRenderer = enemyRenderer;
     this.#playerRenderer = playerRenderer;
     this.#windowTarget = windowTarget;
@@ -92,7 +99,7 @@ export class CanvasRenderer {
     this.#lastDevicePixelRatio = ratio;
   }
 
-  render(player = null, enemies = []) {
+  render(player = null, enemies = [], projectiles = []) {
     const ratio = this.#readDevicePixelRatio();
     if (ratio !== this.#lastDevicePixelRatio) this.resize();
 
@@ -102,6 +109,7 @@ export class CanvasRenderer {
     this.#context.imageSmoothingEnabled = false;
     this.#camera.update();
     this.#mapRenderer.render(this.#context, this.#camera);
+    this.#projectileRenderer.render(this.#context, this.#camera, projectiles);
     this.#enemyRenderer.render(this.#context, this.#camera, enemies);
     if (player) this.#playerRenderer.render(this.#context, this.#camera, player);
   }

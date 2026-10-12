@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMY_CONFIG } from '../src/config/enemyConfig.js';
+import { Game } from '../src/core/Game.js';
 import { Enemy } from '../src/entities/Enemy.js';
+import { Projectile } from '../src/entities/Projectile.js';
 import { Camera } from '../src/rendering/Camera.js';
 import { CanvasRenderer } from '../src/rendering/CanvasRenderer.js';
 import { EnemyRenderer } from '../src/rendering/EnemyRenderer.js';
@@ -61,9 +63,21 @@ describe('EnemyRenderer', () => {
 });
 
 describe('CanvasRenderer layering', () => {
-  it('draws the map before enemies and draws the player above enemies', () => {
+  it('draws the map, projectiles, enemies, then player', () => {
     const events = [];
     const camera = new Camera();
+    const projectiles = [new Projectile({
+      id: 'layered-projectile',
+      ownerId: 'player',
+      weaponId: 'pulse-gun',
+      x: 1200,
+      y: 675,
+      vx: 500,
+      vy: 0,
+      radius: 4,
+      damage: 20,
+      lifetimeSeconds: 1.28,
+    })];
     const canvas = {
       width: 1280,
       height: 720,
@@ -74,6 +88,10 @@ describe('CanvasRenderer layering', () => {
       canvas,
       camera,
       mapRenderer: { render: () => events.push('map') },
+      projectileRenderer: { render: (_context, _camera, drawnProjectiles) => {
+        expect(drawnProjectiles).toBe(projectiles);
+        events.push('projectiles');
+      } },
       enemyRenderer: { render: (_context, _camera, enemies) => {
         expect(enemies).toEqual([expect.objectContaining({ id: 'layered-enemy' })]);
         events.push('enemies');
@@ -81,8 +99,54 @@ describe('CanvasRenderer layering', () => {
       playerRenderer: { render: () => events.push('player') },
     });
 
-    renderer.render({ id: 'player' }, [createEnemy('layered-enemy', 1200, 675)]);
+    renderer.render({ id: 'player' }, [createEnemy('layered-enemy', 1200, 675)], projectiles);
 
-    expect(events.slice(-3)).toEqual(['map', 'enemies', 'player']);
+    expect(events.slice(-4)).toEqual(['map', 'projectiles', 'enemies', 'player']);
+  });
+});
+
+describe('Game projectile rendering', () => {
+  it('passes the shared world projectile array to CanvasRenderer each frame', () => {
+    let nextFrame;
+    const canvas = {
+      width: 1280,
+      height: 720,
+      getContext: () => ({}),
+      getBoundingClientRect: () => ({ width: 1280, height: 720 }),
+    };
+    const game = new Game({
+      canvas,
+      loopOptions: {
+        requestAnimationFrame: (callback) => { nextFrame = callback; return 1; },
+        cancelAnimationFrame: () => {},
+        windowTarget: null,
+        documentTarget: null,
+      },
+      inputOptions: { windowTarget: null, documentTarget: null },
+    });
+    const renderCalls = [];
+    game.renderer.render = (...args) => renderCalls.push(args);
+
+    game.startGame();
+    game.world.projectiles.push(new Projectile({
+      id: 'game-projectile',
+      ownerId: 'player',
+      weaponId: 'pulse-gun',
+      x: game.world.player.x,
+      y: game.world.player.y,
+      vx: 500,
+      vy: 0,
+      radius: 4,
+      damage: 20,
+      lifetimeSeconds: 1.28,
+    }));
+    game.start();
+    nextFrame(0);
+
+    expect(renderCalls).toHaveLength(1);
+    expect(renderCalls[0][0]).toBe(game.world.player);
+    expect(renderCalls[0][1]).toBe(game.world.enemies);
+    expect(renderCalls[0][2]).toBe(game.world.projectiles);
+    game.stop();
   });
 });

@@ -8,6 +8,7 @@ import { CanvasRenderer } from '../rendering/CanvasRenderer.js';
 import { MapRenderer } from '../rendering/MapRenderer.js';
 import { PlayerRenderer } from '../rendering/PlayerRenderer.js';
 import { EnemyRenderer } from '../rendering/EnemyRenderer.js';
+import { ProjectileRenderer } from '../rendering/ProjectileRenderer.js';
 
 export class Game {
   #uiManager = null;
@@ -30,6 +31,7 @@ export class Game {
         canvas,
         camera: this.camera,
         mapRenderer: new MapRenderer(),
+        projectileRenderer: new ProjectileRenderer(),
         enemyRenderer: new EnemyRenderer(),
         playerRenderer: new PlayerRenderer(),
       })
@@ -39,7 +41,7 @@ export class Game {
       stateManager: this.stateManager,
       world: this.world,
       render: () => {
-        this.renderer?.render(this.world.player, this.world.enemies);
+        this.renderer?.render(this.world.player, this.world.enemies, this.world.projectiles);
         this.#uiManager?.renderSnapshot(this.getHudSnapshot(), this.stateManager.currentState);
       },
     });
