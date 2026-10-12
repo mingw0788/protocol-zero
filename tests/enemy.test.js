@@ -27,6 +27,52 @@ describe('EN-01 configuration and Enemy', () => {
     expect(Object.isFrozen(ENEMY_CONFIG.spawn)).toBe(true);
   });
 
+  it('defines the swift and heavy enemies from SRS stats and frozen tuning values', () => {
+    expect(ENEMY_CONFIG.EN02).toMatchObject({
+      typeId: 'EN-02',
+      name: '迅捷猎犬',
+      maxHp: 18,
+      hp: 18,
+      speed: 155,
+      radius: 12,
+      contactDamage: 8,
+      expDrop: 1,
+      color: '#ff944d',
+      category: 'normal',
+    });
+    expect(ENEMY_CONFIG.EN03).toMatchObject({
+      typeId: 'EN-03',
+      name: '重装机甲',
+      maxHp: 100,
+      hp: 100,
+      speed: 55,
+      radius: 22,
+      contactDamage: 18,
+      expDrop: 3,
+      color: '#a9bacd',
+      category: 'normal',
+    });
+    expect(Object.isFrozen(ENEMY_CONFIG.EN02)).toBe(true);
+    expect(Object.isFrozen(ENEMY_CONFIG.EN03)).toBe(true);
+  });
+
+  it('copies the configured category to the entity and defaults it to normal', () => {
+    const swift = new Enemy({ id: 'swift', x: 100, y: 200, config: ENEMY_CONFIG.EN02 });
+    const heavy = new Enemy({ id: 'heavy', x: 200, y: 200, config: ENEMY_CONFIG.EN03 });
+    const boss = new Enemy({
+      id: 'boss',
+      x: 300,
+      y: 200,
+      config: { ...ENEMY_CONFIG.EN01, category: 'boss' },
+    });
+
+    expect(swift).toMatchObject({ typeId: 'EN-02', radius: 12, category: 'normal' });
+    expect(heavy).toMatchObject({ typeId: 'EN-03', radius: 22, category: 'normal' });
+    expect(boss.category).toBe('boss');
+    swift.hp = 0;
+    expect(ENEMY_CONFIG.EN02.hp).toBe(18);
+  });
+
   it('creates isolated run entities with one-shot state left for later combat tasks', () => {
     const first = new Enemy({ id: 'enemy-1', x: 100, y: 200 });
     const second = new Enemy({ id: 'enemy-2', x: 300, y: 400 });
@@ -37,6 +83,7 @@ describe('EN-01 configuration and Enemy', () => {
     expect(first).toMatchObject({
       id: 'enemy-1',
       typeId: 'EN-01',
+      category: 'normal',
       x: 105,
       y: 200,
       radius: 16,
@@ -63,6 +110,12 @@ describe('EN-01 configuration and Enemy', () => {
       y: 100,
       config: { ...ENEMY_CONFIG.EN01, speed: 0 },
     })).toThrow(RangeError);
+    expect(() => new Enemy({
+      id: 'enemy',
+      x: 100,
+      y: 100,
+      config: { ...ENEMY_CONFIG.EN01, category: 'elite' },
+    })).toThrow(TypeError);
   });
 });
 

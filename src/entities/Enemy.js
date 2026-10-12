@@ -43,6 +43,10 @@ export class Enemy {
     if (typeof config.typeId !== 'string' || config.typeId.length === 0) {
       throw new TypeError('Enemy config must provide a typeId');
     }
+    const category = config.category ?? 'normal';
+    if (category !== 'normal' && category !== 'boss') {
+      throw new TypeError('Enemy category must be normal or boss');
+    }
     if (config.radius * 2 >= worldWidth || config.radius * 2 >= worldHeight) {
       throw new RangeError('Enemy diameter must be smaller than the world dimensions');
     }
@@ -54,6 +58,7 @@ export class Enemy {
     this.id = id;
     this.typeId = config.typeId;
     this.name = config.name;
+    this.category = category;
     this.x = x;
     this.y = y;
     this.radius = config.radius;
