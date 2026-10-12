@@ -35,3 +35,4 @@
 - `8a45668` `feat: connect upgrade choices to game world`
 - `f132b7b` `feat: add level-up choice interface`
 - `docs: record T011 upgrade choice acceptance`：本报告及项目状态文档
+- `d6b8536` `fix: isolate T011 upgrade random stream`：隔离升级候选 PRNG、增加回归，并更正浏览器验收记录
