@@ -80,47 +80,47 @@ git commit -m "feat: add experience crystal model"
 - Consumes: Task 1 的 `ExperienceCrystal` / `EXPERIENCE_CRYSTAL_CONFIG`；T008 冻结 `{ enemyId, typeId, x, y, expDrop }` 通知。
 - Produces: `new ExperienceSystem({ crystals, player, subscribeEnemyDeath, config = EXPERIENCE_CRYSTAL_CONFIG })`；构造时调用 `subscribeEnemyDeath(listener)` 一次。`update(deltaSeconds) -> void` 校验非负有限步长、存活玩家接触拾取、按有效模拟秒递减寿命，并原位移除失效实体。`reset() -> void` 标记旧实体失效并清空同一数组，不取消订阅或重置递增 ID。
 
-- [ ] **Step 1: 写死亡事件订阅和掉落测试**
+- [x] **Step 1: 写死亡事件订阅和掉落测试**
 
-在 `tests/experience-system.test.js` 建立可触发通知的 fake death source，并添加 `creates one crystal from a positive frozen death snapshot`、`ignores zero experience drops`、`subscribes once and keeps the listener across reset`、`rejects invalid pickup and lifetime configuration`。断言复制坐标和值、不修改冻结快照、零经验不建晶体；reset 后不会回放历史事件，后续通知仍产生新晶体且 ID 不复用；非正或非有限的 `pickupRadius` / `lifetimeSeconds` 配置在构造时抛出 `RangeError`。
+在 `tests/experience-system.test.js` 建立可触发通知的 fake death source，并添加 `creates one crystal from a positive frozen death snapshot`、`ignores zero experience drops`、`subscribes once and keeps the listener across reset`、`rejects invalid pickup and lifetime configuration`、`requires a crystal array player and death subscription source`。断言复制坐标和值、不修改冻结快照、零经验不建晶体；reset 后不会回放历史事件，后续通知仍产生新晶体且 ID 不复用；非正或非有限的 `pickupRadius` / `lifetimeSeconds` 配置在构造时抛出 `RangeError`，缺少运行依赖时抛出 `TypeError`。
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npm test -- tests/experience-system.test.js`
 
 Expected: `ExperienceSystem` 模块不存在，测试失败。
 
-- [ ] **Step 3: 实现一次性订阅和死亡掉落**
+- [x] **Step 3: 实现订阅、死亡掉落、配置校验与 reset**
 
-实现构造依赖校验；构造时只注册一次监听器。死亡监听器只读取冻结快照字段；对正 `expDrop` 创建唯一 `experience-crystal-N` ID 并追加到共享数组，对零值不创建。
+实现构造依赖及正有限 `pickupRadius` / `lifetimeSeconds` 配置校验；构造时只注册一次监听器。死亡监听器只读取冻结快照字段；对正 `expDrop` 创建唯一 `experience-crystal-N` ID 并追加到共享数组，对零值不创建。实现 `reset()`：先使旧实体失效，再原位清空数组，保留监听器和递增 ID。
 
-- [ ] **Step 4: 验证死亡掉落测试通过**
+- [x] **Step 4: 验证死亡掉落测试通过**
 
 Run: `npm test -- tests/experience-system.test.js`
 
 Expected: 正经验掉落、零经验忽略、单次订阅与 reset 后继续监听通过。
 
-- [ ] **Step 5: 写接触、重复奖励、到期和步长测试**
+- [x] **Step 5: 写接触、重复奖励、到期和步长测试**
 
 补充 `picks up at tangency only once`、`does not pick up outside radius or for a dead player`、`picks up before expiring at the exact lifetime boundary`、`expires silently after active lifetime`、`validates delta and leaves state unchanged for zero`。验证相切包含边界，范围外距离取和半径再加一个微小正值；负数/NaN/Infinity 抛 `RangeError`，零步长不变更任何字段。
 
-- [ ] **Step 6: 运行新增测试确认失败**
+- [x] **Step 6: 运行新增测试确认失败**
 
 Run: `npm test -- tests/experience-system.test.js`
 
 Expected: 新增更新/拾取/寿命断言失败。
 
-- [ ] **Step 7: 实现拾取、寿命推进与 reset**
+- [x] **Step 7: 实现拾取与寿命推进**
 
 `update` 对正步长先检查活动晶体与存活玩家的圆形接触；拾取时先置 `active = false` 再增加 `player.exp`。随后递减未拾取晶体寿命，归零时静默失效；同一步先拾取再过期。清理用原数组原位删除。死亡玩家跳过接触但有效步仍按相同模拟时间推进寿命；零步长直接返回。
 
-- [ ] **Step 8: 验证经验系统单测通过**
+- [x] **Step 8: 验证经验系统单测通过**
 
 Run: `npm test -- tests/experience-system.test.js`
 
 Expected: 所有订阅、掉落、边界拾取、一次性奖励、寿命和 delta 测试通过。
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/systems/ExperienceSystem.js tests/experience-system.test.js
