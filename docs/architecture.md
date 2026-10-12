@@ -6,7 +6,7 @@
 | 项目 | Protocol Zero / 零号协议：失控之城 |
 | 版本 | 1.0 |
 | 依赖 | `docs/requirements.md` PZ-SRS-001 |
-| 状态 | T000–T007 已完成；T007 交付报告见 `docs/task-report-T007.md` |
+| 状态 | T000–T008 已完成；T009 设计规格待书面审阅 |
 
 ## 1. 架构目标与选型
 
@@ -69,13 +69,13 @@ CanvasRenderer + Camera | HTML/CSS UI | AudioManager
 
 ### 2.3 战斗与成长系统
 
-- 玩家移动；敌人 AI（T006 起使用独立 Enemy/EnemySystem）；波次生成；Boss 行为；武器攻击；投射物；碰撞；伤害；经验；升级；清理。
+- 玩家移动；敌人 AI（T006 起使用独立 Enemy/EnemySystem）；波次生成；Boss 行为；武器攻击；投射物；碰撞；伤害；经验掉落/拾取；升级；清理。
 - 状态更新由统一的游戏模拟循环调度。
 - 系统之间通过有限公共接口或结构化事件交互，避免到处修改对方的内部字段。
 
 ### 2.4 表现与服务层
 
-- `CanvasRenderer` 按图层绘制地图 → 敌人 → 掉落物 → 子弹 → 玩家 → 特效；T004 先绘制玩家占位方块，T006 加入普通感染体绘制。
+- `CanvasRenderer` 按图层绘制地图 → 经验晶体 → 子弹 → 敌人 → 玩家 → 特效；展示层只读战局实体。
 - `Camera` 世界/屏幕坐标转换、居中跟随、地图边界约束。
 - `UIManager` 管理主菜单、HUD、暂停、升级、结算 UI。
 - `AudioManager` 管理事件音效、背景音乐、静音与音量。
@@ -116,12 +116,14 @@ protocol-zero/
 │   │   ├── Enemy.js
 │   │   ├── Boss.js
 │   │   ├── Projectile.js
-│   │   └── ExperienceOrb.js
+│   │   └── ExperienceCrystal.js
 │   ├── systems/
 │   │   ├── PlayerSystem.js
 │   │   ├── EnemySystem.js
 │   │   ├── SpawnSystem.js
 │   │   ├── WeaponSystem.js
+│   │   ├── ProjectileSystem.js
+│   │   ├── EnemyDamageSystem.js
 │   │   ├── CollisionSystem.js
 │   │   ├── DamageSystem.js
 │   │   ├── ExperienceSystem.js
@@ -135,6 +137,9 @@ protocol-zero/
 │   │   ├── Camera.js
 │   │   ├── MapRenderer.js
 │   │   ├── PlayerRenderer.js
+│   │   ├── EnemyRenderer.js
+│   │   ├── ProjectileRenderer.js
+│   │   ├── ExperienceCrystalRenderer.js
 │   │   └── ParticleSystem.js
 │   ├── ui/
 │   │   ├── UIManager.js
@@ -149,6 +154,7 @@ protocol-zero/
 │   │   ├── playerConfig.js
 │   │   ├── enemyConfig.js
 │   │   ├── weaponConfig.js
+│   │   ├── experienceConfig.js
 │   │   ├── upgradeConfig.js
 │   │   └── waveConfig.js
 │   └── utils/
@@ -200,19 +206,22 @@ T002 按任务范围先实现 `MENU`、`PLAYING`、`PAUSED` 三态；T005 加入
 - 窗口失焦或标签页隐藏时自动切入 `PAUSED`；恢复焦点不自动继续。进入或离开暂停状态时清空 accumulator，并重置上一帧时间戳，避免恢复后“瞬移”和集中生成事件。
 - `GameClock` 只在 `PLAYING` 推进；武器冷却、Boss 计时、无敌倒计时等均基于逻辑时间。
 
-### 5.2 T007 已实施的模拟步顺序
+### 5.2 T007–T009 固定模拟步顺序
 
 每个有效 `PLAYING` 步按以下顺序处理：
 
 1. 若状态不是 `PLAYING` 或本局已死亡冻结，返回未更新；
 2. `DamageSystem.update(deltaSeconds)` 递减玩家无敌余量并钳制到 0；
 3. `PlayerSystem` 更新玩家，随后 Camera 跟随；
-4. `EnemySystem` 清理失效敌人，`SpawnSystem` 更新生成，`EnemySystem` 推进存活敌人；
+4. 结算已有敌人死亡并清理失效敌人；`SpawnSystem` 更新生成，`EnemySystem` 推进存活敌人；
 5. `CollisionSystem` 检测圆形接触，`DamageSystem` 对最高一笔接触伤害结算一次；
-6. 推进 `GameClock` 和模拟步计数，确保致死固定步计入完整时间；
-7. 若本步令玩家死亡，清除移动输入、锁定本局冻结并同步发布冻结 payload `{ elapsedSeconds }`。
+6. `WeaponSystem` 发射弹丸，`ProjectileSystem` 推进弹丸并结算命中；
+7. `GameWorld` 在敌人清理前结算本步死亡并同步发布死亡快照；
+8. `ExperienceSystem` 更新晶体、拾取与寿命；只有存活玩家能拾取。有效模拟步内刚产生且已与玩家重叠的晶体可在本步拾取；
+9. 推进 `GameClock` 和模拟步计数，确保致死固定步计入完整时间；
+10. 若本步令玩家死亡，清除移动输入、锁定本局冻结并同步发布冻结 payload `{ elapsedSeconds }`。
 
-菜单、暂停和失焦自动暂停不推进无敌计时。T007 的死亡冻结不改变 `GameStateManager` 状态；当前仍为 `PLAYING`，正式 `DEFEAT` 转换由 T016 消费死亡事件接入。T008–T016 在这些步骤间加入攻击、掉落、成长、波次、Boss 与胜败检查时，必须继续遵守固定步和死亡优先级。
+菜单、暂停和失焦自动暂停不推进战局寿命。T007 的死亡冻结不改变 `GameStateManager` 状态；当前仍为 `PLAYING`，正式 `DEFEAT` 转换由 T016 消费死亡事件接入。系统顺序须保持：T007 接触伤害、T008 投射物死亡通知、T009 晶体拾取均在本步时钟推进及最终玩家死亡冻结之前完成；冻结生效后不再更新任何系统。
 
 ## 6. 核心数据设计
 
@@ -246,17 +255,17 @@ radius, damage, remainingLife, active
 
 投射物按配置处理命中后的销毁/穿透，不重复命中同一目标（除非明确设计允许）。
 
-### 6.4 ExperienceOrb
+### 6.4 ExperienceCrystal
 
 ```text
-id, x, y, expValue, pickupRadius, active
+id, x, y, expValue, pickupRadius, remainingLifetime, active
 ```
 
-不能在掉落对象中直接实现等级界面或修改 DOM。
+每个正 `expDrop` 死亡事件在原坐标产生一个经验晶体；零经验敌人不产生晶体。存活玩家与晶体的中心距不超过 `player.radius + pickupRadius` 时拾取。T009 首轮 `pickupRadius` 为 12 世界像素，寿命为 120 个有效模拟秒。晶体生命周期由 ExperienceSystem 管理，不能直接实现升级界面或修改 DOM。
 
 ### 6.5 运行状态与配置
 
-- 基础配置（玩家、武器、敌人、波次）只读共享。
+- 基础配置（玩家、武器、敌人、晶体和波次）只读共享。
 - 战局运行时状态（实体生命、临时升级、攻击冷却）每局新建。
 - 对象死亡使用统一事件或统一收尾函数，保证击杀和掉落只执行一次。
 - ID 用于识别实体；跨场景/重开时需避免旧对象引用继续生效。
@@ -308,12 +317,12 @@ id, x, y, expValue, pickupRadius, active
 | 玩家/敌人 | 圆形碰撞 | 按受伤无敌时间扣血 |
 | 子弹/敌人 | 圆形碰撞 | 生成伤害事件，命中后处理子弹 |
 | 轨道刃/敌人 | 圆形碰撞 | 独立每目标命中冷却 |
-| 玩家/经验晶体 | 距离/半径 | 拾取经验，晶体失效 |
+| 玩家/经验晶体 | 圆形相交，`距离 ≤ player.radius + pickupRadius` | 存活玩家加经验，晶体先失效再清理 |
 | 玩家/地图边界 | 半径约束 | 修正玩家位置 |
 
 第一版可使用朴素碰撞检测。在高敌人数性能不达标时通过分析引入空间网格、对象池、视口外不绘制和生命周期管理，不提前为不存在的负载过度设计。
 
-每帧必须清理已销毁子弹、死亡敌人、过期特效及拾取晶体。粒子效果须配置最大数量与寿命。性能数据必须实测，不可假称已经达到 60 FPS。
+每帧必须清理已销毁子弹、死亡敌人、过期经验晶体及特效。经验晶体按有效模拟时间在 120 秒后过期；粒子效果须配置最大数量与寿命。性能数据必须实测，不可假称已经达到 60 FPS。
 
 ## 11. UI 通信与资源
 
@@ -348,7 +357,16 @@ UI 不直接绕过升级系统修改玩家属性。菜单与 HUD 显示采用游
 - 致死步先完成时钟和模拟步计数，再清空输入、冻结战局并同步触发 `GameWorld.subscribePlayerDeath(listener)`。事件 payload 为冻结对象 `{ elapsedSeconds }`；订阅函数返回取消订阅方法，注册不重放历史事件。
 - `GameWorld.reset()` 恢复玩家数据、清理敌人和死亡冻结锁，但保留订阅关系，以供同一 `Game` 生命周期重开后继续接收下一局事件。T007 不增加 `DEFEAT` 状态或死亡 UI；现有 HUD 从真实 Player 状态读到 0，T016 接入正式结算。
 
-### 11.4 后续音效与本地存储
+### 11.4 T009 经验晶体子系统
+
+- `ExperienceSystem` 在 `GameWorld` 构造时只注册一次 `subscribeEnemyDeath` 监听；依赖 T008 的 `deathProcessed` 保证单次死亡通知，不在每次重开时重复订阅或重放事件。
+- 系统将冻结死亡快照复制成独立 `ExperienceCrystal`；`expDrop > 0` 时生成一枚，晶体位置和经验值分别取快照 `x/y` 与 `expDrop`。敌人清理不影响掉落。
+- `GameWorld.experienceCrystals` 与系统共享同一数组。更新时执行圆形拾取、120 秒寿命递减和原位清理，避免替换共享数组引用；拾取先置 `active = false` 再增加 `player.exp`。
+- 重置使旧晶体失效并清空数组，保留死亡事件订阅；晶体 ID 在 ExperienceSystem 生命周期内递增，避免跨局复用。
+- T009 仅增加经验并更新既有 HUD 快照；经验升级阈值、暂停升级界面和连续升级留给 T010/T011。
+- `ExperienceCrystalRenderer` 只读活动晶体，在逻辑视口内绘制琥珀色 8×8 占位方块。图层顺序为地图 → 晶体 → 弹丸 → 敌人 → 玩家；正式晶体素材留给 T017。
+
+### 11.5 后续音效与本地存储
 
 音效：用户交互后再启动音频上下文；资源缺失则静音降级，不阻断游戏。
 
