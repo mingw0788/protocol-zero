@@ -6,7 +6,7 @@
 | 项目 | Protocol Zero / 零号协议：失控之城 |
 | 版本 | 1.0 |
 | 依赖 | `docs/requirements.md` PZ-SRS-001 |
-| 状态 | T000–T014 已完成；当前进入 T015 |
+| 状态 | T000–T015 已完成；当前进入 T016 |
 
 ## 1. 架构目标与选型
 
@@ -210,14 +210,14 @@ T002 按任务范围先实现 `MENU`、`PLAYING`、`PAUSED` 三态；T005 加入
 - 窗口失焦或标签页隐藏时自动切入 `PAUSED`；恢复焦点不自动继续。进入或离开暂停状态时清空 accumulator，并重置上一帧时间戳，避免恢复后“瞬移”和集中生成事件。
 - `GameClock` 只在 `PLAYING` 推进；武器冷却、Boss 计时、无敌倒计时等均基于逻辑时间。
 
-### 5.2 T007–T010 固定模拟步顺序
+### 5.2 T007–T015 固定模拟步顺序
 
 每个有效 `PLAYING` 步按以下顺序处理：
 
 1. 若状态不是 `PLAYING` 或本局已死亡冻结，返回未更新；
 2. `DamageSystem.update(deltaSeconds)` 递减玩家无敌余量并钳制到 0；
 3. `PlayerSystem` 更新玩家，随后 Camera 跟随；
-4. 结算已有敌人死亡并清理失效敌人；`SpawnSystem` 更新生成，`EnemySystem` 推进存活敌人；
+4. 结算已有敌人死亡并清理失效敌人；`SpawnSystem` 更新普通敌人生成，`BossSystem` 按 `clock.elapsedSeconds + deltaSeconds` 判断单次到场并更新 Boss，`EnemySystem` 只推进普通敌人；
 5. `CollisionSystem` 检测圆形接触，`DamageSystem` 对最高一笔接触伤害结算一次；
 6. `WeaponSystem` 发射弹丸，`ProjectileSystem` 推进弹丸并结算命中；
 7. `GameWorld` 在敌人清理前结算本步死亡并同步发布死亡快照；
@@ -228,6 +228,8 @@ T002 按任务范围先实现 `MENU`、`PLAYING`、`PAUSED` 三态；T005 加入
 12. 若本步新增待选升级且玩家存活，从 `PLAYING` 转入 `LEVEL_UP`。此后 GameLoop 停止本帧后续补算步并清空 accumulator。
 
 菜单、暂停、升级选择和失焦自动暂停不推进战局寿命。T007 的死亡冻结不改变 `GameStateManager` 状态；当前仍为 `PLAYING`，正式 `DEFEAT` 转换由 T016 消费死亡事件接入。系统顺序须保持：T007 接触伤害、T008 投射物死亡通知、T009 晶体拾取、T010 阈值结算均在本步时钟推进前完成；时钟推进后先处理玩家死亡，再在玩家存活时进入 `LEVEL_UP`。冻结生效后不再更新任何系统。
+
+T015 将 `BossSystem` 插入玩家/Camera 更新后、普通敌人更新前；Boss 的生成、追踪/攻击状态与波次读取均使用同一个有效步末时钟。普通敌人初始死亡清理发生在生成前；击中造成的 Boss 死亡和普通敌人死亡仍由步末统一结算，玩家致死仍在固定步完成后冻结。T016 在该时序之上消费胜败条件，死亡优先于胜利。
 
 ## 6. 核心数据设计
 
@@ -303,7 +305,10 @@ id, x, y, expValue, pickupRadius, remainingLifetime, active
 - `SpawnSystem` 在普通敌人活跃数 `< 100` 时按当前波次尝试视口外合法位置，使用所选敌种半径验证视口留白、地图范围和玩家分离；名额达到后即消耗，取样失败不积压重试。
 - 不要把敌人数量与游戏渲染帧数直接绑定。
 - Boss 在 `GameClock >= 270s` 且 `bossSpawned = false` 时仅生成一次。
-- Boss 冲锋：普通移动 → 预警（至少 0.7s）→ 冲锋 → 恢复 → 循环。危险方向/区域必须可辨识。
+- `BossSystem` 独占 Boss 移动与攻击状态；Boss 以 `category: 'boss'` 加入共享 `GameWorld.enemies`，复用接触伤害、两种武器、死亡结算与普通敌人绘制。`EnemySystem` 跳过 Boss，Boss 不计入 100 只普通敌人上限；生成确定性选择合法、安全的最远角点，不消费敌人/升级随机流。
+- D-036 首轮值集中在 `BOSS_CONFIG`：1800 HP、半径 44、追踪速度 60、接触伤害 20、首次延迟 2 秒、0.8 秒预警、420 速度/0.6 秒冲锋、0.8 秒恢复和 3.2 秒循环冷却。除 SRS 固定值外均为可调初值。
+- Boss 冲锋：追踪 → 预警 → 固定方向冲锋 → 恢复 → 循环；预警满足 SRS 至少 0.7 秒。冻结快照提供实体、阶段、方向和地图边界内终点；Canvas 在敌人本体前绘制裁剪于视口的半透明通道。
+- Boss 经验掉落为 0，既有 GameWorld 死亡结算只计一次；BossSystem 保留被击败快照，不会在同一局重生。`GameWorld.reset()` 清除 Boss 引用、攻击相位和单次生成标记。
 - 完成时间 `>= 300s` 且 `bossDefeated` 才允许胜利。
 
 ## 9. 地图与摄像机
@@ -422,7 +427,15 @@ UI 不直接绕过升级系统修改玩家属性。菜单与 HUD 显示采用游
 - `GameWorld` 每个 PLAYING 固定步按 `clock.elapsedSeconds + deltaSeconds` 取该步末端波次快照并交给 SpawnSystem；GameClock 对重复固定步使用补偿求和，60/120 秒边界由 3600/7200 步回归锁定。菜单、暂停、升级选择、玩家死亡冻结与重开继续遵守 GameClock/状态机约束。`getWaveSnapshot()` 只读当前 GameClock 所属阶段。
 - D-035 的生成间隔为 1.00/0.90/0.80/0.65/0.55 秒；对应阶段边界是 0/60/120/180/240/270 秒，敌种权重集中在 `WAVE_CONFIG`。速率切换保留分数秒余量；达到 100 只普通敌人时消耗生成名额，不排队补发。
 - SpawnSystem 按正权重从冻结配置中抽选普通敌种。地图合法性、玩家安全距离均使用所选类型半径，视口外缘留白为 32 世界像素；沿用最多 16 次有界取样。Boss 类实体不占普通敌人数量上限，且不允许进入普通波次权重池。
-- EN-02/EN-03 复用既有 EnemySystem 恒速追踪、EnemyDamageSystem、死亡结算、经验掉落和 EnemyRenderer；Renderer 按实体半径/颜色呈现差异。无波次 HUD；Boss、完整终局和性能压力仍归 T015/T016/T020。
+- EN-02/EN-03 复用既有 EnemySystem 恒速追踪、EnemyDamageSystem、死亡结算、经验掉落和 EnemyRenderer；Renderer 按实体半径/颜色呈现差异。无波次 HUD；Boss、完整终局和性能压力分别由 T015/T016/T020 负责。
+
+### 11.11 T015 Boss 快照、预警与 HUD
+
+- GameWorld 使用共享敌人数组、Player、Camera、World 与可注入配置创建 `BossSystem`。仅 PLAYING 固定步调用 `update(deltaSeconds, clock.elapsedSeconds + deltaSeconds)`；reset 清空 Boss/相位/单次生成标志并保留 GameWorld 订阅。
+- Boss 复用 Enemy HP、接触碰撞、EnemyDamageSystem、脉冲枪、轨道刃及死亡结算；`expDrop: 0` 不产生晶体。Boss 不占普通敌人数量上限，也不进入普通波次池。
+- `getBossSnapshot()` 返回冻结实体值和预警几何，不暴露 Boss 实体。CanvasRenderer 将快照交给 BossRenderer；预警期按 Boss 位置和地图内 `chargeEnd` 绘制通道，位于敌人本体之前。
+- Game 每帧把快照传给 UIManager；语义区显示 Boss 名称、当前/最大生命和 `<progress>`。仅在 Boss 已出现、存活且处于 PLAYING 时显示；未出现、死亡、PAUSED、LEVEL_UP、MENU 均隐藏。
+- T015 不新增胜败状态或结算 UI；300 秒胜利条件、死亡优先级、终局数据及结算重开由 T016 实现。
 
 ## 12. 测试设计
 
@@ -460,4 +473,4 @@ T021 必须运行构建并在部署后的静态页面上验证，不可只在 Vi
 - 系统之间保持单向依赖、避免循环导入。
 - 测试缺失必须明确写“未验证”。
 - 每个任务修改仅对应既定需求；需求变更先更新文档和记录。
-- 当前实现状态以 `docs/task-status.md` 为准。T005 已交付菜单、基础 HUD 和暂停/返回操作；T006–T014 已完成敌人、战斗、成长、武器与波次；Boss/终局、正式美术、音效、存储、压力回归和发布仍按开发计划逐项实现。
+- 当前实现状态以 `docs/task-status.md` 为准。T005 已交付菜单、基础 HUD 和暂停/返回操作；T006–T015 已完成敌人、战斗、成长、武器、波次与 Boss；终局结算、正式美术、音效、存储、压力回归和发布仍按开发计划逐项实现。
