@@ -15,7 +15,7 @@ describe('Visual polish contracts', () => {
 
   it('keeps existing Chinese menu, HUD, Boss, upgrade, pause, and result semantics', () => {
     expect(html).toContain('<html lang="zh-CN">');
-    for (const text of ['开始游戏', '生命', '首领状态', '战斗已暂停', '选择一项升级', '任务结果']) {
+    for (const text of ['开始游戏', '生命', '首领状态', '战斗已暂停', '选择一项升级', '任务结果', '本机记录']) {
       expect(html).toContain(text);
     }
     expect(html).toContain('role="dialog"');

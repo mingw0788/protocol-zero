@@ -16,6 +16,8 @@ const ELEMENT_IDS = Object.freeze({
   sound: 'sound-toggle-button',
   soundVolume: 'sound-volume-slider',
   soundVolumeValue: 'sound-volume-value',
+  highestKills: 'menu-highest-kills',
+  bestVictoryTime: 'menu-best-victory-time',
   resume: 'resume-game-button',
   returnMenu: 'return-menu-button',
   confirmReturn: 'confirm-return-button',
@@ -68,6 +70,7 @@ export class UIManager {
       || typeof game.getRunResultSnapshot !== 'function'
       || typeof game.restartGame !== 'function'
       || typeof game.setSoundVolume !== 'function'
+      || typeof game.getProgressSnapshot !== 'function'
       || !Number.isFinite(game.soundVolume)) {
       throw new TypeError('UIManager requires a game controller with state and HUD access');
     }
@@ -152,6 +155,7 @@ export class UIManager {
   renderSnapshot(snapshot, currentState, bossSnapshot = this.#game.getBossSnapshot()) {
     this.#renderBossSnapshot(bossSnapshot, currentState);
     this.#renderRunResult(currentState);
+    this.#renderRecords();
     if (currentState !== GAME_STATES.PLAYING) return;
     const e = this.#elements;
     this.#setText(e.healthText, snapshot.health.current + ' / ' + snapshot.health.max);
@@ -244,6 +248,16 @@ export class UIManager {
     this.#setText(this.#elements.resultTitle, state === GAME_STATES.VICTORY ? '任务完成' : '任务失败');
     this.#setText(this.#elements.resultKills, String(snapshot.killCount));
     this.#setText(this.#elements.resultTime, formatTime(snapshot.elapsedSeconds));
+  }
+
+  #renderRecords() {
+    const progress = this.#game.getProgressSnapshot();
+    if (!progress) return;
+    this.#setText(this.#elements.highestKills, String(progress.highestKillCount));
+    this.#setText(
+      this.#elements.bestVictoryTime,
+      progress.bestVictorySeconds === null ? '尚无' : formatTime(progress.bestVictorySeconds),
+    );
   }
 
   #selectUpgrade(index) {

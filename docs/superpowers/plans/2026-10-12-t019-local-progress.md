@@ -20,8 +20,8 @@
 
 ## Task 3: Menu presentation and acceptance
 
-- [ ] Add compact semantic high-kill/best-clear display to the main menu; test empty/saved values and narrow layout.
-- [ ] Run `npm test`, `npm run build`, `git diff --check`; browser-check refresh, repeated runs, and corrupt storage fallback.
+- [x] Add compact semantic high-kill/best-clear display to the main menu; test empty/saved values and narrow layout.
+- [x] Run `npm test`, `npm run build`, `git diff --check`; browser-check refresh, repeated runs, and corrupt storage fallback.
 - [ ] Update SRS, architecture, decision D-016, plan and status; create report; commit `docs: record T019 persistence acceptance`.
 
 ## Constraints

@@ -391,6 +391,25 @@ describe('UIManager with real Game state', () => {
     expect(h.game.soundVolume).toBe(0.35);
   });
 
+  it('renders empty and saved local records in the main menu', () => {
+    const h = createHarness();
+    expect(h.get('menu-highest-kills').textContent).toBe('0');
+    expect(h.get('menu-best-victory-time').textContent).toBe('尚无');
+
+    h.game.getProgressSnapshot = () => Object.freeze({
+      highestKillCount: 72,
+      bestVictorySeconds: 312.8,
+    });
+    h.ui.renderSnapshot(h.game.getHudSnapshot(), GAME_STATES.MENU);
+    expect(h.get('menu-highest-kills').textContent).toBe('72');
+    expect(h.get('menu-best-victory-time').textContent).toBe('05:12');
+
+    h.game.getProgressSnapshot = () => Object.freeze({ highestKillCount: 1, bestVictorySeconds: null });
+    h.ui.renderSnapshot(h.game.getHudSnapshot(), GAME_STATES.MENU);
+    expect(h.get('menu-highest-kills').textContent).toBe('1');
+    expect(h.get('menu-best-victory-time').textContent).toBe('尚无');
+  });
+
   it('pauses and resumes with Escape without toggling on repeated keydown', () => {
     const h = createHarness();
     h.click('start-game-button');

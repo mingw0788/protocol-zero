@@ -272,6 +272,19 @@ h2 {
   line-height: 1.7;
 }
 
+.menu-records {
+  margin: 10px 0 16px;
+  color: #aac0cf;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.menu-records strong,
+.menu-records time {
+  color: var(--signal-cyan);
+  font-weight: 700;
+}
+
 .button-stack {
   display: grid;
   gap: 10px;
@@ -606,6 +619,11 @@ h2 {
     margin: 8px 0 10px;
     font-size: 12px;
     line-height: 1.35;
+  }
+
+  .menu-card .menu-records {
+    margin: 4px 0 8px;
+    font-size: 11px;
   }
 
   .menu-card .button-stack {
