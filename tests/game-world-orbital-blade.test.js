@@ -7,7 +7,7 @@ import { ExperienceCrystal } from '../src/entities/ExperienceCrystal.js';
 import { Projectile } from '../src/entities/Projectile.js';
 import { Camera } from '../src/rendering/Camera.js';
 
-function createWorld(randomValues = [0.5, 0, 0, 0, 0, 0, 0.5, 0, 0]) {
+function createWorld(randomValues = [0.4, 0, 0, 0, 0, 0, 0.4, 0, 0]) {
   let cursor = 0;
   return new GameWorld({
     camera: new Camera(),

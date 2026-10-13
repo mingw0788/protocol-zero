@@ -35,4 +35,6 @@ export const UPGRADE_CONFIG = Object.freeze([
     description: '最大生命 +20，并恢复 20 点生命',
     maxLevel: 5,
   }),
+  Object.freeze({ id: 'UP-07', name: '弧光线圈模块', description: '首次解锁连锁电击；后续每级伤害 +12%，3/5 级多连锁一个目标', maxLevel: 5 }),
+  Object.freeze({ id: 'UP-08', name: '磁轨炮模块', description: '首次解锁贯穿光束；后续每级伤害 +12%，3/5 级多贯穿一个目标', maxLevel: 5 }),
 ]);

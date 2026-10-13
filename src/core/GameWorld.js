@@ -24,6 +24,8 @@ import { ParticleSystem } from '../systems/ParticleSystem.js';
 import { createRandomStream } from './createRandomStream.js';
 import { getMapConfig } from '../config/mapConfig.js';
 import { SupplySystem } from '../systems/SupplySystem.js';
+import { ArcCoilSystem } from '../systems/ArcCoilSystem.js';
+import { RailgunSystem } from '../systems/RailgunSystem.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -86,6 +88,8 @@ export class GameWorld {
     this.collisionSystem = new CollisionSystem({ player, enemies: this.enemies });
     this.damageSystem = new DamageSystem({ player });
     this.enemyDamageSystem = new EnemyDamageSystem();
+    this.arcCoilSystem = new ArcCoilSystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem });
+    this.railgunSystem = new RailgunSystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem });
     this.weaponSystem = new WeaponSystem();
     this.projectileSystem = new ProjectileSystem({
       projectiles: this.projectiles,
@@ -258,13 +262,18 @@ export class GameWorld {
       projectiles: this.projectiles,
       deltaSeconds,
       upgradeEffects,
+      fireRateMultiplier: this.supplySystem.fireRateMultiplier,
     });
     if (firedProjectileCount > 0) this.#emitSoundEvent('pulse-fire');
     this.projectileSystem.update(deltaSeconds);
     this.orbitalBladeSystem.update({
       deltaSeconds,
       upgradeEffects,
+      fireRateMultiplier: this.supplySystem.fireRateMultiplier,
     });
+    const weaponStep = { deltaSeconds, damageMultiplier: upgradeEffects.damageMultiplier, fireRateMultiplier: this.supplySystem.fireRateMultiplier };
+    this.arcCoilSystem.update({ ...weaponStep, level: upgradeEffects.arcCoilLevel });
+    this.railgunSystem.update({ ...weaponStep, level: upgradeEffects.railgunLevel });
     this.#settleEnemyDeaths();
     this.enemySystem.cleanup();
     this.experienceSystem.update(deltaSeconds, this.supplySystem.pickupRadiusBonus);
@@ -332,6 +341,8 @@ export class GameWorld {
     this.levelSystem.reset();
     this.upgradeSystem.reset();
     this.orbitalBladeSystem.reset();
+    this.arcCoilSystem.reset();
+    this.railgunSystem.reset();
     this.spawnSystem.reset();
     this.#simulationSteps = 0;
     this.#killCount = 0;

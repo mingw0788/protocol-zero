@@ -10,9 +10,9 @@ const OFFER_RANDOM_VALUES = Object.freeze({
   'UP-01': [0, 0, 0],
   'UP-02': [0, 0, 0],
   'UP-03': [0, 0, 0],
-  'UP-04': [0.5, 0, 0],
-  'UP-05': [0, 0.7, 0.875],
-  'UP-06': [0.99, 0.99, 0.99],
+  'UP-04': [0.4, 0, 0],
+  'UP-05': [0, 0.5, 0.55],
+  'UP-06': [0.65, 0, 0],
 });
 
 function createWorld(randomValues = [0]) {
@@ -114,7 +114,7 @@ describe('GameWorld upgrade effect integration', () => {
   });
 
   it('clears selected gameplay effects and restores player baselines on reset', () => {
-    const cycle = [0, 0.7, 0.875];
+    const cycle = [0, 0.5, 0.55];
     const world = createWorld(Array.from({ length: 9 }, (_, index) => cycle[index % cycle.length]));
     enterLevelUp(world, 35);
     for (const upgradeId of ['UP-01', 'UP-05', 'UP-06']) {

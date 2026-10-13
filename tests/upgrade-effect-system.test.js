@@ -42,6 +42,8 @@ describe('UpgradeEffectSystem', () => {
       pulseGunProjectileCount: 1,
       moveSpeedMultiplier: 1,
       orbitalBladeLevel: 0,
+      arcCoilLevel: 0,
+      railgunLevel: 0,
     });
 
     const maximum = new UpgradeEffectSystem({
@@ -53,6 +55,8 @@ describe('UpgradeEffectSystem', () => {
         'UP-04': 5,
         'UP-05': 5,
         'UP-06': 5,
+        'UP-07': 5,
+        'UP-08': 5,
       }),
     });
 
@@ -62,6 +66,8 @@ describe('UpgradeEffectSystem', () => {
       pulseGunProjectileCount: 3,
       moveSpeedMultiplier: 1.4,
       orbitalBladeLevel: 5,
+      arcCoilLevel: 5,
+      railgunLevel: 5,
     });
     expect(Object.isFrozen(maximum.getSnapshot())).toBe(true);
   });

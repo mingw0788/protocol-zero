@@ -90,9 +90,11 @@ export class UpgradeEffectSystem {
       orbitalBladeLevel: UPGRADE_EFFECT_CONFIG['UP-04'].exposesOrbitalBladeLevel
         ? levels.get('UP-04')
         : 0,
+      arcCoilLevel: levels.get('UP-07'),
+      railgunLevel: levels.get('UP-08'),
     });
     for (const [key, value] of Object.entries(snapshot)) {
-      if (!Number.isFinite(value) || value <= 0 && key !== 'orbitalBladeLevel') {
+      if (!Number.isFinite(value) || value <= 0 && !key.endsWith('Level')) {
         throw new RangeError(`Invalid derived upgrade effect ${key}`);
       }
     }
@@ -144,6 +146,10 @@ export class UpgradeEffectSystem {
     this.player.moveSpeed = nextMoveSpeed;
     this.player.maxHp = nextMaxHp;
     this.player.hp = nextHp;
+    const weaponId = { 'UP-07': 'arc-coil', 'UP-08': 'railgun' }[selection.id];
+    if (weaponId && !this.player.weaponStates.some((weapon) => weapon.id === weaponId)) {
+      this.player.weaponStates.push({ id: weaponId, cooldownRemaining: 0 });
+    }
     return snapshot;
   }
 }

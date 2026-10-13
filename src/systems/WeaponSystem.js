@@ -89,7 +89,8 @@ export class WeaponSystem {
     this.config = Object.freeze({ ...config });
   }
 
-  update({ player, enemies, projectiles, deltaSeconds, upgradeEffects = NEUTRAL_UPGRADE_EFFECTS } = {}) {
+  update({ player, enemies, projectiles, deltaSeconds, upgradeEffects = NEUTRAL_UPGRADE_EFFECTS, fireRateMultiplier = 1 } = {}) {
+    if (!Number.isFinite(fireRateMultiplier) || fireRateMultiplier <= 0) throw new RangeError('Invalid fire rate multiplier');
     if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0) {
       throw new RangeError('deltaSeconds must be a non-negative finite number');
     }
@@ -110,7 +111,7 @@ export class WeaponSystem {
     if (!target || weaponState.cooldownRemaining > 0) return 0;
 
     const damage = this.config.damage * effects.damageMultiplier;
-    const fireIntervalSeconds = this.config.fireIntervalSeconds / effects.pulseGunFireRateMultiplier;
+    const fireIntervalSeconds = this.config.fireIntervalSeconds / effects.pulseGunFireRateMultiplier / fireRateMultiplier;
     if (!Number.isFinite(damage) || damage <= 0
       || !Number.isFinite(fireIntervalSeconds) || fireIntervalSeconds <= 0) {
       throw new RangeError('Derived pulse gun values must be positive and finite');

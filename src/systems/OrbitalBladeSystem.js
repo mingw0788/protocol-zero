@@ -100,7 +100,8 @@ export class OrbitalBladeSystem {
     return this.#config;
   }
 
-  update({ deltaSeconds, upgradeEffects } = {}) {
+  update({ deltaSeconds, upgradeEffects, fireRateMultiplier = 1 } = {}) {
+    if (!Number.isFinite(fireRateMultiplier) || fireRateMultiplier <= 0) throw new RangeError('Invalid fire rate multiplier');
     requireUpdate({ deltaSeconds, upgradeEffects }, this.#config.maxLevel);
     if (!Number.isFinite(this.player.x) || !Number.isFinite(this.player.y)) {
       throw new RangeError('Player coordinates must remain finite');
@@ -109,7 +110,7 @@ export class OrbitalBladeSystem {
 
     const level = upgradeEffects.orbitalBladeLevel;
     const nextAngle = level > 0
-      ? (this.#angleRadians + this.#config.rotationRadiansPerSecond * deltaSeconds) % TWO_PI
+      ? (this.#angleRadians + this.#config.rotationRadiansPerSecond * deltaSeconds * fireRateMultiplier) % TWO_PI
       : 0;
     if (!Number.isFinite(nextAngle)) throw new RangeError('Orbital angle must remain finite');
 
@@ -156,7 +157,7 @@ export class OrbitalBladeSystem {
       if (distance > this.#config.bladeRadius + enemy.radius) continue;
 
       if (this.enemyDamageSystem.applyDamage(enemy, damage)) {
-        this.#hitCooldowns.set(enemy.id, this.#config.hitCooldownSeconds);
+        this.#hitCooldowns.set(enemy.id, this.#config.hitCooldownSeconds / fireRateMultiplier);
       }
     }
     return true;
