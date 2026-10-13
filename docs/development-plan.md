@@ -287,3 +287,17 @@ Git Commit：哈希或未提交原因
 **M5**：像素风、音效、存档、浏览器回归、生产构建和线上静态交付通过；整体 V1 验收还须满足 M3/M4 前置门禁。
 
 **注：** 本文件是实施任务清单和质量标准；实际完成状态与验证证据以 `docs/task-status.md` 为准，计划本身不代表任务已完成。
+
+## 6. 已批准的 V2 城区补给内容任务映射
+
+本节将 2026-10-13 批准的扩展单独列出，保留第 1–5 节中的 V1 计划及发布历史。
+
+| V2 任务 | 需求/规格对应 | 主要实现模块 | 验收证据 |
+|---|---|---|---|
+| T022 | V2 §2 地图及菜单 | `mapConfig`、Game/GameWorld、MapRenderer、UIManager | 地图注册/菜单状态/共享世界边界的自动测试；Chrome 实际菜单选图 |
+| T023 | V2 §3 补给、三类道具、E 输入与计时冻结 | SupplySystem、InputController、EnemySystem、ExperienceSystem | 站点时间/范围/容量/道具效果、诱饵目标、经验半径、暂停/reset 集成测试 |
+| T024–T026 | V2 §4 两武器、升级池和共享伤害结算 | ArcCoilSystem、RailgunSystem、UpgradeEffectSystem、GameWorld | 跳链/射线相交/伤害/去重/冷却/合法升级/死亡事件自动化覆盖 |
+| T027 | V2 §5 UI 与表现 | ExpansionRenderer、CanvasRenderer、HUD、菜单帮助文案 | 画布绘制/屏外提示测试、真实 Game UI 生命周期测试及 Chrome 小屏浏览器检查 |
+| T028 | V2 §6 验收与交付限制 | 文档、回归及本地检查 | 418 自动化项、68 模块生产构建、Chrome 浏览器操作、交付报告与独立审查 |
+
+实现细节、首轮参数和逐项验收映射见 `docs/superpowers/specs/2026-10-13-v2-city-supply-content-design.md`；状态见 `docs/task-status.md`。本轮只保留本地分支，无发布部署或版本标签变更。V1 M3/M4 人工自然试玩门禁仍按既有规则独立待补。

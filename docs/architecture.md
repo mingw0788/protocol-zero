@@ -504,3 +504,14 @@ T021 必须运行构建并在部署后的静态页面上验证，不可只在 Vi
 - 测试缺失必须明确写“未验证”。
 - 每个任务修改仅对应既定需求；需求变更先更新文档和记录。
 - 当前实现状态以 `docs/task-status.md` 为准。T000–T021 均已完成：T005–T019 交付菜单、HUD、战斗、成长、武器、波次、Boss、胜败结算、代码像素视觉、基础事件音效和版本化本机进度；T020 完成回归与性能边界测量；T021 完成公开静态发布及托管页面验收。自然完整通关、真实 OS 级后台标签切换和整帧 FPS 仍按任务报告标记为未验证或已知限制。
+
+## 15. V2 城区补给内容架构增量
+
+- `mapConfig` 提供只读地图注册表；GameWorld 以菜单锁定所选配置，现有 Camera/坐标和敌人系统沿用相同 2400×1350 世界边界。城区绘制由 MapRenderer 处理，碰撞/寻路规则不变。
+- SupplySystem 独立拥有站点时间线、道具实体、诱饵、临时射速和扫描器层数；使用隔离随机流。冻结快照由 GameWorld 组合到扩展快照，Canvas 扩展绘制，UIManager 只读显示。
+- E 输入采用单次按下事件，固定步中玩家移动后部署/拾取；敌人 AI 可询问供给系统是否提供普通敌人诱饵目标，Boss 行为不变。
+- ArcCoilSystem / RailgunSystem 各自持有冷却和有界短时光束；通过 EnemyDamageSystem 造成伤害，GameWorld 仍统一结算死亡、击杀与经验。UP-07/08 等级经 UpgradeEffectSystem 快照提供，UP-01 对所有武器生效，UP-02 仍限脉冲枪。
+- CanvasRenderer 保留原渲染参数，在末尾接收可选扩展快照；DOM HUD 控件为可选查询，以兼容既有无扩展数据的消费者。
+- V2 不更改 localStorage schema、关卡长度、地图边界、世界实体上限或应用状态机；重开清除 SupplySystem 与两新武器的战局状态，地图选择仅在页面运行期间保留。
+
+增量规格与验收见 `docs/superpowers/specs/2026-10-13-v2-city-supply-content-design.md`；T022–T028 实施任务见对应计划及 `docs/task-report-V2-content-pack.md`。
