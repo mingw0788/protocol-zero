@@ -128,6 +128,7 @@ export class WeaponSystem {
 
     const directionX = dx / distance;
     const directionY = dy / distance;
+    weaponState.aimAngle = Math.atan2(directionY, directionX);
     const angleStep = this.config.multiShotAngleStepDegrees * (Math.PI / 180);
     for (let index = 0; index < effects.pulseGunProjectileCount; index += 1) {
       const centeredOffset = index - ((effects.pulseGunProjectileCount - 1) / 2);

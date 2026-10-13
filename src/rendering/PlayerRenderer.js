@@ -27,16 +27,19 @@ export class PlayerRenderer {
       markerSize,
     );
     const weaponIds = new Set(player.weaponStates?.map(({ id }) => id) ?? []);
-    if (weaponIds.has('pulse-gun')) this.#drawPulseGun(context, screenPosition, player, facingLength);
+    if (weaponIds.has('pulse-gun')) this.#drawPulseGun(context, screenPosition, this.#weaponAngle(player, 'pulse-gun'));
     if (weaponIds.has('arc-coil')) this.#drawArcCoil(context, screenPosition);
-    if (weaponIds.has('railgun')) this.#drawRailgun(context, screenPosition);
+    if (weaponIds.has('railgun')) this.#drawRailgun(context, screenPosition, this.#weaponAngle(player, 'railgun'));
   }
 
-  #drawPulseGun(context, center, player, facingLength) {
-    const angle = Math.atan2(player.facingY ?? -1, player.facingX ?? 0);
+  #weaponAngle(player, id) {
+    const angle = player.weaponStates.find((state) => state.id === id)?.aimAngle;
+    return Number.isFinite(angle) ? angle : Math.atan2(player.facingY ?? -1, player.facingX ?? 0);
+  }
+
+  #drawPulseGun(context, center, angle) {
     context.save();
-    context.translate(center.x + ((player.facingX ?? 0) / facingLength) * 5,
-      center.y + ((player.facingY ?? -1) / facingLength) * 5);
+    context.translate(center.x + Math.cos(angle) * 5, center.y + Math.sin(angle) * 5);
     context.rotate(angle);
     context.fillStyle = '#143844';
     context.fillRect(0, -4, 18, 8);
@@ -65,11 +68,11 @@ export class PlayerRenderer {
     context.fillRect(x - 1, y - 2, 3, 4);
   }
 
-  #drawRailgun(context, center) {
+  #drawRailgun(context, center, angle) {
     const x = center.x + 8, y = center.y + 8;
     context.save();
     context.translate(x, y);
-    context.rotate(-Math.PI / 4);
+    context.rotate(angle + Math.PI / 2);
     context.fillStyle = '#594326';
     context.fillRect(-3, -9, 7, 22);
     context.fillStyle = '#ffc65e';

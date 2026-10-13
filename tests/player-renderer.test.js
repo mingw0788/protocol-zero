@@ -2,8 +2,39 @@ import { describe, expect, it } from 'vitest';
 import { Camera } from '../src/rendering/Camera.js';
 import { PlayerRenderer } from '../src/rendering/PlayerRenderer.js';
 import { SPRITE_PATTERNS } from '../src/rendering/spritePatterns.js';
+import { Player } from '../src/entities/Player.js';
+import { WeaponSystem } from '../src/systems/WeaponSystem.js';
+import { RailgunSystem } from '../src/systems/RailgunSystem.js';
+import { EnemyDamageSystem } from '../src/systems/EnemyDamageSystem.js';
 
 describe('PlayerRenderer', () => {
+  it.each(['pulse-gun', 'railgun'])('aligns %s with its actual shot while moving away', (id) => {
+    const player = new Player();
+    player.facingX = -1;
+    player.facingY = 0;
+    player.weaponStates = [{ id, cooldownRemaining: 0 }];
+    const target = { id: 'target', x: player.x + 100, y: player.y + 100, hp: 100, alive: true, radius: 16 };
+    let shotAngle;
+    if (id === 'pulse-gun') {
+      const projectiles = [];
+      new WeaponSystem().update({ player, enemies: [target], projectiles, deltaSeconds: 1 / 60 });
+      shotAngle = Math.atan2(projectiles[0].vy, projectiles[0].vx);
+    } else {
+      const system = new RailgunSystem({ player, enemies: [target], enemyDamageSystem: new EnemyDamageSystem() });
+      system.update({ deltaSeconds: 1 / 60, level: 1 });
+      const beam = system.getSnapshot()[0];
+      shotAngle = Math.atan2(beam.y2 - beam.y1, beam.x2 - beam.x1);
+    }
+    const rotations = [];
+    const context = { fillRect() {}, save() {}, restore() {}, translate() {}, rotate(angle) { rotations.push(angle); } };
+    new PlayerRenderer().render(context, new Camera(), player);
+    const spriteOffset = id === 'railgun' ? Math.PI / 2 : 0;
+    expect(rotations[0] - spriteOffset).toBeCloseTo(shotAngle);
+    expect(player.facingX).toBe(-1);
+    player.reset();
+    expect(player.weaponStates[0].aimAngle).toBeUndefined();
+  });
+
   it('draws a bounded pixel sprite at the camera-adjusted world position', () => {
     const fills = [];
     const context = {

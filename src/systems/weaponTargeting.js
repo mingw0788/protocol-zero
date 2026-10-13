@@ -59,5 +59,8 @@ export function weaponSnapshot(system) {
 export function resetWeapon(system) {
   system.visuals = [];
   const state = system.player.weaponStates.find((weapon) => weapon.id === system.config.id);
-  if (state) state.cooldownRemaining = 0;
+  if (state) {
+    state.cooldownRemaining = 0;
+    delete state.aimAngle;
+  }
 }

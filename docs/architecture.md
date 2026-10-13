@@ -516,3 +516,7 @@ T021 必须运行构建并在部署后的静态页面上验证，不可只在 Vi
 - T029 视觉/音频反馈仍归表现层：MapRenderer 绘制静态、确定性的非碰撞城区与实验室陈设；PlayerRenderer 根据玩家武器状态显示模块，不影响战斗状态；EnemyDamageSystem 仅发出已接受命中的只读通知，GameWorld 按模拟时间节流后转为 `weapon-hit` 语义声音事件，AudioManager 继续负责短音合成与总声部上限。
 
 增量规格与验收见 `docs/superpowers/specs/2026-10-13-v2-city-supply-content-design.md`；T022–T028 实施任务见对应计划及 `docs/task-report-V2-content-pack.md`。
+
+### T030 武器显示朝向修复
+
+WeaponSystem 与 RailgunSystem 在真实开火时写入所属 weaponState.aimAngle；PlayerRenderer 只读最近开火方向，未开火时回退角色朝向。Player.reset 重建武器状态；扩展武器 reset 清除 aimAngle。表现状态不参与选靶或伤害结算。

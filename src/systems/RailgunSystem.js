@@ -12,6 +12,7 @@ export class RailgunSystem {
     let dx = shot.target.x - this.player.x, dy = shot.target.y - this.player.y;
     const length = Math.hypot(dx, dy);
     if (length === 0) { dx = 1; dy = 0; } else { dx /= length; dy /= length; }
+    this.player.weaponStates.find((state) => state.id === this.config.id).aimAngle = Math.atan2(dy, dx);
     const hits = shot.targets.map((enemy) => {
       const x = enemy.x - this.player.x, y = enemy.y - this.player.y;
       const along = Math.max(0, Math.min(this.config.range, x * dx + y * dy));
