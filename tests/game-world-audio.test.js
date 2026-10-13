@@ -19,6 +19,24 @@ function addEnemy(world, id, x, y, config = ENEMY_CONFIG.EN01) {
 }
 
 describe('GameWorld sound event contract', () => {
+  it('emits a rate-limited weapon-hit cue for accepted damage, not rejected hits', () => {
+    const { stateManager, world } = createWorld();
+    const events = [];
+    world.subscribeSoundEvent(({ type }) => events.push(type));
+    stateManager.startGame();
+    const enemy = addEnemy(world, 'audio-impact', world.player.x + 120, world.player.y);
+    expect(world.enemyDamageSystem.applyDamage(enemy, 3)).toBe(true);
+    expect(world.enemyDamageSystem.applyDamage(enemy, 3)).toBe(true);
+    expect(events.filter((type) => type === 'weapon-hit')).toHaveLength(1);
+    world.clock.advance(0.11);
+    expect(world.enemyDamageSystem.applyDamage(enemy, 3)).toBe(true);
+    expect(events.filter((type) => type === 'weapon-hit')).toHaveLength(2);
+    enemy.hp = 0;
+    enemy.alive = false;
+    expect(world.enemyDamageSystem.applyDamage(enemy, 3)).toBe(false);
+    expect(events.filter((type) => type === 'weapon-hit')).toHaveLength(2);
+  });
+
   it('emits frozen pulse-fire and actual player damage events only while playing', () => {
     const { stateManager, world } = createWorld();
     const listener = vi.fn();

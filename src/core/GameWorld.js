@@ -42,6 +42,7 @@ function requireCamera(camera) {
 
 export class GameWorld {
   #simulationSteps = 0;
+  #lastWeaponHitSoundAt = Number.NEGATIVE_INFINITY;
   #killCount = 0;
   #playerDeathFrozen = false;
   #runResult = null;
@@ -87,7 +88,13 @@ export class GameWorld {
     this.waveSystem = new WaveSystem({ config: waveConfig });
     this.collisionSystem = new CollisionSystem({ player, enemies: this.enemies });
     this.damageSystem = new DamageSystem({ player });
-    this.enemyDamageSystem = new EnemyDamageSystem();
+    this.enemyDamageSystem = new EnemyDamageSystem({ onDamage: ({ lethal }) => {
+      const elapsed = this.clock.elapsedSeconds;
+      if (!lethal && elapsed - this.#lastWeaponHitSoundAt >= 0.1) {
+        this.#lastWeaponHitSoundAt = elapsed;
+        this.#emitSoundEvent('weapon-hit');
+      }
+    } });
     this.arcCoilSystem = new ArcCoilSystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem });
     this.railgunSystem = new RailgunSystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem });
     this.weaponSystem = new WeaponSystem();
@@ -350,6 +357,7 @@ export class GameWorld {
     this.railgunSystem.reset();
     this.spawnSystem.reset();
     this.#simulationSteps = 0;
+    this.#lastWeaponHitSoundAt = Number.NEGATIVE_INFINITY;
     this.#killCount = 0;
     this.#playerDeathFrozen = false;
     this.#runResult = null;

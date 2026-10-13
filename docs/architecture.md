@@ -513,5 +513,6 @@ T021 必须运行构建并在部署后的静态页面上验证，不可只在 Vi
 - ArcCoilSystem / RailgunSystem 各自持有冷却和有界短时光束；通过 EnemyDamageSystem 造成伤害，GameWorld 仍统一结算死亡、击杀与经验。UP-07/08 等级经 UpgradeEffectSystem 快照提供，UP-01 对所有武器生效，UP-02 仍限脉冲枪。
 - CanvasRenderer 保留原渲染参数，在末尾接收可选扩展快照；DOM HUD 控件为可选查询，以兼容既有无扩展数据的消费者。
 - V2 不更改 localStorage schema、关卡长度、地图边界、世界实体上限或应用状态机；重开清除 SupplySystem 与两新武器的战局状态，地图选择仅在页面运行期间保留。
+- T029 视觉/音频反馈仍归表现层：MapRenderer 绘制静态、确定性的非碰撞城区与实验室陈设；PlayerRenderer 根据玩家武器状态显示模块，不影响战斗状态；EnemyDamageSystem 仅发出已接受命中的只读通知，GameWorld 按模拟时间节流后转为 `weapon-hit` 语义声音事件，AudioManager 继续负责短音合成与总声部上限。
 
 增量规格与验收见 `docs/superpowers/specs/2026-10-13-v2-city-supply-content-design.md`；T022–T028 实施任务见对应计划及 `docs/task-report-V2-content-pack.md`。

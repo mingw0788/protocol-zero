@@ -78,6 +78,16 @@ describe('AudioManager', () => {
     expect(oscillator.connect).toHaveBeenCalledWith(harness.gains[1]);
   });
 
+  it('provides a short percussive weapon-hit tone distinct from the firing cue', () => {
+    const audio = new AudioManager({ contextFactory: harness.contextFactory });
+    audio.unlock();
+    const hit = AUDIO_CONFIG.tones['weapon-hit'];
+    expect(hit.durationSeconds).toBeLessThan(0.12);
+    expect(hit.startFrequencyHz).toBeGreaterThan(hit.endFrequencyHz);
+    expect(hit.startFrequencyHz).not.toBe(AUDIO_CONFIG.tones['pulse-fire'].startFrequencyHz);
+    expect(audio.playEvent('weapon-hit')).toBe(true);
+  });
+
   it('keeps mute separate from the chosen volume and validates volume bounds', () => {
     const audio = new AudioManager({ contextFactory: harness.contextFactory });
     audio.unlock();

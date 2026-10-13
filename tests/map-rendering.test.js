@@ -9,6 +9,7 @@ function createRecordingContext() {
     transforms: [],
     clears: [],
     fills: [],
+    fillStyles: [],
     rects: [],
     translations: [],
     moveTos: [],
@@ -28,6 +29,7 @@ function createRecordingContext() {
     },
     fillRect(...args) {
       calls.fills.push(args);
+      calls.fillStyles.push(this.fillStyle);
     },
     beginPath() {},
     rect(...args) {
@@ -119,6 +121,20 @@ describe('MapRenderer', () => {
     expect(first.calls.lineTos).toEqual(second.calls.lineTos);
     expect(first.calls.moveTos.every(([x, y]) => x >= 0 && y >= 0 && x <= WORLD_MAP.width && y <= WORLD_MAP.height)).toBe(true);
     expect(first.calls.lineTos.every(([x, y]) => x >= 0 && y >= 0 && x <= WORLD_MAP.width && y <= WORLD_MAP.height)).toBe(true);
+  });
+
+  it('adds readable non-colliding city blocks, crosswalks, sidewalks and roadside set dressing', () => {
+    const first = createRecordingContext();
+    const second = createRecordingContext();
+    const city = { ...WORLD_MAP, id: 'east-city', theme: 'city', backgroundColor: '#111b26',
+      gridColor: '#1c2b38', borderColor: '#dcac55' };
+    new MapRenderer(city).render(first, new Camera());
+    new MapRenderer(city).render(second, new Camera());
+    expect(first.calls.fillStyles).toContain('#e6d39b');
+    expect(first.calls.fills.length).toBeGreaterThan(35);
+    expect(first.calls.translations).toEqual(second.calls.translations);
+    expect(first.calls.fills).toEqual(second.calls.fills);
+    expect(first.calls.moveTos).toEqual(second.calls.moveTos);
   });
 });
 

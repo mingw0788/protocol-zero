@@ -1,5 +1,6 @@
 const TONES = Object.freeze({
   'pulse-fire': Object.freeze({ waveform: 'sine', startFrequencyHz: 720, endFrequencyHz: 420, durationSeconds: 0.07 }),
+  'weapon-hit': Object.freeze({ waveform: 'triangle', startFrequencyHz: 360, endFrequencyHz: 135, durationSeconds: 0.085 }),
   'enemy-death': Object.freeze({ waveform: 'square', startFrequencyHz: 280, endFrequencyHz: 520, durationSeconds: 0.09 }),
   'player-hit': Object.freeze({ waveform: 'sawtooth', startFrequencyHz: 190, endFrequencyHz: 95, durationSeconds: 0.14 }),
   'player-death': Object.freeze({ waveform: 'triangle', startFrequencyHz: 150, endFrequencyHz: 48, durationSeconds: 0.34 }),

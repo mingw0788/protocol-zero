@@ -16,6 +16,14 @@ describe('EnemyDamageSystem', () => {
     expect(enemy.hp).toBe(0);
   });
 
+  it('keeps damage application successful when an observer throws', () => {
+    const enemy = new Enemy({ id: 'enemy-1', x: 200, y: 200 });
+    const system = new EnemyDamageSystem({ onDamage: () => { throw new Error('observer failed'); } });
+
+    expect(system.applyDamage(enemy, 5)).toBe(true);
+    expect(enemy).toMatchObject({ hp: 25, alive: true });
+  });
+
   it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
     'rejects invalid damage %s',
     (damage) => {

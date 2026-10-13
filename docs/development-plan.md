@@ -300,4 +300,8 @@ Git Commit：哈希或未提交原因
 | T027 | V2 §5 UI 与表现 | ExpansionRenderer、CanvasRenderer、HUD、菜单帮助文案 | 画布绘制/屏外提示测试、真实 Game UI 生命周期测试及 Chrome 小屏浏览器检查 |
 | T028 | V2 §6 验收与交付限制 | 文档、回归及本地检查 | 418 自动化项、68 模块生产构建、Chrome 浏览器操作、交付报告与独立审查 |
 
+### V2 视觉与打击反馈补充（T029）
+
+2026-10-13 按用户体验反馈执行，仅调整表现：MapRenderer 在两张地图增加分区陈设、街区/设备细节，保持装饰无碰撞和原通行空间；PlayerRenderer 展示已解锁武器模块；成功的非致死伤害触发限频短促 `weapon-hit` 音效，击杀仍用既有终结音。伤害、攻击、升级、敌人和状态规则不变。验收与提交见 `docs/task-report-V2-visual-combat.md`。
+
 实现细节、首轮参数和逐项验收映射见 `docs/superpowers/specs/2026-10-13-v2-city-supply-content-design.md`；状态见 `docs/task-status.md`。本轮只保留本地分支，无发布部署或版本标签变更。V1 M3/M4 人工自然试玩门禁仍按既有规则独立待补。

@@ -26,5 +26,56 @@ export class PlayerRenderer {
       markerSize,
       markerSize,
     );
+    const weaponIds = new Set(player.weaponStates?.map(({ id }) => id) ?? []);
+    if (weaponIds.has('pulse-gun')) this.#drawPulseGun(context, screenPosition, player, facingLength);
+    if (weaponIds.has('arc-coil')) this.#drawArcCoil(context, screenPosition);
+    if (weaponIds.has('railgun')) this.#drawRailgun(context, screenPosition);
+  }
+
+  #drawPulseGun(context, center, player, facingLength) {
+    const angle = Math.atan2(player.facingY ?? -1, player.facingX ?? 0);
+    context.save();
+    context.translate(center.x + ((player.facingX ?? 0) / facingLength) * 5,
+      center.y + ((player.facingY ?? -1) / facingLength) * 5);
+    context.rotate(angle);
+    context.fillStyle = '#143844';
+    context.fillRect(0, -4, 18, 8);
+    context.fillStyle = '#65e8ff';
+    context.fillRect(3, -3, 12, 6);
+    context.fillStyle = '#e6ffff';
+    context.fillRect(14, -2, 5, 4);
+    context.restore();
+  }
+
+  #drawArcCoil(context, center) {
+    const x = center.x - 11, y = center.y + 9;
+    context.fillStyle = '#30254c';
+    context.fillRect(x - 6, y - 5, 13, 11);
+    context.strokeStyle = '#b891ff';
+    context.lineWidth = 2;
+    context.beginPath();
+    context.arc(x, y, 6, -Math.PI / 2, Math.PI / 2);
+    context.stroke();
+    context.fillStyle = '#b891ff';
+    context.fillRect(x - 5, y - 2, 2, 4);
+    context.beginPath();
+    context.arc(x + 2, y, 3, Math.PI / 2, Math.PI * 1.5);
+    context.stroke();
+    context.fillStyle = '#eadfff';
+    context.fillRect(x - 1, y - 2, 3, 4);
+  }
+
+  #drawRailgun(context, center) {
+    const x = center.x + 8, y = center.y + 8;
+    context.save();
+    context.translate(x, y);
+    context.rotate(-Math.PI / 4);
+    context.fillStyle = '#594326';
+    context.fillRect(-3, -9, 7, 22);
+    context.fillStyle = '#ffc65e';
+    context.fillRect(-2, -12, 5, 21);
+    context.fillStyle = '#fff0c7';
+    context.fillRect(-1, -13, 3, 4);
+    context.restore();
   }
 }
