@@ -60,4 +60,19 @@ describe('Experience polish integration', () => {
     world.reset();
     expect(world.player.weaponStates.every(w => !w.fireFlashRemaining)).toBe(true);
   });
+
+  it('restores city relay energy from a nearby world death event', () => {
+    const world = new GameWorld({ camera: new Camera() });
+    world.setMap('east-city'); world.stateManager.startGame();
+    world.player.x = 620; world.player.y = 360;
+    world.relaySystem.update(2);
+    expect(world.getExpansionSnapshot().relays[0].energy).toBe(0);
+    const enemy = { id: 'relay-victim', typeId: 'EN-01', category: 'normal', x: 800, y: 360,
+      radius: 16, hp: 1, speed: 0, alive: true, expDrop: 0, contactDamage: 10 };
+    world.enemies.push(enemy);
+    world.enemyDamageSystem.applyDamage(enemy, 1);
+    world.update(1/60);
+    expect(world.killCount).toBe(1);
+    expect(world.getExpansionSnapshot().relays[0].energy).toBe(25);
+  });
 });

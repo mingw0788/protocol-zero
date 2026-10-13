@@ -35,6 +35,18 @@ describe('arc coil', () => {
 });
 
 describe('railgun', () => {
+  it('keeps its short-lived beam attached to the moving weapon after firing', () => {
+    const { system, player } = setup(RailgunSystem, 'railgun', [enemy('anchor', 200)]);
+    system.update(step);
+    const before = system.getSnapshot()[0];
+    player.x += 25; player.y -= 10;
+    const after = system.getSnapshot()[0];
+    expect(after.x1 - before.x1).toBe(25);
+    expect(after.y1 - before.y1).toBe(-10);
+    expect(after.x2 - before.x2).toBe(25);
+    expect(after.y2 - before.y2).toBe(-10);
+  });
+
   it('hits only the line segment, in projection order, once per distinct enemy', () => {
     const a = enemy('a', 100), b = enemy('b', 200), c = enemy('c', 800), outside = enemy('out', 820);
     const side = enemy('side', 200, 11);

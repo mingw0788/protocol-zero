@@ -18,12 +18,20 @@ describe('GameWorld HUD snapshots', () => {
     expect(world.getHudSnapshot()).toEqual({
       health: { current: 100, max: 100 },
       experience: 0,
+      experienceRequired: 6,
       level: 1,
       pendingLevelUps: 0,
       weaponIds: ['pulse-gun'],
       killCount: 0,
       elapsedSeconds: 0,
     });
+  });
+
+  it('uses the level system threshold for live progress', () => {
+    const world = createWorld();
+    world.player.level = 5;
+    world.player.exp = 21;
+    expect(world.getHudSnapshot()).toMatchObject({ experience: 21, experienceRequired: 22 });
   });
 
   it('reads changed player, clock, equipment, and kill values from the model', () => {
@@ -41,6 +49,7 @@ describe('GameWorld HUD snapshots', () => {
     expect(world.getHudSnapshot()).toEqual({
       health: { current: 70, max: 120 },
       experience: 4,
+      experienceRequired: 10,
       level: 2,
       pendingLevelUps: 0,
       weaponIds: ['pulse-gun', 'orbital-blade'],
@@ -173,6 +182,7 @@ describe('GameWorld HUD snapshots', () => {
     expect(world.getHudSnapshot()).toEqual({
       health: { current: 100, max: 100 },
       experience: 0,
+      experienceRequired: 6,
       level: 1,
       pendingLevelUps: 0,
       weaponIds: ['pulse-gun'],

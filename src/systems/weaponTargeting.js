@@ -54,7 +54,15 @@ export function prepareShot(system, { deltaSeconds, level = 0, damageMultiplier 
 }
 
 export function weaponSnapshot(system) {
-  return Object.freeze(system.visuals.map((line) => Object.freeze({ ...line })));
+  return Object.freeze(system.visuals.map((line) => {
+    const { anchorX, anchorY, ...snapshot } = line;
+    if (Number.isFinite(anchorX) && Number.isFinite(anchorY)) {
+      const dx = system.player.x - anchorX, dy = system.player.y - anchorY;
+      snapshot.x1 += dx; snapshot.x2 += dx;
+      snapshot.y1 += dy; snapshot.y2 += dy;
+    }
+    return Object.freeze(snapshot);
+  }));
 }
 
 export function resetWeapon(system) {

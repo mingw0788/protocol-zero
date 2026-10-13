@@ -100,6 +100,7 @@ describe('Game menu and pause actions', () => {
     expect(snapshotOnMenu).toEqual({
       health: { current: 100, max: 100 },
       experience: 0,
+      experienceRequired: 6,
       level: 1,
       pendingLevelUps: 0,
       weaponIds: ['pulse-gun'],

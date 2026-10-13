@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SupplySystem } from '../src/systems/SupplySystem.js';
+import { RelaySystem } from '../src/systems/RelaySystem.js';
+import { EnemyDamageSystem } from '../src/systems/EnemyDamageSystem.js';
 
 function setup(random = () => 0) {
   const player = { x: 360, y: 360, radius: 16, alive: true };
@@ -9,6 +11,36 @@ function setup(random = () => 0) {
 }
 
 describe('city supplies', () => {
+  it('keeps a full-health medkit and heals once health is missing', () => {
+    const { player, system } = setup();
+    player.maxHp = 100; player.hp = 100;
+    system.addPickup('medkit', player.x, player.y); system.update(.01, .01);
+    expect(system.getSnapshot().pickups).toHaveLength(1);
+    player.hp = 70; system.update(.01, .02);
+    expect(player.hp).toBe(100);
+    expect(system.getSnapshot().pickups).toHaveLength(0);
+  });
+
+  it('uses one active slot for EMP or relay cell and preserves a relay cell out of range', () => {
+    const { player, system } = setup();
+    const enemies = [{id:'near',x:player.x+100,y:player.y,radius:16,hp:100,alive:true},
+      {id:'boss',x:player.x+100,y:player.y+15,radius:24,hp:100,alive:true,category:'boss'},
+      {id:'far',x:player.x+400,y:player.y,radius:16,hp:100,alive:true}];
+    const relaySystem = new RelaySystem({player,enemies,enemyDamageSystem:new EnemyDamageSystem()});
+    relaySystem.setEnabled(true); player.x = 620; player.y = 360; relaySystem.update(2);
+    system.setEffects({enemies,enemyDamageSystem:new EnemyDamageSystem(),relaySystem});
+    system.addPickup('relay-cell',player.x,player.y); system.update(.01,.01);
+    player.x = 1200; expect(system.deploy()).toBe(false);
+    expect(system.getSnapshot().activeItem).toBe('relay-cell');
+    player.x = 620; player.y = 360; expect(system.deploy()).toBe(true);
+    expect(system.getSnapshot().activeItem).toBeNull();
+    expect(relaySystem.getSnapshot()[0].energy).toBe(100);
+    player.x = 360; player.y = 360;
+    system.addPickup('emp-charge',player.x,player.y); system.update(.01,.02);
+    expect(system.deploy()).toBe(true);
+    expect(enemies.map(e=>e.hp)).toEqual([0,50,40]);
+    expect(system.getSnapshot().pulse).toMatchObject({radius:220});
+  });
   it('channels only time after appearance, pauses outside radius, and gives one reward', () => {
     const { player, system } = setup();
     system.update(45, 45);
@@ -74,7 +106,7 @@ describe('city supplies', () => {
     expect(system.getSnapshot()).toMatchObject({ activeItem: null, scannerStacks: 0, overclockRemaining: 0, station: null, pickups: [] });
   });
 
-  it.each([[0, 'overclock'], [.34, 'decoy'], [.99, 'scanner']])('uses independent equal reward weights at %s', (sample, type) => {
+  it.each([[0, 'overclock'], [.17, 'decoy'], [.34, 'scanner'], [.51, 'medkit'], [.68, 'emp-charge'], [.99, 'relay-cell']])('uses independent equal reward weights at %s', (sample, type) => {
     const { system, player } = setup(() => sample);
     player.x += 50; // Channel radius includes this point, pickup radius does not.
     system.update(45, 45);

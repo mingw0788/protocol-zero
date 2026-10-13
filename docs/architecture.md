@@ -526,3 +526,9 @@ WeaponSystem 与 RailgunSystem 在真实开火时写入所属 weaponState.aimAng
 RelaySystem 持有配置驱动的三个站点，GameWorld 在玩家移动后、敌人死亡收尾前推进。区域冲击经 EnemyDamageSystem 和既有死亡事件结算；切换地图设置启用状态，重开清空站点进度。扩展快照包含冻结站点及玩家位置，渲染器与 HUD 只读。
 
 有效伤害设置 hitFlashRemaining，真实开火设置 fireFlashRemaining，均在 PLAYING 固定步衰减；Boss 快照转发闪光状态。AudioManager 对声部维护优先级与包络引用，在容量耗尽时仅抢占较低优先级节点并释放；声音失败不阻断模拟。MapRenderer 对重复陈设做视口剔除。
+
+### T032 进度、道具与中继能量
+
+HUD 的 `experienceRequired` 来自 LevelSystem 的同一阈值函数；UI 只展示 `player.exp / required` 并写入无障碍进度条。RailgunSystem 为每条余辉保存开火时玩家锚点，`weaponSnapshot` 按当前玩家位移转换线段端点，命中仍只在发射时计算。
+
+SupplySystem 持有即时修复与单槽主动道具，EMP 通过 EnemyDamageSystem 伤害共享实体；E 电芯委托 RelaySystem 在配置距离内为最近站点补满。RelaySystem 接收 GameWorld 的单次敌人死亡事件，在所在站点半径内补能；释放会耗尽能量并清零蓄能，任一补满路径后都要重新蓄能 2 秒。站点快照暴露能量、蓄能和脉冲时长。所有计时经 PLAYING 固定步推进，reset 清理每局状态。

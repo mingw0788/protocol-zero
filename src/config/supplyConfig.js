@@ -8,5 +8,6 @@ export const SUPPLY_CONFIG = Object.freeze({
   pickupRadius: 12, pickupLifetime: 60,
   overclockSeconds: 8, fireRateBonus: .3,
   decoySeconds: 5, decoyRadius: 420, scannerBonus: 8, scannerCap: 3,
-  rewards: Object.freeze(['overclock', 'decoy', 'scanner']),
+  medkitHealing: 30, empRadius: 220, empDamage: 40, empBossDamage: 20, empVisualSeconds: .4,
+  rewards: Object.freeze(['overclock', 'decoy', 'scanner', 'medkit', 'emp-charge', 'relay-cell']),
 });

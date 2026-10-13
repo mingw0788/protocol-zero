@@ -2,6 +2,9 @@ const CAPSULES = Object.freeze({
   overclock: { color: '#ffcc77', symbol: '+' },
   decoy: { color: '#ff88c8', symbol: '◎' },
   scanner: { color: '#83efba', symbol: '⌖' },
+  medkit: { color: '#ff7986', symbol: '+' },
+  'emp-charge': { color: '#85adff', symbol: '✦' },
+  'relay-cell': { color: '#64dfde', symbol: 'ϟ' },
 });
 
 export class ExpansionRenderer {
@@ -16,23 +19,31 @@ export class ExpansionRenderer {
     ctx.textBaseline = 'middle';
     ctx.font = 'bold 14px "Microsoft YaHei", sans-serif';
     for (const relay of snapshot.relays ?? []) {
+      const energy = Number.isFinite(relay.energy) ? relay.energy : (relay.used ? 0 : 100);
       const p = camera.worldToScreen(relay.x, relay.y);
       const extent = relay.pulseRadius + 30;
       if (p.x + extent < 0 || p.y + extent < 0 || p.x - extent > width || p.y - extent > height) continue;
-      const color = relay.used ? '#526974' : '#64dfde';
-      ctx.fillStyle = relay.used ? '#13252d' : '#163944';
+      const color = energy === 0 ? '#ff9b70' : energy < 100 ? '#ffc268' : '#64dfde';
+      ctx.fillStyle = energy === 0 ? '#30242a' : '#163944';
       ctx.beginPath(); ctx.arc(p.x, p.y, relay.radius, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = color; ctx.lineWidth = 2;
       ctx.stroke();
       ctx.lineWidth = 5;
       ctx.beginPath(); ctx.arc(p.x, p.y, relay.radius - 7, -Math.PI / 2, -Math.PI / 2 + relay.progress * Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = energy < 100 ? '#ffbd73' : '#468d96';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(p.x, p.y, relay.radius + 6, -Math.PI / 2,
+        -Math.PI / 2 + energy / 100 * Math.PI * 2); ctx.stroke();
       ctx.fillStyle = color;
       ctx.fillRect(p.x - 14, p.y - 14, 28, 28);
       ctx.fillStyle = '#0c2431';
       ctx.fillRect(p.x - 2, p.y - 9, 4, 18); ctx.fillRect(p.x - 9, p.y - 2, 18, 4);
       ctx.fillStyle = relay.used ? '#91a4ad' : '#c6ffff';
       ctx.fillText(relay.name, p.x, p.y - relay.radius - 18);
-      ctx.fillText(relay.used ? '中继耗尽' : '站入 2 秒 · 修复 + 冲击', p.x, p.y + relay.radius + 20);
+      const relayStatus = energy === 0 ? '能量耗尽 · 就近击杀补充'
+        : energy < 100 ? `能量 ${energy}% · 就近击杀补充`
+          : relay.progress > 0 ? `蓄能 ${Math.round(relay.progress * 100)}% · 修复 + 冲击` : '站入 2 秒 · 修复 + 冲击';
+      ctx.fillText(relayStatus, p.x, p.y + relay.radius + 20);
       if (relay.pulseRemaining > 0) {
         ctx.globalAlpha = 1 - relay.pulseProgress;
         ctx.strokeStyle = '#cbffff'; ctx.lineWidth = 6;
@@ -98,6 +109,14 @@ export class ExpansionRenderer {
       ctx.fillStyle = '#ff88c8';
       ctx.fillRect(p.x - 7, p.y - 7, 14, 14);
       ctx.fillText('诱饵', p.x, p.y + 25);
+    }
+    const pulse = snapshot.supply?.pulse;
+    if (pulse) {
+      const p = camera.worldToScreen(pulse.x, pulse.y);
+      ctx.strokeStyle = '#9ac5ff'; ctx.lineWidth = 7;
+      ctx.globalAlpha = pulse.remaining / pulse.lifetime;
+      ctx.beginPath(); ctx.arc(p.x, p.y, pulse.radius * (1 - pulse.remaining / pulse.lifetime), 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
     }
     for (const [kind, segments] of [['arc', snapshot.arc], ['rail', snapshot.rail]]) {
       for (const beam of segments ?? []) {

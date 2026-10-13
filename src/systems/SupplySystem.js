@@ -12,6 +12,7 @@ export class SupplySystem {
   #activeItem = null;
   #overclockRemaining = 0;
   #scannerStacks = 0;
+  #pulse = null;
 
   constructor({ player, random = Math.random, config = SUPPLY_CONFIG } = {}) {
     if (!player || !Number.isFinite(player.x) || !Number.isFinite(player.y)
@@ -19,12 +20,13 @@ export class SupplySystem {
       throw new TypeError('SupplySystem requires player coordinates, radius and random source');
     }
     for (const key of ['windowSeconds', 'channelSeconds', 'stationRadius', 'pickupRadius', 'pickupLifetime',
-      'overclockSeconds', 'fireRateBonus', 'decoySeconds', 'decoyRadius', 'scannerBonus', 'scannerCap']) {
+      'overclockSeconds', 'fireRateBonus', 'decoySeconds', 'decoyRadius', 'scannerBonus', 'scannerCap',
+      'medkitHealing', 'empRadius', 'empDamage', 'empBossDamage', 'empVisualSeconds']) {
       if (!Number.isFinite(config?.[key]) || config[key] <= 0) throw new RangeError('Invalid supply setting: ' + key);
     }
     if (!Number.isSafeInteger(config.scannerCap) || !Array.isArray(config.schedule)
       || !Array.isArray(config.rewards) || config.rewards.length === 0
-      || config.rewards.some((id) => !['overclock', 'decoy', 'scanner'].includes(id))) throw new RangeError('Invalid supply configuration');
+      || config.rewards.some((id) => !['overclock', 'decoy', 'scanner', 'medkit', 'emp-charge', 'relay-cell'].includes(id))) throw new RangeError('Invalid supply configuration');
     let previous = -1;
     for (const event of config.schedule) {
       if (!Number.isFinite(event.time) || event.time < 0 || event.time <= previous
@@ -41,6 +43,15 @@ export class SupplySystem {
     this.reset();
   }
 
+  setEffects({ enemies, enemyDamageSystem, relaySystem, onEvent = null } = {}) {
+    if (!Array.isArray(enemies) || typeof enemyDamageSystem?.applyDamage !== 'function'
+      || typeof relaySystem?.rechargeNearest !== 'function' || (onEvent !== null && typeof onEvent !== 'function')) {
+      throw new TypeError('Supply effects require enemies, damage, relay and event interfaces');
+    }
+    this.enemies = enemies; this.enemyDamageSystem = enemyDamageSystem;
+    this.relaySystem = relaySystem; this.onEvent = onEvent;
+  }
+
   get fireRateMultiplier() { return this.#overclockRemaining > 0 ? 1 + this.config.fireRateBonus : 1; }
   get pickupRadiusBonus() { return this.#scannerStacks * this.config.scannerBonus; }
 
@@ -50,10 +61,31 @@ export class SupplySystem {
   }
 
   deploy() {
-    if (!this.player.alive || this.#activeItem !== 'decoy') return false;
-    this.#activeItem = null;
-    this.#decoy = { x: this.player.x, y: this.player.y, radius: this.config.decoyRadius, remaining: this.config.decoySeconds };
-    return true;
+    if (!this.player.alive || !this.#activeItem) return false;
+    if (this.#activeItem === 'decoy') {
+      this.#activeItem = null;
+      this.#decoy = { x: this.player.x, y: this.player.y, radius: this.config.decoyRadius, remaining: this.config.decoySeconds };
+      this.onEvent?.('decoy-deploy');
+      return true;
+    }
+    if (this.#activeItem === 'emp-charge' && this.enemyDamageSystem && this.enemies) {
+      for (const enemy of this.enemies) {
+        if (enemy.alive && Math.hypot(enemy.x - this.player.x, enemy.y - this.player.y) <= this.config.empRadius + enemy.radius) {
+          this.enemyDamageSystem.applyDamage(enemy, enemy.category === 'boss' ? this.config.empBossDamage : this.config.empDamage);
+        }
+      }
+      this.#activeItem = null;
+      this.#pulse = { x: this.player.x, y: this.player.y, radius: this.config.empRadius,
+        remaining: this.config.empVisualSeconds, lifetime: this.config.empVisualSeconds };
+      this.onEvent?.('emp-fire');
+      return true;
+    }
+    if (this.#activeItem === 'relay-cell' && this.relaySystem?.rechargeNearest(this.player.x, this.player.y)) {
+      this.#activeItem = null;
+      this.onEvent?.('relay-recharge');
+      return true;
+    }
+    return false;
   }
 
   targetFor(enemy) {
@@ -70,6 +102,10 @@ export class SupplySystem {
       this.#decoy.remaining = Math.max(0, this.#decoy.remaining - deltaSeconds);
       if (this.#decoy.remaining === 0) this.#decoy = null;
     }
+    if (this.#pulse) {
+      this.#pulse.remaining = Math.max(0, this.#pulse.remaining - deltaSeconds);
+      if (this.#pulse.remaining === 0) this.#pulse = null;
+    }
     for (const pickup of this.#pickups) pickup.remaining = Math.max(0, pickup.remaining - deltaSeconds);
     this.#pickups = this.#pickups.filter((pickup) => pickup.remaining > 0);
     if (this.#enabled) this.#updateStation(deltaSeconds, elapsedSeconds);
@@ -77,13 +113,17 @@ export class SupplySystem {
     this.#pickups = this.#pickups.filter((pickup) => {
       if (Math.hypot(this.player.x - pickup.x, this.player.y - pickup.y) > this.player.radius + this.config.pickupRadius) return true;
       if (pickup.type === 'overclock') this.#overclockRemaining = this.config.overclockSeconds;
-      else if (pickup.type === 'decoy') {
+      else if (pickup.type === 'medkit') {
+        if (this.player.hp >= this.player.maxHp) return true;
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.config.medkitHealing);
+      } else if (['decoy', 'emp-charge', 'relay-cell'].includes(pickup.type)) {
         if (this.#activeItem) return true;
-        this.#activeItem = 'decoy';
+        this.#activeItem = pickup.type;
       } else {
         if (this.#scannerStacks >= this.config.scannerCap) return true;
         this.#scannerStacks += 1;
       }
+      this.onEvent?.('item-pickup');
       return false;
     });
   }
@@ -119,7 +159,7 @@ export class SupplySystem {
       station: this.#station ? freeze({ x: this.#station.x, y: this.#station.y, radius: this.config.stationRadius,
         progress: Math.min(1, this.#station.charge / this.config.channelSeconds), remaining: this.#station.remaining }) : null,
       pickups: Object.freeze(this.#pickups.map(freeze)), decoy: freeze(this.#decoy),
-      activeItem: this.#activeItem, overclockRemaining: this.#overclockRemaining, scannerStacks: this.#scannerStacks,
+      pulse: freeze(this.#pulse), activeItem: this.#activeItem, overclockRemaining: this.#overclockRemaining, scannerStacks: this.#scannerStacks,
     });
   }
 
@@ -127,6 +167,7 @@ export class SupplySystem {
     this.#station = null;
     this.#pickups = [];
     this.#decoy = null;
+    this.#pulse = null;
     this.#activeItem = null;
     this.#overclockRemaining = 0;
     this.#scannerStacks = 0;

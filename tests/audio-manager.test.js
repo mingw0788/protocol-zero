@@ -65,6 +65,8 @@ describe('AudioManager', () => {
     expect(audio.playEvent('arc-fire')).toBe(true);
     expect(audio.playEvent('rail-fire')).toBe(true);
     expect(AUDIO_CONFIG.tones['arc-fire']).not.toEqual(AUDIO_CONFIG.tones['rail-fire']);
+    expect(audio.playEvent('emp-fire')).toBe(true);
+    expect(audio.playEvent('relay-recharge')).toBe(true);
   });
   let harness;
 

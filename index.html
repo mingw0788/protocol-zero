@@ -41,8 +41,10 @@
               <div><dt>Esc</dt><dd>暂停或继续游戏。</dd></div>
               <div><dt>自动攻击 / 升级</dt><dd>靠近敌人自动射击，拾取经验后选择升级，可解锁轨道刃、弧光线圈与磁轨炮。</dd></div>
               <div><dt>东城区 · 救援补给</dt><dd>45、135、225 秒出现补给点；跟随提示站入圆环累计 1.5 秒，领取随机道具。补给点仅停留 25 秒。</dd></div>
-              <div><dt>东城区 · 应急中继</dt><dd>医疗广场、变电庭院和疏散集结区各有一个中继站。站入圆环累计 2 秒恢复 15 生命，并冲击周围敌人（普通敌人 60、首领 30 伤害）；每站每局一次，离开保留蓄能。</dd></div>
-              <div><dt>E · 诱饵信标</dt><dd>拾取后按 E 部署，吸引附近普通敌人 5 秒，首领不受影响。最多携带一个。</dd></div>
+              <div><dt>东城区 · 应急中继</dt><dd>医疗广场、变电庭院和疏散集结区各有一个中继站。站入圆环蓄能 2 秒，恢复 15 生命并冲击周围敌人（普通敌人 60、首领 30 伤害）；释放后能量耗尽，补能后可再次使用，离开保留蓄能。</dd></div>
+              <div><dt>救援补给道具</dt><dd>包含修复凝胶、过载电池、回收扫描器、中继电芯、诱饵信标与 EMP 电荷。主动道具共用一个槽位，按 E 使用；修复凝胶拾取时立即恢复 30 生命，满血时不会被消耗。</dd></div>
+              <div><dt>E · 诱饵信标 / EMP</dt><dd>诱饵吸引附近普通敌人 5 秒，首领不受影响；EMP 冲击玩家周围 220 像素范围，造成普通敌人 40、首领 20 伤害。</dd></div>
+              <div><dt>中继能量</dt><dd>中继释放后能量耗尽。站点 260 像素内每击杀一名敌人补充 25% 能量；四次附近击杀可补满。中继电芯可在站点 560 像素内按 E 直接补满。</dd></div>
               <div><dt>过载电池 / 回收扫描器</dt><dd>电池立即提高武器频率 8 秒；扫描器永久扩大本局经验拾取范围，最多三层。满容量道具会留在地上。</dd></div>
               <div><dt>窗口失焦</dt><dd>自动暂停，回到游戏后手动继续。</dd></div>
             </dl>
@@ -55,7 +57,7 @@
             <strong id="hud-health-value"></strong>
             <progress id="hud-health-bar" aria-label="生命值" max="100" value="100"></progress>
           </div>
-          <div class="hud-item"><span class="hud-label">经验</span><strong id="hud-experience"></strong></div>
+          <div class="hud-item hud-experience"><span class="hud-label">经验 · 升级进度</span><strong id="hud-experience"></strong><progress id="hud-experience-bar" aria-label="升级经验进度" max="6" value="0"></progress></div>
           <div class="hud-item"><span class="hud-label">等级</span><strong id="hud-level"></strong></div>
           <div class="hud-item"><span class="hud-label">存活时间</span><time id="hud-time"></time></div>
           <div class="hud-item"><span class="hud-label">击杀</span><strong id="hud-kills"></strong></div>

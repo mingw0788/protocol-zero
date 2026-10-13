@@ -44,4 +44,33 @@ describe('City relay', () => {
     system.setEnabled(false);
     expect(system.getSnapshot()).toEqual([]);
   });
+
+  it('recharges from nearby kills and once from an in-range relay cell', () => {
+    const { system, player } = setup();
+    player.x = 620; player.y = 360;
+    expect(system.notifyEnemyDeath({x:620,y:360})).toBe(0);
+    expect(system.getSnapshot()[0].energy).toBe(100);
+    system.update(2);
+    expect(system.getSnapshot()[0].energy).toBe(0);
+    expect(system.getSnapshot()[0].progress).toBe(0);
+    expect(system.notifyEnemyDeath({x:800,y:360})).toBe(1);
+    expect(system.getSnapshot()[0].energy).toBe(25);
+    expect(system.rechargeNearest(1300,360)).toBe(false);
+    for (let i=0;i<3;i++) system.notifyEnemyDeath({x:620,y:360});
+    expect(system.getSnapshot()[0].energy).toBe(100);
+    expect(system.getSnapshot()[0].progress).toBe(0);
+    expect(system.update(1)).toBe(0);
+    expect(system.getSnapshot()[0].energy).toBe(100);
+    expect(system.update(1)).toBe(1);
+    expect(system.getSnapshot()[0].energy).toBe(0);
+    expect(system.rechargeNearest(620,360)).toBe(true);
+    expect(system.getSnapshot()[0].energy).toBe(100);
+    expect(system.getSnapshot()[0].progress).toBe(0);
+    expect(system.update(1)).toBe(0);
+    expect(system.getSnapshot()[0].energy).toBe(100);
+    expect(system.update(1)).toBe(1);
+    expect(system.getSnapshot()[0].energy).toBe(0);
+    system.notifyEnemyDeath({x:620,y:360});
+    expect(system.getSnapshot()[0].energy).toBe(25);
+  });
 });

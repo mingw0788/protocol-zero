@@ -20,7 +20,8 @@ export class RailgunSystem {
     }).filter((hit) => hit.intersects).sort((a, b) => a.along - b.along).slice(0, shot.maxTargets);
     for (const { enemy } of hits) this.enemyDamageSystem.applyDamage(enemy, shot.damage);
     this.visuals.push({ x1: this.player.x, y1: this.player.y, x2: this.player.x + dx * this.config.range,
-      y2: this.player.y + dy * this.config.range, color: this.config.color, remaining: this.config.visualSeconds });
+      y2: this.player.y + dy * this.config.range, anchorX: this.player.x, anchorY: this.player.y,
+      color: this.config.color, remaining: this.config.visualSeconds });
     return hits.length;
   }
 

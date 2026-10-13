@@ -26,6 +26,7 @@ const ELEMENT_IDS = Object.freeze({
   healthText: 'hud-health-value',
   healthBar: 'hud-health-bar',
   experience: 'hud-experience',
+  experienceBar: 'hud-experience-bar',
   level: 'hud-level',
   time: 'hud-time',
   kills: 'hud-kills',
@@ -167,7 +168,7 @@ export class UIManager {
     if (currentState !== GAME_STATES.PLAYING) return;
     const e = this.#elements;
     this.#setText(e.healthText, snapshot.health.current + ' / ' + snapshot.health.max);
-    this.#setText(e.experience, String(snapshot.experience));
+    this.#setText(e.experience, `${Number(Number(snapshot.experience).toFixed(1))} / ${snapshot.experienceRequired}`);
     this.#setText(e.level, String(snapshot.level));
     this.#setText(e.time, formatTime(snapshot.elapsedSeconds));
     this.#setText(e.kills, String(snapshot.killCount));
@@ -178,6 +179,8 @@ export class UIManager {
     }
     if (e.healthBar.max !== snapshot.health.max) e.healthBar.max = snapshot.health.max;
     if (e.healthBar.value !== snapshot.health.current) e.healthBar.value = snapshot.health.current;
+    if (e.experienceBar.max !== snapshot.experienceRequired) e.experienceBar.max = snapshot.experienceRequired;
+    if (e.experienceBar.value !== snapshot.experience) e.experienceBar.value = snapshot.experience;
   }
 
   #renderBossSnapshot(snapshot, currentState) {
@@ -209,18 +212,20 @@ export class UIManager {
     element.hidden = state !== GAME_STATES.PLAYING || !snapshot?.supply.enabled;
     if (element.hidden) return;
     const { supply, map } = snapshot;
-    const parts = [map.name, supply.activeItem ? 'E · 部署诱饵' : 'E · 诱饵空槽'];
+    const itemNames = { decoy: '部署诱饵', 'emp-charge': '释放 EMP', 'relay-cell': '使用中继电芯' };
+    const parts = [map.name, supply.activeItem ? `E · ${itemNames[supply.activeItem] ?? supply.activeItem}` : 'E · 主动道具空槽'];
     const origin = snapshot.playerPosition;
     if (origin && snapshot.relays?.length) {
-      const available = snapshot.relays.filter(relay => !relay.used)
+      const available = snapshot.relays
         .map(relay => ({ ...relay, distance: Math.hypot(relay.x - origin.x, relay.y - origin.y) }))
         .sort((a, b) => a.distance - b.distance);
       if (available.length) {
         const relay = available[0];
         const arrows = ['→', '↘', '↓', '↙', '←', '↖', '↑', '↗'];
         const direction = arrows[(Math.round(Math.atan2(relay.y - origin.y, relay.x - origin.x) / (Math.PI / 4)) + 8) % 8];
-        parts.push(relay.distance <= relay.radius ? `${relay.name} · 蓄能 ${Math.round(relay.progress * 100)}%`
-          : `${direction} ${relay.name} · 距离 ${Math.ceil(relay.distance)}`);
+        parts.push(relay.energy < 100 ? `${direction} ${relay.name} · 能量 ${relay.energy}% · 附近击杀补能`
+          : relay.distance <= relay.radius ? `${relay.name} · 蓄能 ${Math.round(relay.progress * 100)}%`
+            : `${direction} ${relay.name} · 距离 ${Math.ceil(relay.distance)}`);
       } else parts.push('中继站已全部耗尽');
     }
     if (supply.decoy) parts.push(`诱饵 ${Math.ceil(supply.decoy.remaining)}s`);

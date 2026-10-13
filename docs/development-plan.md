@@ -295,10 +295,14 @@ Git Commit：哈希或未提交原因
 | V2 任务 | 需求/规格对应 | 主要实现模块 | 验收证据 |
 |---|---|---|---|
 | T022 | V2 §2 地图及菜单 | `mapConfig`、Game/GameWorld、MapRenderer、UIManager | 地图注册/菜单状态/共享世界边界的自动测试；Chrome 实际菜单选图 |
-| T023 | V2 §3 补给、三类道具、E 输入与计时冻结 | SupplySystem、InputController、EnemySystem、ExperienceSystem | 站点时间/范围/容量/道具效果、诱饵目标、经验半径、暂停/reset 集成测试 |
+| T023 | V2 §3 补给、初始三类道具、E 输入与计时冻结 | SupplySystem、InputController、EnemySystem、ExperienceSystem | 站点时间/范围/容量/道具效果、诱饵目标、经验半径、暂停/reset 集成测试；后续扩展见 T032 |
 | T024–T026 | V2 §4 两武器、升级池和共享伤害结算 | ArcCoilSystem、RailgunSystem、UpgradeEffectSystem、GameWorld | 跳链/射线相交/伤害/去重/冷却/合法升级/死亡事件自动化覆盖 |
 | T027 | V2 §5 UI 与表现 | ExpansionRenderer、CanvasRenderer、HUD、菜单帮助文案 | 画布绘制/屏外提示测试、真实 Game UI 生命周期测试及 Chrome 小屏浏览器检查 |
 | T028 | V2 §6 验收与交付限制 | 文档、回归及本地检查 | 418 自动化项、68 模块生产构建、Chrome 浏览器操作、交付报告与独立审查 |
+
+### T032 经验进度、补给道具与中继补能
+
+依赖 T031 与已有 T023/T027 系统。磁轨射线余辉锚定武器，HUD 展示真实本级经验/门槛；中继以附近击杀和电芯补能；增加凝胶、EMP、电芯补给。设计和验收记录：`docs/superpowers/specs/2026-10-13-t032-progression-supplies-relay-design.md`；实施证据：`docs/task-report-T032.md`。
 
 ### V2 视觉与打击反馈补充（T029）
 

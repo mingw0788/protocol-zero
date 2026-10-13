@@ -382,6 +382,13 @@ h2 {
 }
 
 #hud-experience { color: #ffd277; }
+#hud-experience-bar {
+  display: block;
+  width: min(100%, 160px);
+  height: 6px;
+  margin-top: 4px;
+  accent-color: #ffd277;
+}
 #hud-level { color: #d9c4ff; }
 #hud-time { color: #c3edf4; }
 #hud-kills { color: #ffa2ac; }

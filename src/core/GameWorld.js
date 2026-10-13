@@ -27,6 +27,7 @@ import { SupplySystem } from '../systems/SupplySystem.js';
 import { ArcCoilSystem } from '../systems/ArcCoilSystem.js';
 import { RailgunSystem } from '../systems/RailgunSystem.js';
 import { RelaySystem } from '../systems/RelaySystem.js';
+import { getExperienceToNextLevel } from '../systems/LevelSystem.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -99,6 +100,8 @@ export class GameWorld {
       }
     } });
     this.relaySystem = new RelaySystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem });
+    this.supplySystem.setEffects({ enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem, relaySystem: this.relaySystem,
+      onEvent: type => this.#emitSoundEvent(type) });
     this.arcCoilSystem = new ArcCoilSystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem });
     this.railgunSystem = new RailgunSystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem });
     this.weaponSystem = new WeaponSystem();
@@ -133,6 +136,7 @@ export class GameWorld {
     });
     this.particleSystem = new ParticleSystem();
     this.subscribeEnemyDeath((event) => this.particleSystem.emitEnemyDeath(event));
+    this.subscribeEnemyDeath((event) => this.relaySystem.notifyEnemyDeath(event));
     this.subscribePlayerDeath(() => this.particleSystem.emitPlayerDeath(this.player));
   }
 
@@ -178,6 +182,7 @@ export class GameWorld {
     return Object.freeze({
       health: Object.freeze({ current: this.player.hp, max: this.player.maxHp }),
       experience: this.player.exp,
+      experienceRequired: getExperienceToNextLevel(this.player.level),
       level: this.player.level,
       pendingLevelUps: this.levelSystem.pendingLevelUps,
       weaponIds: Object.freeze(weaponIds),

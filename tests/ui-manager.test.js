@@ -111,7 +111,7 @@ describe('UIManager with real Game state', () => {
     h.get('map-select').value = 'east-city';
     emit(h.get('map-select'), 'change');
     h.click('start-game-button');
-    expect(h.get('expansion-hud').textContent).toContain('诱饵空槽');
+    expect(h.get('expansion-hud').textContent).toContain('主动道具空槽');
     const player = h.game.world.player;
     h.game.world.supplySystem.addPickup('decoy', player.x, player.y);
     h.game.world.update(1 / 60);
@@ -129,8 +129,20 @@ describe('UIManager with real Game state', () => {
     h.click('confirm-return-button');
     h.click('start-game-button');
     expect(h.game.getMapSnapshot().id).toBe('east-city');
-    expect(h.get('expansion-hud').textContent).toContain('诱饵空槽');
+    expect(h.get('expansion-hud').textContent).toContain('主动道具空槽');
     expect(h.game.getExpansionSnapshot().supply.decoy).toBeNull();
+    player.x = 620; player.y = 360; player.hp = 50;
+    h.game.world.supplySystem.addPickup('medkit', player.x, player.y);
+    h.game.world.update(1 / 60);
+    expect(player.hp).toBe(80);
+    h.game.world.relaySystem.update(2);
+    expect(h.game.world.getExpansionSnapshot().relays[0].energy).toBe(0);
+    h.game.world.supplySystem.addPickup('relay-cell', player.x, player.y);
+    h.game.world.update(1 / 60);
+    expect(h.game.world.getSupplySnapshot().activeItem).toBe('relay-cell');
+    h.key('KeyE'); h.game.world.update(1 / 60);
+    expect(h.game.world.getExpansionSnapshot().relays[0].energy).toBe(100);
+    expect(h.game.world.getSupplySnapshot().activeItem).toBeNull();
   });
 
   it('shows an immutable victory summary and restarts a clean run from the result panel', () => {
@@ -252,7 +264,8 @@ describe('UIManager with real Game state', () => {
     expect(h.get('game-hud').hidden).toBe(false);
     expect(h.get('hud-health-value').textContent).toBe('100 / 100');
     expect(h.get('hud-level').textContent).toBe('1');
-    expect(h.get('hud-experience').textContent).toBe('0');
+    expect(h.get('hud-experience').textContent).toBe('0 / 6');
+    expect(h.get('hud-experience-bar').max).toBe(6);
     expect(h.get('hud-time').textContent).toBe('00:00');
     expect(h.get('hud-kills').textContent).toBe('0');
     expect(h.get('hud-weapons').textContent).toBe('脉冲枪');
@@ -514,7 +527,9 @@ describe('UIManager with real Game state', () => {
     expect(h.get('hud-health-value').textContent).toBe('67 / 120');
     expect(h.get('hud-health-bar').value).toBe(67);
     expect(h.get('hud-health-bar').max).toBe(120);
-    expect(h.get('hud-experience').textContent).toBe('4');
+    expect(h.get('hud-experience').textContent).toBe('4 / 10');
+    expect(h.get('hud-experience-bar').value).toBe(4);
+    expect(h.get('hud-experience-bar').max).toBe(10);
     expect(h.get('hud-level').textContent).toBe('2');
     expect(h.get('hud-time').textContent).toBe('01:05');
     expect(h.get('hud-kills').textContent).toBe('1');
