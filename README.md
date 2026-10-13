@@ -52,6 +52,7 @@ npm run preview   # 本机预览 dist/ 生产构建
 - Windows 11 上使用 Playwright 无头浏览器验证 Chrome 154 与 Edge 152 的菜单、战斗 HUD、暂停、升级选择 UI、重开和本地记录。Playwright 事件模拟通过，但真实操作系统级切换后台标签页的验证仍有限。
 - 托管站点上，Chrome 154 完成开局、暂停/返回、失败终局/重开，以及通过受控夹具验证胜利终局/重开；Edge 152 完成菜单、设置、开始、暂停/返回。Edge 的隐藏窗口长局自动化会触发预期的失焦暂停；Edge 本地生产预览的终局和重开通过。详见 [`docs/task-report-T021.md`](docs/task-report-T021.md)。
 - T020 的一次自然键盘战局在 00:32、16 次击杀时失败，未进入第一次升级；因此自然完整五分钟战局与 Boss 平衡仍未验证。另有受控流程验证胜负边界，但它不代表自然通关。
+- M3 至少比较两种自然升级组合、M4 完成一整局人工战局这两项质量门禁尚未通过；任务实现和 V1.0.0 静态发布已完成不代表人工玩法验收完成。补测条件与记录模板见 [`docs/gameplay-acceptance-follow-up.md`](docs/gameplay-acceptance-follow-up.md)。
 - 合成高密度场景中，真实 Canvas 绘制调用的 P95 为 Chrome 5.6 ms、Edge 4.3 ms。该基准不含整帧模拟、DOM 更新、浏览器合成或 GPU 成本，不构成整局恒定 60 FPS 的承诺。
 - 游戏使用浏览器存储；清除站点数据或更换浏览器配置会移除本地成绩和设置。
 
