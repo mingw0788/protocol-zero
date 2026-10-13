@@ -93,6 +93,25 @@ function createHarness({ upgradeChoices = null } = {}) {
   };
 }
 
+describe('tactical controls', () => {
+  it('shows the laboratory tactical HUD and rerolls with R without consuming a level', () => {
+    const h = createHarness();
+    h.click('start-game-button');
+    expect(h.get('tactical-hud').hidden).toBe(false);
+    expect(h.get('tactical-hud').textContent).toContain('Shift');
+    h.game.world.player.exp = 6;
+    h.game.world.update(1 / 60);
+    expect(h.get('reroll-upgrades-button').disabled).toBe(false);
+    h.key('KeyR', { repeat: true });
+    expect(h.game.getUpgradeRerollSnapshot().remaining).toBe(2);
+    h.key('KeyR');
+    expect(h.game.getUpgradeRerollSnapshot().remaining).toBe(1);
+    expect(h.game.world.levelSystem.pendingLevelUps).toBe(1);
+    h.key('Digit1');
+    expect(h.game.stateManager.currentState).toBe('PLAYING');
+  });
+});
+
 function triggerLevelUp(harness, expValue = 35) {
   harness.click('start-game-button');
   harness.game.world.experienceCrystals.push(new ExperienceCrystal({
@@ -358,7 +377,7 @@ describe('UIManager with real Game state', () => {
     const h = createHarness();
     triggerLevelUp(h);
     const firstChoice = h.get('upgrade-choice-0');
-    const lastChoice = h.get('upgrade-choice-2');
+    const lastChoice = h.get('reroll-upgrades-button');
 
     const escape = h.escape();
     expect(escape.defaultPrevented).toBe(true);

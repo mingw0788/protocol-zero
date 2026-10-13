@@ -49,7 +49,8 @@ export class DamageSystem {
       || maximumDamage === 0
       || this.player.alive !== true
       || this.player.hp <= 0
-      || this.player.invulnerabilityRemaining > 0) {
+      || this.player.invulnerabilityRemaining > 0
+      || this.player.dashRemaining > 0) {
       return noDamageResult();
     }
 
@@ -60,8 +61,11 @@ export class DamageSystem {
     }
 
     const previousHp = this.player.hp;
-    const nextHp = Math.max(0, Math.min(this.player.maxHp, previousHp - maximumDamage));
-    const actualDamage = Math.min(maximumDamage, previousHp);
+    const absorbed = Math.min(this.player.shield ?? 0, maximumDamage);
+    this.player.shield = Math.max(0, (this.player.shield ?? 0) - absorbed);
+    const healthDamage = maximumDamage - absorbed;
+    const nextHp = Math.max(0, Math.min(this.player.maxHp, previousHp - healthDamage));
+    const actualDamage = Math.min(healthDamage, previousHp);
     const killed = previousHp > 0 && nextHp === 0;
 
     this.player.hp = nextHp;

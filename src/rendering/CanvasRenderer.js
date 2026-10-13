@@ -8,6 +8,7 @@ import { OrbitalBladeRenderer } from './OrbitalBladeRenderer.js';
 import { BossRenderer } from './BossRenderer.js';
 import { ParticleRenderer } from './ParticleRenderer.js';
 import { ExpansionRenderer } from './ExpansionRenderer.js';
+import { TacticalRenderer } from './TacticalRenderer.js';
 
 export class CanvasRenderer {
   #canvas;
@@ -22,6 +23,7 @@ export class CanvasRenderer {
   #bossRenderer;
   #particleRenderer;
   #expansionRenderer = new ExpansionRenderer();
+  #tacticalRenderer = new TacticalRenderer();
   #windowTarget;
   #devicePixelRatio;
   #started = false;
@@ -149,6 +151,7 @@ export class CanvasRenderer {
     this.#context.imageSmoothingEnabled = false;
     this.#camera.update();
     this.#mapRenderer.render(this.#context, this.#camera);
+    this.#tacticalRenderer.renderWorld(this.#context, this.#camera, expansionSnapshot);
     this.#experienceCrystalRenderer.render(this.#context, this.#camera, experienceCrystals);
     this.#expansionRenderer.render(this.#context, this.#camera, expansionSnapshot);
     this.#projectileRenderer.render(this.#context, this.#camera, projectiles);
@@ -157,6 +160,7 @@ export class CanvasRenderer {
     this.#enemyRenderer.render(this.#context, this.#camera, enemies, effectiveTime);
     this.#orbitalBladeRenderer.render(this.#context, this.#camera, orbitalBlade);
     if (player) this.#playerRenderer.render(this.#context, this.#camera, player, effectiveTime);
+    this.#tacticalRenderer.renderOverlay(this.#context, this.#camera, expansionSnapshot, player);
   }
 
   #handleResize = () => {

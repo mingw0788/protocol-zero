@@ -19,6 +19,8 @@ export class InputController {
   #started = false;
   #itemUsePending = false;
   #itemHeld = false;
+  #dashPending = false;
+  #dashKeys = new Set();
   #unsubscribeState = null;
 
   constructor({
@@ -75,6 +77,14 @@ export class InputController {
     this.#pressedKeys.clear();
     this.#itemUsePending = false;
     this.#itemHeld = false;
+    this.#dashPending = false;
+    this.#dashKeys.clear();
+  }
+
+  consumeDashPress() {
+    const pending = this.#dashPending;
+    this.#dashPending = false;
+    return pending;
   }
 
   consumeItemUsePress() {
@@ -84,6 +94,13 @@ export class InputController {
   }
 
   #handleKeyDown = (event) => {
+    if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+      if (!this.#stateManager.isPlaying()) return;
+      event.preventDefault?.();
+      if (!event.repeat && this.#dashKeys.size === 0) this.#dashPending = true;
+      this.#dashKeys.add(event.code);
+      return;
+    }
     if (event.code === 'KeyE') {
       if (!this.#stateManager.isPlaying()) return;
       event.preventDefault?.();
@@ -102,6 +119,7 @@ export class InputController {
   };
 
   #handleKeyUp = (event) => {
+    if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') { this.#dashKeys.delete(event.code); return; }
     if (event.code === 'KeyE') { this.#itemHeld = false; return; }
     if (!Object.hasOwn(KEY_DIRECTIONS, event.code)) return;
     event.preventDefault?.();

@@ -1,5 +1,9 @@
 # Codex 分阶段开发计划（Implementation Plan）
 
+## 最新 V2 增量：T033 战术与探索
+
+依赖 T032；根据用户继续自主完善授权实施。需求映射：冲刺/护盾 → DashSystem/DamageSystem；新道具/击杀补给 → SupplySystem/ExperienceSystem；地图目标 → ExplorationSystem；升级重抽 → UpgradeSystem/GameWorld/UIManager；导航反馈 → TacticalHUD/TacticalRenderer。每项的边界、测试与交付证据见 `docs/superpowers/plans/2026-10-13-t033-tactical-exploration.md` 与 `docs/task-report-T033.md`。不将本增量计入旧版 V1 范围或自然试玩门禁。
+
 | 元数据 | 内容 |
 |---|---|
 | 文档编号 | PZ-PLAN-001 |

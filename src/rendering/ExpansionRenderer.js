@@ -1,3 +1,5 @@
+import { SUPPLY_NAMES } from '../config/supplyConfig.js';
+
 const CAPSULES = Object.freeze({
   overclock: { color: '#ffcc77', symbol: '+' },
   decoy: { color: '#ff88c8', symbol: '◎' },
@@ -5,6 +7,8 @@ const CAPSULES = Object.freeze({
   medkit: { color: '#ff7986', symbol: '+' },
   'emp-charge': { color: '#85adff', symbol: '✦' },
   'relay-cell': { color: '#64dfde', symbol: 'ϟ' },
+  shield: { color: '#83caff', symbol: '◇' },
+  magnet: { color: '#e4b5ff', symbol: '∩' },
 });
 
 export class ExpansionRenderer {
@@ -95,6 +99,9 @@ export class ExpansionRenderer {
       ctx.strokeRect(p.x - 13, p.y - 13, 26, 26);
       ctx.fillStyle = style.color;
       ctx.fillText(style.symbol, p.x, p.y);
+      if (snapshot.playerPosition && Math.hypot(pickup.x - snapshot.playerPosition.x, pickup.y - snapshot.playerPosition.y) < 160) {
+        ctx.fillText(SUPPLY_NAMES[pickup.type], p.x, p.y + 29);
+      }
     }
     const decoy = snapshot.supply?.decoy;
     if (decoy) {

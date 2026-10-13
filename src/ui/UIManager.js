@@ -1,4 +1,5 @@
 import { GAME_STATES } from '../core/GameStateManager.js';
+import { TacticalHUD } from './TacticalHUD.js';
 
 const WEAPON_LABELS = Object.freeze({ 'pulse-gun': '脉冲枪', 'orbital-blade': '轨道刃',
   'arc-coil': '弧光线圈', railgun: '磁轨炮' });
@@ -59,6 +60,7 @@ export class UIManager {
   #unsubscribe = null;
   #removeListeners = [];
   #displayedChoices = Object.freeze([]);
+  #tacticalHUD;
 
   constructor({ root, game, windowTarget = globalThis.window ?? null } = {}) {
     if (!root || typeof root.querySelector !== 'function') {
@@ -77,6 +79,8 @@ export class UIManager {
       throw new TypeError('UIManager requires a game controller with state and HUD access');
     }
     this.#root = root;
+    this.#tacticalHUD = new TacticalHUD(root);
+    this.#elements.reroll = root.querySelector('#reroll-upgrades-button');
     this.#elements.expansion = root.querySelector('#expansion-hud');
     this.#game = game;
     this.#windowTarget = windowTarget;
@@ -108,6 +112,7 @@ export class UIManager {
     if (this.#started) return;
     this.#started = true;
     const e = this.#elements;
+    if (e.reroll) this.#listen(e.reroll, 'click', () => this.#rerollUpgrades());
     const mapSelect = this.#root.querySelector('#map-select');
     if (mapSelect) this.#listen(mapSelect, 'change', () => {
       this.#game.selectMap(mapSelect.value);
@@ -161,12 +166,15 @@ export class UIManager {
   }
 
   renderSnapshot(snapshot, currentState, bossSnapshot = this.#game.getBossSnapshot()) {
+    this.#tacticalHUD.render(this.#game.getExpansionSnapshot?.(), currentState === GAME_STATES.PLAYING);
     this.#renderExpansion(currentState);
     this.#renderBossSnapshot(bossSnapshot, currentState);
     this.#renderRunResult(currentState);
     this.#renderRecords();
     if (currentState !== GAME_STATES.PLAYING) return;
     const e = this.#elements;
+    const danger = String(snapshot.health.current / snapshot.health.max <= .3);
+    if (e.healthBar.getAttribute('data-danger') !== danger) e.healthBar.setAttribute('data-danger', danger);
     this.#setText(e.healthText, snapshot.health.current + ' / ' + snapshot.health.max);
     this.#setText(e.experience, `${Number(Number(snapshot.experience).toFixed(1))} / ${snapshot.experienceRequired}`);
     this.#setText(e.level, String(snapshot.level));
@@ -209,7 +217,7 @@ export class UIManager {
     const element = this.#elements.expansion;
     if (!element) return;
     const snapshot = this.#game.getExpansionSnapshot?.();
-    element.hidden = state !== GAME_STATES.PLAYING || !snapshot?.supply.enabled;
+    element.hidden = state !== GAME_STATES.PLAYING || !snapshot;
     if (element.hidden) return;
     const { supply, map } = snapshot;
     const itemNames = { decoy: '部署诱饵', 'emp-charge': '释放 EMP', 'relay-cell': '使用中继电芯' };
@@ -264,6 +272,12 @@ export class UIManager {
     this.#displayedChoices = choices;
     const pendingLevelUps = this.#game.getHudSnapshot().pendingLevelUps;
     this.#setText(this.#elements.upgradeRemaining, `剩余升级选择：${pendingLevelUps}`);
+    const reroll = this.#elements.reroll;
+    const rerollState = this.#game.getUpgradeRerollSnapshot?.();
+    if (reroll && rerollState) {
+      reroll.disabled = !rerollState.available;
+      this.#setText(reroll, `R · 重抽选项（剩余 ${rerollState.remaining} 次）`);
+    }
 
     for (let index = 0; index < UPGRADE_CHOICE_COUNT; index += 1) {
       const choice = choices[index];
@@ -289,6 +303,15 @@ export class UIManager {
     this.#setText(this.#elements.resultTitle, state === GAME_STATES.VICTORY ? '任务完成' : '任务失败');
     this.#setText(this.#elements.resultKills, String(snapshot.killCount));
     this.#setText(this.#elements.resultTime, formatTime(snapshot.elapsedSeconds));
+    const detail = this.#root.querySelector('#run-result-exploration');
+    const expansion = this.#game.getExpansionSnapshot?.();
+    if (detail) this.#setText(detail, `档案 ${expansion?.exploration.completed ?? 0}/3 · 拾取补给 ${expansion?.supply.collected ?? 0} 件`);
+  }
+
+  #rerollUpgrades() {
+    if (!this.#game.rerollUpgrades?.()) return;
+    this.#renderUpgradeChoices();
+    this.#focusFirstUpgradeChoice();
   }
 
   #renderRecords() {
@@ -354,12 +377,23 @@ export class UIManager {
       return;
     }
     if (state === GAME_STATES.LEVEL_UP) {
+      if (/^(Digit|Numpad)[123]$/.test(event.code)) {
+        event.preventDefault();
+        if (!event.repeat) this.#selectUpgrade(Number(event.code.slice(-1)) - 1);
+        return;
+      }
+      if (event.code === 'KeyR') {
+        event.preventDefault();
+        if (!event.repeat) this.#rerollUpgrades();
+        return;
+      }
       if (event.code === 'Escape') {
         event.preventDefault();
         return;
       }
       if (event.code === 'Tab') {
         const visibleButtons = this.#elements.upgradeChoiceButtons.filter((button) => !button.hidden);
+        if (this.#elements.reroll && !this.#elements.reroll.disabled) visibleButtons.push(this.#elements.reroll);
         const first = visibleButtons[0];
         const last = visibleButtons.at(-1);
         const active = this.#windowTarget?.document?.activeElement;

@@ -74,6 +74,8 @@ export class Player {
     this.hp = this.maxHp;
     this.alive = true;
     this.invulnerabilityRemaining = 0;
+    this.shield = 0;
+    this.dashRemaining = 0;
     this.moving = false;
     this.facingX = 0;
     this.facingY = -1;

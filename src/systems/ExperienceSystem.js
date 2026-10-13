@@ -98,6 +98,20 @@ export class ExperienceSystem {
     }
   }
 
+  collectAll() {
+    if (!this.player.alive) return 0;
+    let total = 0;
+    for (const crystal of this.crystals) {
+      if (crystal.active && crystal.remainingLifetime > 0) {
+        total += crystal.expValue;
+        crystal.active = false;
+      }
+    }
+    this.player.exp += total;
+    this.#cleanupInactiveCrystals();
+    return total;
+  }
+
   reset() {
     for (const crystal of this.crystals) crystal.active = false;
     this.crystals.length = 0;

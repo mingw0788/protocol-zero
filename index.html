@@ -15,7 +15,7 @@
           <div class="ui-card menu-card">
             <p class="eyebrow">PROTOCOL ZERO / 2149</p>
             <h1 id="game-title">零号协议<span>失控之城</span></h1>
-            <p class="menu-description">自主战斗单元 ZERO<br />选择部署区域 · 坚守五分钟</p>
+            <p class="menu-description">自主战斗单元 ZERO<br />冲刺突围 · 搜索补给 · 上传档案 · 坚守五分钟</p>
             <label class="map-choice" for="map-select">部署区域
               <select id="map-select"><option value="laboratory">废弃科技实验室</option><option value="east-city">东城区疏散线 · 救援补给</option></select>
             </label>
@@ -38,6 +38,11 @@
             <h2 id="help-title">操作说明</h2>
             <dl class="control-list">
               <div><dt>WASD / 方向键</dt><dd>移动 ZERO，组合按键可斜向移动。</dd></div>
+              <div><dt>Shift · 相位冲刺</dt><dd>沿移动方向冲刺，静止时沿朝向。冲刺期间免接触伤害，冷却 4 秒；松开后再按。</dd></div>
+              <div><dt>1 / 2 / 3 · 升级快捷选择；R · 重抽</dt><dd>每局有 2 次重抽，至少出现一个新选项。上传全部档案再奖励 1 次；升级期间战场暂停。</dd></div>
+              <div><dt>数据终端 · 地图探索</dt><dd>两张地图各有 3 个终端。跟随左侧导航或小地图紫色方块，站入并连续停留 2.5 秒，获得 6 经验和指定补给；离开会清空上传进度。全部上传额外获得 12 经验。</dd></div>
+              <div><dt>击杀补给 · 两地图通用</dt><dd>每击杀 15 个普通敌人，轮流掉落修复凝胶、相位护盾、回收磁铁、过载电池。地面补给保留 60 秒，小地图金点可定位。</dd></div>
+              <div><dt>相位护盾 / 回收磁铁</dt><dd>护盾吸收 30 点伤害，溢出才扣生命；满盾时保留在地上。磁铁立即回收全地图现有经验晶体，可以触发连续升级。</dd></div>
               <div><dt>Esc</dt><dd>暂停或继续游戏。</dd></div>
               <div><dt>自动攻击 / 升级</dt><dd>靠近敌人自动射击，拾取经验后选择升级，可解锁轨道刃、弧光线圈与磁轨炮。</dd></div>
               <div><dt>东城区 · 救援补给</dt><dd>45、135、225 秒出现补给点；跟随提示站入圆环累计 1.5 秒，领取随机道具。补给点仅停留 25 秒。</dd></div>
@@ -64,6 +69,9 @@
           <div class="hud-item"><span class="hud-label">武器</span><strong id="hud-weapons"></strong></div>
         </aside>
         <div id="expansion-hud" class="expansion-hud" aria-label="区域与道具状态" hidden></div>
+        <div id="tactical-hud" class="tactical-hud" aria-label="冲刺护盾与补给进度" hidden></div>
+        <div id="objective-hud" class="objective-hud" aria-label="探索目标" hidden></div>
+        <div id="pickup-notice" class="pickup-notice" role="status" aria-live="polite" hidden></div>
         <section id="boss-hud" class="boss-hud" aria-label="首领状态" hidden>
           <h2 id="boss-name">机械暴君 T-01</h2>
           <span id="boss-health-value"></span>
@@ -92,6 +100,7 @@
           <div class="ui-card upgrade-card">
             <p class="eyebrow">ZERO / CORE EVOLUTION</p>
             <h2 id="upgrade-title">选择一项升级</h2>
+            <p class="upgrade-hint">按 1 / 2 / 3 快速选择 · 战场已暂停</p>
             <p id="upgrade-remaining" class="panel-description" aria-live="polite"></p>
             <div class="upgrade-choice-list">
               <button id="upgrade-choice-0" class="upgrade-choice" type="button" hidden>
@@ -116,12 +125,14 @@
                 <span id="upgrade-choice-2-description" class="upgrade-choice-description"></span>
               </button>
             </div>
+            <button id="reroll-upgrades-button" class="reroll-button" type="button">R · 重抽选项</button>
           </div>
         </section>
         <section id="run-result-panel" class="ui-panel result-panel" role="dialog" aria-modal="true" aria-labelledby="run-result-title" hidden>
           <div class="ui-card result-card">
             <p class="eyebrow">ZERO / RUN REPORT</p>
             <h2 id="run-result-title">任务结果</h2>
+            <p id="run-result-exploration" class="upgrade-hint"></p>
             <dl class="result-stats">
               <div><dt>击杀</dt><dd id="run-result-kills">0</dd></div>
               <div><dt>存活时间</dt><dd id="run-result-time">00:00</dd></div>

@@ -680,8 +680,32 @@ h2 {
 }
 
 #hud-weapons { font-size: 12px; }
-.boss-hud { top: 102px; }
+.tactical-hud, .objective-hud, .pickup-notice {
+  position: absolute;
+  left: 14px;
+  max-width: 340px;
+  padding: 8px 10px;
+  border-left: 2px solid #83caff;
+  background: rgb(6 16 28 / 86%);
+  color: #c9e9ff;
+  font-size: 12px;
+  line-height: 1.65;
+  font-variant-numeric: tabular-nums;
+}
+.tactical-hud { top: 102px; }
+.objective-hud { top: 153px; border-color: #c5a0ff; color: #decaff; max-width: 290px; }
+.pickup-notice { bottom: 106px; border-color: #ffe087; color: #ffe8a1; max-width: 480px; }
+.upgrade-hint { color: #a8bdd0; text-align: center; font-size: 13px; }
+.reroll-button { display: block; margin: 18px auto 0; border-color: #9371b1; }
+button:disabled { opacity: .45; cursor: default; }
+#hud-health-bar[data-danger="true"] { accent-color: #ff657d; }
+#hud-health-bar[data-danger="true"]::-webkit-progress-value { background: #ff657d; }
+.boss-hud { top: 102px; left: auto; right: 14px; width: min(340px, 42%); transform: none; }
 @container (max-width: 700px) {
+  .tactical-hud, .objective-hud, .pickup-notice { font-size: 9px; padding: 3px 5px; left: 8px; max-width: 200px; }
+  .tactical-hud { top: 98px; }
+  .objective-hud { top: 138px; max-width: 170px; }
+  .pickup-notice { bottom: 76px; max-width: 230px; }
   .expansion-hud { inset: auto 8px 6px; padding: 4px 6px; font-size: 10px; }
   #hud-weapons { font-size: 10px; }
   .boss-hud { top: 106px; }

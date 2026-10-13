@@ -532,3 +532,13 @@ RelaySystem 持有配置驱动的三个站点，GameWorld 在玩家移动后、�
 HUD 的 `experienceRequired` 来自 LevelSystem 的同一阈值函数；UI 只展示 `player.exp / required` 并写入无障碍进度条。RailgunSystem 为每条余辉保存开火时玩家锚点，`weaponSnapshot` 按当前玩家位移转换线段端点，命中仍只在发射时计算。
 
 SupplySystem 持有即时修复与单槽主动道具，EMP 通过 EnemyDamageSystem 伤害共享实体；E 电芯委托 RelaySystem 在配置距离内为最近站点补满。RelaySystem 接收 GameWorld 的单次敌人死亡事件，在所在站点半径内补能；释放会耗尽能量并清零蓄能，任一补满路径后都要重新蓄能 2 秒。站点快照暴露能量、蓄能和脉冲时长。所有计时经 PLAYING 固定步推进，reset 清理每局状态。
+
+### T033 战术与探索
+
+DashSystem 在玩家移动阶段消费单次 Shift 请求，保存方向、剩余时长与冷却；Player.update 继续负责归一化和边界。固定步末段仍免接触伤害，下个未冲刺步清除保护，最多存在不足一个固定步的量化差。DamageSystem 先判断冲刺/受伤无敌，再从护盾吸收接触伤害，溢出扣血。
+
+SupplySystem 新增有界拾取物（24）、提示（4）、普通击杀计数和拾取统计。GameWorld 在单次死亡结算中传给它带 category 的内部通知；原公开敌人死亡事件 schema 不变。ExperienceSystem.collectAll 原子地收取有效晶体并清理，随后统一经过 LevelSystem，保留全部升级选择。盾与磁铁不占 E 槽。
+
+ExplorationSystem 在经验处理后、LevelSystem 之前推进终端；连续站入、单次奖励和全收集状态由它拥有。奖励回调生成补给、提示及重抽额度，配置只读。终端奖励补给在下一有效步拾取（升级面板期间保留）。切图/重开重置。GameWorld 保存本局重抽次数；UpgradeSystem 负责合法候选及至少一个新选项的保证。
+
+TacticalHUD 消费扩展快照并显示状态/导航；TacticalRenderer 分为地图终端层与角色效果/雷达层，文本时长和经验读取快照。数字键、R 由 UIManager 在 LEVEL_UP 内转发；焦点环含可用重抽按钮。结算探索统计读取已冻结模拟的扩展快照，不进入旧版 LocalProgressStore schema。

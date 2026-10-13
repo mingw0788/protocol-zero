@@ -106,7 +106,7 @@ describe('city supplies', () => {
     expect(system.getSnapshot()).toMatchObject({ activeItem: null, scannerStacks: 0, overclockRemaining: 0, station: null, pickups: [] });
   });
 
-  it.each([[0, 'overclock'], [.17, 'decoy'], [.34, 'scanner'], [.51, 'medkit'], [.68, 'emp-charge'], [.99, 'relay-cell']])('uses independent equal reward weights at %s', (sample, type) => {
+  it.each([[0, 'overclock'], [.13, 'decoy'], [.26, 'scanner'], [.38, 'medkit'], [.51, 'emp-charge'], [.63, 'relay-cell'], [.76, 'shield'], [.99, 'magnet']])('uses independent equal reward weights at %s', (sample, type) => {
     const { system, player } = setup(() => sample);
     player.x += 50; // Channel radius includes this point, pickup radius does not.
     system.update(45, 45);

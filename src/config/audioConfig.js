@@ -1,4 +1,6 @@
 const TONES = Object.freeze({
+  dash: Object.freeze({ waveform: 'triangle', startFrequencyHz: 240, bodyFrequencyHz: 600, endFrequencyHz: 170, durationSeconds: .13, peak: .07, priority: 1 }),
+  'terminal-complete': Object.freeze({ waveform: 'sine', startFrequencyHz: 440, bodyFrequencyHz: 660, endFrequencyHz: 1100, durationSeconds: .3, peak: .09, priority: 2 }),
   'pulse-fire': Object.freeze({ waveform: 'sine', startFrequencyHz: 720, endFrequencyHz: 420, durationSeconds: 0.07 }),
   'weapon-hit': Object.freeze({ waveform: 'triangle', startFrequencyHz: 980, bodyFrequencyHz: 180, endFrequencyHz: 70, durationSeconds: 0.085, attackSeconds: .002, peak: .09 }),
   'arc-fire': Object.freeze({ waveform: 'sawtooth', startFrequencyHz: 1500, bodyFrequencyHz: 470, endFrequencyHz: 190, durationSeconds: .12, attackSeconds: .003, peak: .045, priority: 1 }),

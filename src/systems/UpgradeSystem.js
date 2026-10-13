@@ -128,6 +128,26 @@ export class UpgradeSystem {
     return this.#choices;
   }
 
+  canReroll() {
+    return this.#choices.length > 0 && this.#upgrades.some(upgrade =>
+      this.#levels.get(upgrade.id) < upgrade.maxLevel && !this.#choices.some(choice => choice.id === upgrade.id));
+  }
+
+  rerollChoices() {
+    if (!this.canReroll()) return false;
+    const previousIds = this.#choices.map(c => c.id);
+    this.prepareChoices();
+    if (this.#choices.every(c => previousIds.includes(c.id))) {
+      // Guarantee a new card without unbounded retries on deterministic random streams.
+      const alternative = this.#upgrades.find(u => this.#levels.get(u.id) < u.maxLevel && !previousIds.includes(u.id));
+      const level = this.#levels.get(alternative.id);
+      this.#choices = Object.freeze([...this.#choices.slice(0, -1), Object.freeze({
+        ...alternative, currentLevel: level, targetLevel: level + 1, repeatable: false,
+      })]);
+    }
+    return true;
+  }
+
   select(choiceId) {
     const choice = this.#choices.find((candidate) => candidate.id === choiceId);
     if (!choice) return false;

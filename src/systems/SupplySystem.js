@@ -1,4 +1,5 @@
-import { SUPPLY_CONFIG } from '../config/supplyConfig.js';
+import { SUPPLY_CONFIG, SUPPLY_NAMES } from '../config/supplyConfig.js';
+import { TACTICAL_CONFIG } from '../config/tacticalConfig.js';
 
 const freeze = (value) => value === null ? null : Object.freeze({ ...value });
 
@@ -13,6 +14,9 @@ export class SupplySystem {
   #overclockRemaining = 0;
   #scannerStacks = 0;
   #pulse = null;
+  #normalKills = 0;
+  #collected = 0;
+  #notices = [];
 
   constructor({ player, random = Math.random, config = SUPPLY_CONFIG } = {}) {
     if (!player || !Number.isFinite(player.x) || !Number.isFinite(player.y)
@@ -26,7 +30,7 @@ export class SupplySystem {
     }
     if (!Number.isSafeInteger(config.scannerCap) || !Array.isArray(config.schedule)
       || !Array.isArray(config.rewards) || config.rewards.length === 0
-      || config.rewards.some((id) => !['overclock', 'decoy', 'scanner', 'medkit', 'emp-charge', 'relay-cell'].includes(id))) throw new RangeError('Invalid supply configuration');
+      || config.rewards.some((id) => !Object.hasOwn(SUPPLY_NAMES, id))) throw new RangeError('Invalid supply configuration');
     let previous = -1;
     for (const event of config.schedule) {
       if (!Number.isFinite(event.time) || event.time < 0 || event.time <= previous
@@ -43,13 +47,28 @@ export class SupplySystem {
     this.reset();
   }
 
-  setEffects({ enemies, enemyDamageSystem, relaySystem, onEvent = null } = {}) {
+  setEffects({ enemies, enemyDamageSystem, relaySystem, experienceSystem = null, onEvent = null } = {}) {
     if (!Array.isArray(enemies) || typeof enemyDamageSystem?.applyDamage !== 'function'
       || typeof relaySystem?.rechargeNearest !== 'function' || (onEvent !== null && typeof onEvent !== 'function')) {
       throw new TypeError('Supply effects require enemies, damage, relay and event interfaces');
     }
     this.enemies = enemies; this.enemyDamageSystem = enemyDamageSystem;
     this.relaySystem = relaySystem; this.onEvent = onEvent;
+    this.experienceSystem = experienceSystem;
+  }
+
+  notify(text) {
+    if (this.#notices.length >= 4) this.#notices.shift();
+    this.#notices.push({ text, remaining: TACTICAL_CONFIG.noticeSeconds });
+  }
+
+  notifyEnemyDeath(event) {
+    if (event.category !== 'normal') return;
+    this.#normalKills += 1;
+    if (this.#normalKills % TACTICAL_CONFIG.killsPerDrop !== 0) return;
+    const rewards = TACTICAL_CONFIG.killRewards;
+    const type = rewards[(this.#normalKills / TACTICAL_CONFIG.killsPerDrop - 1) % rewards.length];
+    if (this.addPickup(type, event.x, event.y)) this.notify(`击杀补给掉落 · ${SUPPLY_NAMES[type]}`);
   }
 
   get fireRateMultiplier() { return this.#overclockRemaining > 0 ? 1 + this.config.fireRateBonus : 1; }
@@ -57,7 +76,9 @@ export class SupplySystem {
 
   addPickup(type, x, y) {
     if (!this.config.rewards.includes(type) || !Number.isFinite(x) || !Number.isFinite(y)) throw new RangeError('Invalid supply pickup');
+    if (this.#pickups.length >= TACTICAL_CONFIG.maxPickups) return false;
     this.#pickups.push({ id: 'supply-' + this.#nextId++, type, x, y, remaining: this.config.pickupLifetime });
+    return true;
   }
 
   deploy() {
@@ -85,6 +106,7 @@ export class SupplySystem {
       this.onEvent?.('relay-recharge');
       return true;
     }
+    if (this.#activeItem === 'relay-cell') this.notify('电芯未消耗 · 靠近未满能量中继后按 E');
     return false;
   }
 
@@ -97,6 +119,8 @@ export class SupplySystem {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0 || !Number.isFinite(elapsedSeconds)
       || elapsedSeconds < deltaSeconds) throw new RangeError('Invalid supply time');
     if (deltaSeconds === 0) return;
+    for (const notice of this.#notices) notice.remaining -= deltaSeconds;
+    this.#notices = this.#notices.filter(notice => notice.remaining > 0);
     this.#overclockRemaining = Math.max(0, this.#overclockRemaining - deltaSeconds);
     if (this.#decoy) {
       this.#decoy.remaining = Math.max(0, this.#decoy.remaining - deltaSeconds);
@@ -116,6 +140,13 @@ export class SupplySystem {
       else if (pickup.type === 'medkit') {
         if (this.player.hp >= this.player.maxHp) return true;
         this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.config.medkitHealing);
+      } else if (pickup.type === 'shield') {
+        if (this.player.shield >= TACTICAL_CONFIG.shieldCapacity) return true;
+        this.player.shield = TACTICAL_CONFIG.shieldCapacity;
+      } else if (pickup.type === 'magnet') {
+        if (!this.experienceSystem) return true;
+        const amount = this.experienceSystem.collectAll();
+        this.notify(`回收磁铁 · +${amount} 经验`);
       } else if (['decoy', 'emp-charge', 'relay-cell'].includes(pickup.type)) {
         if (this.#activeItem) return true;
         this.#activeItem = pickup.type;
@@ -123,6 +154,8 @@ export class SupplySystem {
         if (this.#scannerStacks >= this.config.scannerCap) return true;
         this.#scannerStacks += 1;
       }
+      this.#collected += 1;
+      if (pickup.type !== 'magnet') this.notify(`已拾取 · ${SUPPLY_NAMES[pickup.type]}`);
       this.onEvent?.('item-pickup');
       return false;
     });
@@ -160,6 +193,8 @@ export class SupplySystem {
         progress: Math.min(1, this.#station.charge / this.config.channelSeconds), remaining: this.#station.remaining }) : null,
       pickups: Object.freeze(this.#pickups.map(freeze)), decoy: freeze(this.#decoy),
       pulse: freeze(this.#pulse), activeItem: this.#activeItem, overclockRemaining: this.#overclockRemaining, scannerStacks: this.#scannerStacks,
+      collected: this.#collected, killsUntilDrop: TACTICAL_CONFIG.killsPerDrop - this.#normalKills % TACTICAL_CONFIG.killsPerDrop,
+      notices: Object.freeze(this.#notices.map(freeze)),
     });
   }
 
@@ -172,5 +207,8 @@ export class SupplySystem {
     this.#overclockRemaining = 0;
     this.#scannerStacks = 0;
     this.#nextEvent = 0;
+    this.#normalKills = 0;
+    this.#collected = 0;
+    this.#notices = [];
   }
 }

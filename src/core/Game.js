@@ -180,6 +180,10 @@ export class Game {
     return this.world.chooseUpgrade(choiceId);
   }
 
+  getUpgradeRerollSnapshot() { return this.world.getUpgradeRerollSnapshot(); }
+
+  rerollUpgrades() { return this.world.rerollUpgrades(); }
+
   togglePause() {
     if (this.stateManager.currentState === GAME_STATES.PLAYING) return this.pause();
     if (this.stateManager.currentState === GAME_STATES.PAUSED) return this.resume();
