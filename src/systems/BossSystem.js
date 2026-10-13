@@ -171,6 +171,7 @@ export class BossSystem {
       radius: this.#boss.radius,
       hp: this.#boss.hp,
       maxHp: this.#boss.maxHp,
+        hitFlashRemaining: this.#boss.hitFlashRemaining ?? 0,
       alive: this.#boss.alive && this.#boss.hp > 0,
       phase: this.#phase,
       phaseRemaining: this.#phaseRemaining,

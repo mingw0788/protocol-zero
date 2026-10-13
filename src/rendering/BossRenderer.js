@@ -44,7 +44,7 @@ export class BossRenderer {
         drawPixelPattern(
           context,
           SPRITE_PATTERNS.boss,
-          SPRITE_PALETTES.boss,
+          bossSnapshot.hitFlashRemaining > 0 ? { ...SPRITE_PALETTES.boss, B: '#ffffff' } : SPRITE_PALETTES.boss,
           position.x - bossSnapshot.radius,
           position.y - bossSnapshot.radius,
           diameter,

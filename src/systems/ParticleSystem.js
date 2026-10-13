@@ -41,6 +41,11 @@ export class ParticleSystem {
     this.#emit(event, this.#config.enemyDeathCount, this.#config.enemyDeathColor, event.enemyId);
   }
 
+  emitEnemyHit(event) {
+    requirePosition(event, 'Enemy hit effect');
+    this.#emit(event, 3, '#e2fbff', event.enemyId);
+  }
+
   emitPlayerHit(player) {
     requirePosition(player, 'Player hit effect');
     this.#emit(player, this.#config.playerHitCount, this.#config.playerHitColor, 'player-hit');

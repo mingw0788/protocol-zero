@@ -49,6 +49,7 @@ export function prepareShot(system, { deltaSeconds, level = 0, damageMultiplier 
   const interval = config.fireIntervalSeconds / fireRateMultiplier;
   if (!Number.isFinite(damage) || damage <= 0 || !Number.isFinite(interval) || interval <= 0) throw new RangeError('Invalid derived weapon values');
   state.cooldownRemaining = interval;
+  state.fireFlashRemaining = 0.09;
   return { targets, target, damage, maxTargets: config.maxTargets + Math.floor((level - 1) / 2) };
 }
 
@@ -62,5 +63,6 @@ export function resetWeapon(system) {
   if (state) {
     state.cooldownRemaining = 0;
     delete state.aimAngle;
+    delete state.fireFlashRemaining;
   }
 }

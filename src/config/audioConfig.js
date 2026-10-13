@@ -1,12 +1,15 @@
 const TONES = Object.freeze({
   'pulse-fire': Object.freeze({ waveform: 'sine', startFrequencyHz: 720, endFrequencyHz: 420, durationSeconds: 0.07 }),
-  'weapon-hit': Object.freeze({ waveform: 'triangle', startFrequencyHz: 360, endFrequencyHz: 135, durationSeconds: 0.085 }),
-  'enemy-death': Object.freeze({ waveform: 'square', startFrequencyHz: 280, endFrequencyHz: 520, durationSeconds: 0.09 }),
-  'player-hit': Object.freeze({ waveform: 'sawtooth', startFrequencyHz: 190, endFrequencyHz: 95, durationSeconds: 0.14 }),
-  'player-death': Object.freeze({ waveform: 'triangle', startFrequencyHz: 150, endFrequencyHz: 48, durationSeconds: 0.34 }),
-  upgrade: Object.freeze({ waveform: 'triangle', startFrequencyHz: 440, endFrequencyHz: 880, durationSeconds: 0.22 }),
-  victory: Object.freeze({ waveform: 'sine', startFrequencyHz: 523.25, endFrequencyHz: 1046.5, durationSeconds: 0.36 }),
-  defeat: Object.freeze({ waveform: 'triangle', startFrequencyHz: 260, endFrequencyHz: 82.41, durationSeconds: 0.3 }),
+  'weapon-hit': Object.freeze({ waveform: 'triangle', startFrequencyHz: 980, bodyFrequencyHz: 180, endFrequencyHz: 70, durationSeconds: 0.085, attackSeconds: .002, peak: .09 }),
+  'arc-fire': Object.freeze({ waveform: 'sawtooth', startFrequencyHz: 1500, bodyFrequencyHz: 470, endFrequencyHz: 190, durationSeconds: .12, attackSeconds: .003, peak: .045, priority: 1 }),
+  'rail-fire': Object.freeze({ waveform: 'triangle', startFrequencyHz: 1300, bodyFrequencyHz: 120, endFrequencyHz: 42, durationSeconds: .22, attackSeconds: .002, peak: .15, priority: 1 }),
+  'relay-pulse': Object.freeze({ waveform: 'sine', startFrequencyHz: 640, bodyFrequencyHz: 220, endFrequencyHz: 65, durationSeconds: .3, peak: .13, priority: 2 }),
+  'enemy-death': Object.freeze({ waveform: 'triangle', startFrequencyHz: 320, endFrequencyHz: 90, durationSeconds: 0.08, peak: .055 }),
+  'player-hit': Object.freeze({ waveform: 'sawtooth', startFrequencyHz: 190, endFrequencyHz: 95, durationSeconds: 0.14, priority: 3 }),
+  'player-death': Object.freeze({ waveform: 'triangle', startFrequencyHz: 150, endFrequencyHz: 48, durationSeconds: 0.34, priority: 4 }),
+  upgrade: Object.freeze({ waveform: 'triangle', startFrequencyHz: 440, endFrequencyHz: 880, durationSeconds: 0.22, priority: 2 }),
+  victory: Object.freeze({ waveform: 'sine', startFrequencyHz: 523.25, endFrequencyHz: 1046.5, durationSeconds: 0.36, priority: 4 }),
+  defeat: Object.freeze({ waveform: 'triangle', startFrequencyHz: 260, endFrequencyHz: 82.41, durationSeconds: 0.3, priority: 4 }),
 });
 
 export const AUDIO_CONFIG = Object.freeze({

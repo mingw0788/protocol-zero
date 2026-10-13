@@ -520,3 +520,9 @@ T021 必须运行构建并在部署后的静态页面上验证，不可只在 Vi
 ### T030 武器显示朝向修复
 
 WeaponSystem 与 RailgunSystem 在真实开火时写入所属 weaponState.aimAngle；PlayerRenderer 只读最近开火方向，未开火时回退角色朝向。Player.reset 重建武器状态；扩展武器 reset 清除 aimAngle。表现状态不参与选靶或伤害结算。
+
+### T031 战斗反馈与中继站
+
+RelaySystem 持有配置驱动的三个站点，GameWorld 在玩家移动后、敌人死亡收尾前推进。区域冲击经 EnemyDamageSystem 和既有死亡事件结算；切换地图设置启用状态，重开清空站点进度。扩展快照包含冻结站点及玩家位置，渲染器与 HUD 只读。
+
+有效伤害设置 hitFlashRemaining，真实开火设置 fireFlashRemaining，均在 PLAYING 固定步衰减；Boss 快照转发闪光状态。AudioManager 对声部维护优先级与包络引用，在容量耗尽时仅抢占较低优先级节点并释放；声音失败不阻断模拟。MapRenderer 对重复陈设做视口剔除。

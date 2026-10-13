@@ -210,6 +210,19 @@ export class UIManager {
     if (element.hidden) return;
     const { supply, map } = snapshot;
     const parts = [map.name, supply.activeItem ? 'E · 部署诱饵' : 'E · 诱饵空槽'];
+    const origin = snapshot.playerPosition;
+    if (origin && snapshot.relays?.length) {
+      const available = snapshot.relays.filter(relay => !relay.used)
+        .map(relay => ({ ...relay, distance: Math.hypot(relay.x - origin.x, relay.y - origin.y) }))
+        .sort((a, b) => a.distance - b.distance);
+      if (available.length) {
+        const relay = available[0];
+        const arrows = ['→', '↘', '↓', '↙', '←', '↖', '↑', '↗'];
+        const direction = arrows[(Math.round(Math.atan2(relay.y - origin.y, relay.x - origin.x) / (Math.PI / 4)) + 8) % 8];
+        parts.push(relay.distance <= relay.radius ? `${relay.name} · 蓄能 ${Math.round(relay.progress * 100)}%`
+          : `${direction} ${relay.name} · 距离 ${Math.ceil(relay.distance)}`);
+      } else parts.push('中继站已全部耗尽');
+    }
     if (supply.decoy) parts.push(`诱饵 ${Math.ceil(supply.decoy.remaining)}s`);
     if (supply.overclockRemaining > 0) parts.push(`过载 +30% · ${Math.ceil(supply.overclockRemaining)}s`);
     if (supply.scannerStacks > 0) parts.push(`扫描器 ${supply.scannerStacks}/3`);

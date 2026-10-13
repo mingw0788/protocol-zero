@@ -29,7 +29,8 @@ export class EnemyRenderer {
       const patterns = SPRITE_PATTERNS.enemies[enemy.typeId] ?? SPRITE_PATTERNS.enemies.fallback;
       const phase = stablePhase(enemy.id);
       const frame = Math.floor(effectiveTime * 4 + phase) % patterns.length;
-      const palette = SPRITE_PALETTES[enemy.typeId] ?? SPRITE_PALETTES.fallback;
+      const base = SPRITE_PALETTES[enemy.typeId] ?? SPRITE_PALETTES.fallback;
+      const palette = enemy.hitFlashRemaining > 0 ? { ...base, B: '#ffffff', X: '#ffffff' } : base;
       drawPixelPattern(context, patterns[frame], palette, x, y, diameter);
     }
 

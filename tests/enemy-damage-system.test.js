@@ -9,6 +9,7 @@ describe('EnemyDamageSystem', () => {
 
     expect(system.applyDamage(enemy, 20)).toBe(true);
     expect(enemy).toMatchObject({ hp: 10, alive: true, deathProcessed: false });
+    expect(enemy.hitFlashRemaining).toBeGreaterThan(0);
 
     expect(system.applyDamage(enemy, 20)).toBe(true);
     expect(enemy).toMatchObject({ hp: 0, alive: false, deathProcessed: false });

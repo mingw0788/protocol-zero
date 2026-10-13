@@ -21,7 +21,11 @@ function validateConfig(config) {
     if (!tone || !VALID_WAVEFORMS.has(tone.waveform)
       || !Number.isFinite(tone.startFrequencyHz) || tone.startFrequencyHz <= 0
       || !Number.isFinite(tone.endFrequencyHz) || tone.endFrequencyHz <= 0
-      || !Number.isFinite(tone.durationSeconds) || tone.durationSeconds <= 0) {
+      || !Number.isFinite(tone.durationSeconds) || tone.durationSeconds <= 0
+      || !Number.isFinite(tone.priority ?? 0) || (tone.priority ?? 0) < 0
+      || !Number.isFinite(tone.peak ?? .11) || (tone.peak ?? .11) <= 0 || (tone.peak ?? .11) > .2
+      || !Number.isFinite(tone.attackSeconds ?? .012) || (tone.attackSeconds ?? .012) <= 0
+      || !Number.isFinite(tone.bodyFrequencyHz ?? tone.endFrequencyHz) || (tone.bodyFrequencyHz ?? tone.endFrequencyHz) <= 0) {
       throw new RangeError(`Invalid audio tone for event: ${eventType}`);
     }
     tones[eventType] = Object.freeze({ ...tone });
@@ -39,6 +43,7 @@ export class AudioManager {
   #context = null;
   #masterGain = null;
   #voices = new Set();
+  #voiceDetails = new Map();
   #enabled = true;
   #volume;
   #disposed = false;
@@ -102,10 +107,18 @@ export class AudioManager {
 
   playEvent(eventType) {
     if (this.#disposed || !this.#enabled || this.#volume === 0
-      || !this.#context || !this.#masterGain
-      || this.#voices.size >= this.#config.maxConcurrentVoices) return false;
+      || !this.#context || !this.#masterGain) return false;
     const tone = this.#config.tones[eventType];
     if (!tone) return false;
+    if (this.#voices.size >= this.#config.maxConcurrentVoices) {
+      let victim = null;
+      for (const voice of this.#voices) {
+        const priority = this.#voiceDetails.get(voice)?.priority ?? 0;
+        if (priority < (tone.priority ?? 0) && (!victim || priority < this.#voiceDetails.get(victim).priority)) victim = voice;
+      }
+      if (!victim) return false;
+      this.#stopVoice(victim);
+    }
 
     let oscillator;
     let envelope;
@@ -116,14 +129,16 @@ export class AudioManager {
       const end = now + tone.durationSeconds;
       oscillator.type = tone.waveform;
       oscillator.frequency.setValueAtTime(tone.startFrequencyHz, now);
+      if (tone.bodyFrequencyHz) oscillator.frequency.exponentialRampToValueAtTime(tone.bodyFrequencyHz, now + Math.min(.018, tone.durationSeconds / 3));
       oscillator.frequency.exponentialRampToValueAtTime(tone.endFrequencyHz, end);
       envelope.gain.setValueAtTime(0.0001, now);
-      envelope.gain.linearRampToValueAtTime(0.11, now + Math.min(0.012, tone.durationSeconds / 4));
+      envelope.gain.linearRampToValueAtTime(tone.peak ?? .11, now + Math.min(tone.attackSeconds ?? .012, tone.durationSeconds / 4));
       envelope.gain.exponentialRampToValueAtTime(0.0001, end);
       oscillator.connect(envelope);
       envelope.connect(this.#masterGain);
       oscillator.onended = () => {
         this.#voices.delete(oscillator);
+        this.#voiceDetails.delete(oscillator);
         try {
           oscillator.disconnect();
           envelope.disconnect();
@@ -132,11 +147,13 @@ export class AudioManager {
         }
       };
       this.#voices.add(oscillator);
+      this.#voiceDetails.set(oscillator, { priority: tone.priority ?? 0, envelope });
       oscillator.start(now);
       oscillator.stop(end);
       return true;
     } catch {
       if (oscillator) this.#voices.delete(oscillator);
+      if (oscillator) this.#voiceDetails.delete(oscillator);
       try { oscillator?.disconnect(); } catch { /* API failure is a silent fallback. */ }
       try { envelope?.disconnect(); } catch { /* API failure is a silent fallback. */ }
       return false;
@@ -146,11 +163,7 @@ export class AudioManager {
   dispose() {
     if (this.#disposed) return;
     this.#disposed = true;
-    for (const voice of this.#voices) {
-      voice.onended = null;
-      try { voice.stop(); } catch { /* Already stopped voices are harmless. */ }
-      try { voice.disconnect(); } catch { /* API failure is a silent fallback. */ }
-    }
+    for (const voice of [...this.#voices]) this.#stopVoice(voice);
     this.#voices.clear();
     this.#releaseContext();
   }
@@ -167,6 +180,15 @@ export class AudioManager {
     }
   }
 
+  #stopVoice(voice) {
+    voice.onended = null;
+    try { voice.stop(); } catch { /* Already stopped. */ }
+    try { voice.disconnect(); } catch { /* Best effort. */ }
+    try { this.#voiceDetails.get(voice)?.envelope.disconnect(); } catch { /* Best effort. */ }
+    this.#voices.delete(voice);
+    this.#voiceDetails.delete(voice);
+  }
+
   #syncMasterGain() {
     if (this.#masterGain) this.#masterGain.gain.value = this.#enabled ? this.#volume : 0;
   }
@@ -174,11 +196,7 @@ export class AudioManager {
   #releaseContext() {
     const context = this.#context;
     const masterGain = this.#masterGain;
-    for (const voice of this.#voices) {
-      voice.onended = null;
-      try { voice.stop(); } catch { /* Already stopped voices are harmless. */ }
-      try { voice.disconnect(); } catch { /* API failure is a silent fallback. */ }
-    }
+    for (const voice of [...this.#voices]) this.#stopVoice(voice);
     try { masterGain?.disconnect(); } catch { /* Disconnection is best effort. */ }
     this.#context = null;
     this.#masterGain = null;

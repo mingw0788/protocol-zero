@@ -47,6 +47,25 @@ function createAudioHarness({ state = 'suspended' } = {}) {
 }
 
 describe('AudioManager', () => {
+  it('preempts a lower priority voice for player danger while preserving the cap', () => {
+    const h = createAudioHarness();
+    const audio = new AudioManager({ contextFactory: h.contextFactory });
+    audio.unlock();
+    for (let i = 0; i < 8; i++) audio.playEvent('enemy-death');
+    expect(audio.playEvent('player-hit')).toBe(true);
+    expect(h.oscillators[0].disconnect).toHaveBeenCalled();
+    expect(audio.playEvent('enemy-death')).toBe(false);
+    audio.dispose();
+  });
+
+  it('provides distinct arc and rail fire cues', () => {
+    const h = createAudioHarness();
+    const audio = new AudioManager({ contextFactory: h.contextFactory });
+    audio.unlock();
+    expect(audio.playEvent('arc-fire')).toBe(true);
+    expect(audio.playEvent('rail-fire')).toBe(true);
+    expect(AUDIO_CONFIG.tones['arc-fire']).not.toEqual(AUDIO_CONFIG.tones['rail-fire']);
+  });
   let harness;
 
   beforeEach(() => {

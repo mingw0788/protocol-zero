@@ -26,6 +26,7 @@ import { getMapConfig } from '../config/mapConfig.js';
 import { SupplySystem } from '../systems/SupplySystem.js';
 import { ArcCoilSystem } from '../systems/ArcCoilSystem.js';
 import { RailgunSystem } from '../systems/RailgunSystem.js';
+import { RelaySystem } from '../systems/RelaySystem.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -88,13 +89,16 @@ export class GameWorld {
     this.waveSystem = new WaveSystem({ config: waveConfig });
     this.collisionSystem = new CollisionSystem({ player, enemies: this.enemies });
     this.damageSystem = new DamageSystem({ player });
-    this.enemyDamageSystem = new EnemyDamageSystem({ onDamage: ({ lethal }) => {
+    this.enemyDamageSystem = new EnemyDamageSystem({ onDamage: (event) => {
+      const { lethal } = event;
+      if (!lethal) this.particleSystem?.emitEnemyHit(event);
       const elapsed = this.clock.elapsedSeconds;
       if (!lethal && elapsed - this.#lastWeaponHitSoundAt >= 0.1) {
         this.#lastWeaponHitSoundAt = elapsed;
         this.#emitSoundEvent('weapon-hit');
       }
     } });
+    this.relaySystem = new RelaySystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem });
     this.arcCoilSystem = new ArcCoilSystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem });
     this.railgunSystem = new RailgunSystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem });
     this.weaponSystem = new WeaponSystem();
@@ -141,6 +145,7 @@ export class GameWorld {
     if (!map || this.stateManager.currentState !== GAME_STATES.MENU) return false;
     this.mapConfig = map;
     this.supplySystem.setEnabled(map.supplies);
+    this.relaySystem.setEnabled(map.id === 'east-city');
     return true;
   }
 
@@ -152,7 +157,8 @@ export class GameWorld {
 
   getExpansionSnapshot() {
     return Object.freeze({ map: this.getMapSnapshot(), supply: this.getSupplySnapshot(),
-      arc: this.arcCoilSystem.getSnapshot(), rail: this.railgunSystem.getSnapshot() });
+      playerPosition: Object.freeze({ x: this.player.x, y: this.player.y }),
+      arc: this.arcCoilSystem.getSnapshot(), rail: this.railgunSystem.getSnapshot(), relays: this.relaySystem.getSnapshot() });
   }
 
   get killCount() {
@@ -251,10 +257,13 @@ export class GameWorld {
     if (!this.stateManager.isPlaying() || this.#playerDeathFrozen) return false;
 
     this.particleSystem.update(deltaSeconds);
+    for (const enemy of this.enemies) enemy.hitFlashRemaining = Math.max(0, (enemy.hitFlashRemaining ?? 0) - deltaSeconds);
+    for (const weapon of this.player.weaponStates) weapon.fireFlashRemaining = Math.max(0, (weapon.fireFlashRemaining ?? 0) - deltaSeconds);
     this.damageSystem.update(deltaSeconds);
     this.playerSystem.update(deltaSeconds);
     if (this.inputController?.consumeItemUsePress?.()) this.supplySystem.deploy();
     this.supplySystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
+    if (this.relaySystem.update(deltaSeconds) > 0) this.#emitSoundEvent('relay-pulse');
     this.camera.follow(this.player);
     this.#settleEnemyDeaths();
     this.enemySystem.cleanup();
@@ -284,8 +293,8 @@ export class GameWorld {
       fireRateMultiplier: this.supplySystem.fireRateMultiplier,
     });
     const weaponStep = { deltaSeconds, damageMultiplier: upgradeEffects.damageMultiplier, fireRateMultiplier: this.supplySystem.fireRateMultiplier };
-    this.arcCoilSystem.update({ ...weaponStep, level: upgradeEffects.arcCoilLevel });
-    this.railgunSystem.update({ ...weaponStep, level: upgradeEffects.railgunLevel });
+    if (this.arcCoilSystem.update({ ...weaponStep, level: upgradeEffects.arcCoilLevel }) > 0) this.#emitSoundEvent('arc-fire');
+    if (this.railgunSystem.update({ ...weaponStep, level: upgradeEffects.railgunLevel }) > 0) this.#emitSoundEvent('rail-fire');
     this.#settleEnemyDeaths();
     this.enemySystem.cleanup();
     this.experienceSystem.update(deltaSeconds, this.supplySystem.pickupRadiusBonus);
@@ -344,6 +353,7 @@ export class GameWorld {
     this.playerSystem.reset();
     this.inputController?.clear?.();
     this.supplySystem.reset();
+    this.relaySystem.reset();
     this.camera.follow(this.player);
     this.enemies.length = 0;
     this.bossSystem.reset();

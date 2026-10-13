@@ -15,9 +15,10 @@ export class EnemyDamageSystem {
     }
 
     enemy.hp = Math.max(0, enemy.hp - damage);
+    enemy.hitFlashRemaining = 0.09;
     if (enemy.hp === 0) enemy.alive = false;
     try {
-      this.onDamage?.(Object.freeze({ enemyId: enemy.id, damage, lethal: enemy.hp === 0 }));
+      this.onDamage?.(Object.freeze({ enemyId: enemy.id, x: enemy.x, y: enemy.y, damage, lethal: enemy.hp === 0 }));
     } catch {
       // Observers must not interrupt an already-applied damage transition.
     }

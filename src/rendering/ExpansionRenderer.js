@@ -15,6 +15,31 @@ export class ExpansionRenderer {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = 'bold 14px "Microsoft YaHei", sans-serif';
+    for (const relay of snapshot.relays ?? []) {
+      const p = camera.worldToScreen(relay.x, relay.y);
+      const extent = relay.pulseRadius + 30;
+      if (p.x + extent < 0 || p.y + extent < 0 || p.x - extent > width || p.y - extent > height) continue;
+      const color = relay.used ? '#526974' : '#64dfde';
+      ctx.fillStyle = relay.used ? '#13252d' : '#163944';
+      ctx.beginPath(); ctx.arc(p.x, p.y, relay.radius, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = color; ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, relay.radius - 7, -Math.PI / 2, -Math.PI / 2 + relay.progress * Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.fillRect(p.x - 14, p.y - 14, 28, 28);
+      ctx.fillStyle = '#0c2431';
+      ctx.fillRect(p.x - 2, p.y - 9, 4, 18); ctx.fillRect(p.x - 9, p.y - 2, 18, 4);
+      ctx.fillStyle = relay.used ? '#91a4ad' : '#c6ffff';
+      ctx.fillText(relay.name, p.x, p.y - relay.radius - 18);
+      ctx.fillText(relay.used ? '中继耗尽' : '站入 2 秒 · 修复 + 冲击', p.x, p.y + relay.radius + 20);
+      if (relay.pulseRemaining > 0) {
+        ctx.globalAlpha = 1 - relay.pulseProgress;
+        ctx.strokeStyle = '#cbffff'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.arc(p.x, p.y, relay.radius + (relay.pulseRadius - relay.radius) * relay.pulseProgress, 0, Math.PI * 2); ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
     const station = snapshot.supply?.station;
     if (station) {
       const p = camera.worldToScreen(station.x, station.y);

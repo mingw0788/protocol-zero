@@ -27,9 +27,10 @@ export class PlayerRenderer {
       markerSize,
     );
     const weaponIds = new Set(player.weaponStates?.map(({ id }) => id) ?? []);
-    if (weaponIds.has('pulse-gun')) this.#drawPulseGun(context, screenPosition, this.#weaponAngle(player, 'pulse-gun'));
+    const firing = (id) => player.weaponStates.find(w => w.id === id)?.fireFlashRemaining > 0;
+    if (weaponIds.has('pulse-gun')) this.#drawPulseGun(context, screenPosition, this.#weaponAngle(player, 'pulse-gun'), firing('pulse-gun'));
     if (weaponIds.has('arc-coil')) this.#drawArcCoil(context, screenPosition);
-    if (weaponIds.has('railgun')) this.#drawRailgun(context, screenPosition, this.#weaponAngle(player, 'railgun'));
+    if (weaponIds.has('railgun')) this.#drawRailgun(context, screenPosition, this.#weaponAngle(player, 'railgun'), firing('railgun'));
   }
 
   #weaponAngle(player, id) {
@@ -37,16 +38,23 @@ export class PlayerRenderer {
     return Number.isFinite(angle) ? angle : Math.atan2(player.facingY ?? -1, player.facingX ?? 0);
   }
 
-  #drawPulseGun(context, center, angle) {
+  #drawPulseGun(context, center, angle, firing) {
     context.save();
     context.translate(center.x + Math.cos(angle) * 5, center.y + Math.sin(angle) * 5);
     context.rotate(angle);
+    if (firing) context.translate(-3, 0);
     context.fillStyle = '#143844';
     context.fillRect(0, -4, 18, 8);
     context.fillStyle = '#65e8ff';
     context.fillRect(3, -3, 12, 6);
     context.fillStyle = '#e6ffff';
     context.fillRect(14, -2, 5, 4);
+    if (firing) {
+      context.fillStyle = '#b7f8ff';
+      context.fillRect(21, -5, 7, 10);
+      context.fillStyle = '#ffffff';
+      context.fillRect(19, -2, 14, 4);
+    }
     context.restore();
   }
 
@@ -68,17 +76,24 @@ export class PlayerRenderer {
     context.fillRect(x - 1, y - 2, 3, 4);
   }
 
-  #drawRailgun(context, center, angle) {
+  #drawRailgun(context, center, angle, firing) {
     const x = center.x + 8, y = center.y + 8;
     context.save();
     context.translate(x, y);
     context.rotate(angle + Math.PI / 2);
+    if (firing) context.translate(0, 4);
     context.fillStyle = '#594326';
     context.fillRect(-3, -9, 7, 22);
     context.fillStyle = '#ffc65e';
     context.fillRect(-2, -12, 5, 21);
     context.fillStyle = '#fff0c7';
     context.fillRect(-1, -13, 3, 4);
+    if (firing) {
+      context.fillStyle = '#ffd07d';
+      context.fillRect(-6, -23, 12, 7);
+      context.fillStyle = '#ffffff';
+      context.fillRect(-2, -30, 4, 15);
+    }
     context.restore();
   }
 }

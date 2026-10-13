@@ -1,4 +1,5 @@
 import { WORLD_MAP } from '../config/worldConfig.js';
+import { RELAY_CONFIG } from '../config/relayConfig.js';
 
 export class MapRenderer {
   constructor(map = WORLD_MAP) {
@@ -25,9 +26,9 @@ export class MapRenderer {
     context.fillRect(0, 0, width, height);
 
     if (this.map.theme === 'city') {
-      this.#drawCity(context, width, height);
+      this.#drawCity(context, width, height, camera);
     } else if (this.map.theme === 'laboratory') {
-      this.#drawLaboratory(context, width, height);
+      this.#drawLaboratory(context, width, height, camera);
     }
 
     context.beginPath();
@@ -73,7 +74,12 @@ export class MapRenderer {
     context.restore();
   }
 
-  #drawCity(context, width, height) {
+  #visible(camera, x, y, width, height) {
+    return x + width >= camera.x && y + height >= camera.y
+      && x <= camera.x + camera.viewportWidth && y <= camera.y + camera.viewportHeight;
+  }
+
+  #drawCity(context, width, height, camera) {
     context.fillStyle = '#202c39';
     context.fillRect(0, 535, width, 280);
     context.fillRect(1040, 0, 320, height);
@@ -97,13 +103,14 @@ export class MapRenderer {
         const leftDistrict = x < 1000, rightDistrict = x > 1360;
         if (!leftDistrict && !rightDistrict) continue;
         const w = 286, h = 210;
+        const variant = block++ % 6;
+        if (!this.#visible(camera, x - 8, y - 8, w + 16, h + 16)) continue;
         context.fillStyle = '#17232c';
         context.fillRect(x - 8, y - 8, w + 16, h + 16);
         context.fillStyle = '#47545a';
         context.fillRect(x - 5, y - 5, w + 10, h + 10);
-        context.fillStyle = blockColors[block % blockColors.length];
+        context.fillStyle = blockColors[variant];
         context.fillRect(x, y, w, h);
-        const variant = block % 6;
         if (variant === 2 || variant === 5) {
           // Small planted refuge yard.
           context.fillStyle = '#203c38';
@@ -133,7 +140,34 @@ export class MapRenderer {
           context.fillStyle = '#d2a95f';
           context.fillRect(x + w / 2 - 18, y + h - 5, 36, 5);
         }
-        block += 1;
+      }
+    }
+
+    // Recessed, walkable plazas distinguish the three interactive districts.
+    for (const [index, station] of RELAY_CONFIG.stations.entries()) {
+      const { x, y } = station;
+      if (!this.#visible(camera, x - 145, y - 120, 290, 240)) continue;
+      context.fillStyle = ['#1d3940', '#343249', '#38392c'][index];
+      context.fillRect(x - 145, y - 120, 290, 240);
+      context.strokeStyle = ['#547f83', '#79698e', '#928255'][index];
+      context.lineWidth = 3;
+      context.strokeRect(x - 137, y - 112, 274, 224);
+      context.fillStyle = ['#7aadaa', '#a18aba', '#c0ac73'][index];
+      if (index === 0) {
+        for (const side of [-1, 1]) {
+          context.fillRect(x + side * 110 - 4, y - 20, 8, 40);
+          context.fillRect(x + side * 110 - 20, y - 4, 40, 8);
+        }
+      } else if (index === 1) {
+        for (const side of [-1, 1]) {
+          context.fillRect(x + side * 108 - 15, y - 45, 30, 8);
+          context.fillRect(x + side * 108 - 8, y - 31, 16, 62);
+          context.fillRect(x + side * 108 - 15, y + 37, 30, 8);
+        }
+      } else {
+        for (let row = -2; row <= 2; row++) {
+          for (const side of [-1, 1]) context.fillRect(x + side * 115 - Math.abs(row) * 6, y + row * 12, 10, 8);
+        }
       }
     }
 
@@ -172,7 +206,7 @@ export class MapRenderer {
     }
   }
 
-  #drawLaboratory(context, width, height) {
+  #drawLaboratory(context, width, height, camera) {
     // Repeated equipment bays, floor plates and cable trenches add room scale
     // while keeping the entire arena visually traversable.
     for (let row = 0; row < 4; row += 1) {
@@ -180,6 +214,7 @@ export class MapRenderer {
         const x = 110 + column * 380;
         const y = 88 + row * 310;
         if (x > width - 300 || y > height - 180) continue;
+        if (!this.#visible(camera, x, y, 260, 196)) continue;
         context.fillStyle = '#101f2c';
         context.fillRect(x, y, 260, 196);
         context.strokeStyle = '#29495c';
