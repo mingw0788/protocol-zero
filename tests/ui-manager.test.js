@@ -106,6 +106,33 @@ function triggerLevelUp(harness, expValue = 35) {
 }
 
 describe('UIManager with real Game state', () => {
+  it('selects the city, shows a carried item and clears expansion HUD state on return', () => {
+    const h = createHarness();
+    h.get('map-select').value = 'east-city';
+    emit(h.get('map-select'), 'change');
+    h.click('start-game-button');
+    expect(h.get('expansion-hud').textContent).toContain('诱饵空槽');
+    const player = h.game.world.player;
+    h.game.world.supplySystem.addPickup('decoy', player.x, player.y);
+    h.game.world.update(1 / 60);
+    h.ui.renderSnapshot(h.game.getHudSnapshot(), GAME_STATES.PLAYING);
+    expect(h.get('expansion-hud').textContent).toContain('E · 部署诱饵');
+    h.key('KeyE');
+    h.game.world.update(1 / 60);
+    expect(h.game.getExpansionSnapshot().supply.decoy).not.toBeNull();
+    h.escape();
+    expect(h.get('expansion-hud').hidden).toBe(true);
+    const frozen = h.game.getExpansionSnapshot();
+    h.game.world.update(5);
+    expect(h.game.getExpansionSnapshot()).toEqual(frozen);
+    h.click('return-menu-button');
+    h.click('confirm-return-button');
+    h.click('start-game-button');
+    expect(h.game.getMapSnapshot().id).toBe('east-city');
+    expect(h.get('expansion-hud').textContent).toContain('诱饵空槽');
+    expect(h.game.getExpansionSnapshot().supply.decoy).toBeNull();
+  });
+
   it('shows an immutable victory summary and restarts a clean run from the result panel', () => {
     const h = createHarness();
     h.click('start-game-button');

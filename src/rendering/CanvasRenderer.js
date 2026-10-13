@@ -7,6 +7,7 @@ import { ExperienceCrystalRenderer } from './ExperienceCrystalRenderer.js';
 import { OrbitalBladeRenderer } from './OrbitalBladeRenderer.js';
 import { BossRenderer } from './BossRenderer.js';
 import { ParticleRenderer } from './ParticleRenderer.js';
+import { ExpansionRenderer } from './ExpansionRenderer.js';
 
 export class CanvasRenderer {
   #canvas;
@@ -20,6 +21,7 @@ export class CanvasRenderer {
   #orbitalBladeRenderer;
   #bossRenderer;
   #particleRenderer;
+  #expansionRenderer = new ExpansionRenderer();
   #windowTarget;
   #devicePixelRatio;
   #started = false;
@@ -136,6 +138,7 @@ export class CanvasRenderer {
     bossSnapshot = null,
     visualEffects = [],
     effectiveTime = 0,
+    expansionSnapshot = null,
   ) {
     const ratio = this.#readDevicePixelRatio();
     if (ratio !== this.#lastDevicePixelRatio) this.resize();
@@ -147,6 +150,7 @@ export class CanvasRenderer {
     this.#camera.update();
     this.#mapRenderer.render(this.#context, this.#camera);
     this.#experienceCrystalRenderer.render(this.#context, this.#camera, experienceCrystals);
+    this.#expansionRenderer.render(this.#context, this.#camera, expansionSnapshot);
     this.#projectileRenderer.render(this.#context, this.#camera, projectiles);
     this.#particleRenderer.render(this.#context, this.#camera, visualEffects);
     this.#bossRenderer.render(this.#context, this.#camera, bossSnapshot, effectiveTime);

@@ -1,6 +1,7 @@
 import { GAME_STATES } from '../core/GameStateManager.js';
 
-const WEAPON_LABELS = Object.freeze({ 'pulse-gun': '脉冲枪', 'orbital-blade': '轨道刃' });
+const WEAPON_LABELS = Object.freeze({ 'pulse-gun': '脉冲枪', 'orbital-blade': '轨道刃',
+  'arc-coil': '弧光线圈', railgun: '磁轨炮' });
 const ELEMENT_IDS = Object.freeze({
   menu: 'main-menu-panel',
   help: 'help-panel',
@@ -75,6 +76,7 @@ export class UIManager {
       throw new TypeError('UIManager requires a game controller with state and HUD access');
     }
     this.#root = root;
+    this.#elements.expansion = root.querySelector('#expansion-hud');
     this.#game = game;
     this.#windowTarget = windowTarget;
     for (const [name, id] of Object.entries(ELEMENT_IDS)) {
@@ -158,6 +160,7 @@ export class UIManager {
   }
 
   renderSnapshot(snapshot, currentState, bossSnapshot = this.#game.getBossSnapshot()) {
+    this.#renderExpansion(currentState);
     this.#renderBossSnapshot(bossSnapshot, currentState);
     this.#renderRunResult(currentState);
     this.#renderRecords();
@@ -197,6 +200,21 @@ export class UIManager {
     if (e.bossHealthBar.getAttribute('aria-label') !== label) {
       e.bossHealthBar.setAttribute('aria-label', label);
     }
+  }
+
+  #renderExpansion(state) {
+    const element = this.#elements.expansion;
+    if (!element) return;
+    const snapshot = this.#game.getExpansionSnapshot?.();
+    element.hidden = state !== GAME_STATES.PLAYING || !snapshot?.supply.enabled;
+    if (element.hidden) return;
+    const { supply, map } = snapshot;
+    const parts = [map.name, supply.activeItem ? 'E · 部署诱饵' : 'E · 诱饵空槽'];
+    if (supply.decoy) parts.push(`诱饵 ${Math.ceil(supply.decoy.remaining)}s`);
+    if (supply.overclockRemaining > 0) parts.push(`过载 +30% · ${Math.ceil(supply.overclockRemaining)}s`);
+    if (supply.scannerStacks > 0) parts.push(`扫描器 ${supply.scannerStacks}/3`);
+    if (supply.station) parts.push(`救援补给 ${Math.ceil(supply.station.remaining)}s · 蓄能 ${Math.floor(supply.station.progress * 100)}%`);
+    this.#setText(element, parts.join('  /  '));
   }
 
   #renderState(state) {

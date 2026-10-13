@@ -93,6 +93,7 @@ export class Game {
           this.world.getBossSnapshot(),
           this.world.getVisualEffectsSnapshot(),
           this.clock.elapsedSeconds,
+          this.getExpansionSnapshot(),
         );
         this.#uiManager?.renderSnapshot(
           this.getHudSnapshot(),
@@ -160,6 +161,8 @@ export class Game {
   getMapSnapshot() {
     return this.world.getMapSnapshot();
   }
+
+  getExpansionSnapshot() { return this.world.getExpansionSnapshot(); }
 
   getHudSnapshot() {
     return this.world.getHudSnapshot();

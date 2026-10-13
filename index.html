@@ -15,7 +15,7 @@
           <div class="ui-card menu-card">
             <p class="eyebrow">PROTOCOL ZERO / 2149</p>
             <h1 id="game-title">零号协议<span>失控之城</span></h1>
-            <p class="menu-description">自主战斗单元 ZERO<br />废弃科技实验室 · 接入就绪</p>
+            <p class="menu-description">自主战斗单元 ZERO<br />选择部署区域 · 坚守五分钟</p>
             <label class="map-choice" for="map-select">部署区域
               <select id="map-select"><option value="laboratory">废弃科技实验室</option><option value="east-city">东城区疏散线 · 救援补给</option></select>
             </label>
@@ -39,6 +39,10 @@
             <dl class="control-list">
               <div><dt>WASD / 方向键</dt><dd>移动 ZERO，组合按键可斜向移动。</dd></div>
               <div><dt>Esc</dt><dd>暂停或继续游戏。</dd></div>
+              <div><dt>自动攻击 / 升级</dt><dd>靠近敌人自动射击，拾取经验后选择升级，可解锁轨道刃、弧光线圈与磁轨炮。</dd></div>
+              <div><dt>东城区 · 救援补给</dt><dd>45、135、225 秒出现补给点；跟随提示站入圆环累计 1.5 秒，领取随机道具。补给点仅停留 25 秒。</dd></div>
+              <div><dt>E · 诱饵信标</dt><dd>拾取后按 E 部署，吸引附近普通敌人 5 秒，首领不受影响。最多携带一个。</dd></div>
+              <div><dt>过载电池 / 回收扫描器</dt><dd>电池立即提高武器频率 8 秒；扫描器永久扩大本局经验拾取范围，最多三层。满容量道具会留在地上。</dd></div>
               <div><dt>窗口失焦</dt><dd>自动暂停，回到游戏后手动继续。</dd></div>
             </dl>
             <button id="hide-help-button" class="button-primary" type="button">返回主菜单</button>
@@ -56,6 +60,7 @@
           <div class="hud-item"><span class="hud-label">击杀</span><strong id="hud-kills"></strong></div>
           <div class="hud-item"><span class="hud-label">武器</span><strong id="hud-weapons"></strong></div>
         </aside>
+        <div id="expansion-hud" class="expansion-hud" aria-label="区域与道具状态" hidden></div>
         <section id="boss-hud" class="boss-hud" aria-label="首领状态" hidden>
           <h2 id="boss-name">机械暴君 T-01</h2>
           <span id="boss-health-value"></span>

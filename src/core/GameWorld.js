@@ -143,6 +143,11 @@ export class GameWorld {
 
   getSupplySnapshot() { return this.supplySystem.getSnapshot(); }
 
+  getExpansionSnapshot() {
+    return Object.freeze({ map: this.getMapSnapshot(), supply: this.getSupplySnapshot(),
+      arc: this.arcCoilSystem.getSnapshot(), rail: this.railgunSystem.getSnapshot() });
+  }
+
   get killCount() {
     return this.#killCount;
   }

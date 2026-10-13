@@ -659,3 +659,23 @@ h2 {
 /* Deployment region selection shares the existing menu flow. */
 .map-choice { display: grid; gap: .45rem; margin: .75rem 0; color: #b7d4df; font-size: .85rem; }
 .map-choice select { width: 100%; padding: .65rem; color: #e2f8ff; background: #122536; border: 1px solid #3d647b; border-radius: 6px; font: inherit; }
+
+.expansion-hud {
+  position: absolute;
+  inset: auto 14px 14px;
+  padding: 8px 12px;
+  border-left: 2px solid #83efba;
+  background: rgb(6 16 28 / 90%);
+  color: #bfe8d3;
+  font-size: 12px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+#hud-weapons { font-size: 12px; }
+.boss-hud { top: 102px; }
+@container (max-width: 700px) {
+  .expansion-hud { inset: auto 8px 6px; padding: 4px 6px; font-size: 10px; }
+  #hud-weapons { font-size: 10px; }
+  .boss-hud { top: 106px; }
+}
