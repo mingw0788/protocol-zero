@@ -33,6 +33,27 @@ function createController() {
 }
 
 describe('InputController', () => {
+  it('consumes E once per press and clears pending actions on pause and blur', () => {
+    const { controller, stateManager, windowTarget } = createController();
+    controller.start();
+    stateManager.startGame();
+    windowTarget.dispatchEvent('keydown', { code: 'KeyE' });
+    windowTarget.dispatchEvent('keydown', { code: 'KeyE', repeat: true });
+    expect(controller.consumeItemUsePress()).toBe(true);
+    expect(controller.consumeItemUsePress()).toBe(false);
+    windowTarget.dispatchEvent('keyup', { code: 'KeyE' });
+    windowTarget.dispatchEvent('keydown', { code: 'KeyE' });
+    stateManager.pause();
+    expect(controller.consumeItemUsePress()).toBe(false);
+    stateManager.resume();
+    windowTarget.dispatchEvent('keydown', { code: 'KeyE', repeat: true });
+    expect(controller.consumeItemUsePress()).toBe(false);
+    windowTarget.dispatchEvent('keyup', { code: 'KeyE' });
+    windowTarget.dispatchEvent('keydown', { code: 'KeyE' });
+    windowTarget.dispatchEvent('blur');
+    expect(controller.consumeItemUsePress()).toBe(false);
+    controller.stop();
+  });
   it('maps WASD and arrow keys to a movement vector and releases individual keys', () => {
     const { controller, stateManager, windowTarget } = createController();
     controller.start();

@@ -23,6 +23,7 @@ import { UpgradeEffectSystem } from '../systems/UpgradeEffectSystem.js';
 import { ParticleSystem } from '../systems/ParticleSystem.js';
 import { createRandomStream } from './createRandomStream.js';
 import { getMapConfig } from '../config/mapConfig.js';
+import { SupplySystem } from '../systems/SupplySystem.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -54,6 +55,7 @@ export class GameWorld {
     inputController = null,
     random = Math.random,
     upgradeRandom = createRandomStream(),
+    supplyRandom = createRandomStream(),
     world = WORLD_MAP,
     enemyConfig = ENEMY_CONFIG,
     waveConfig = WAVE_CONFIG,
@@ -64,6 +66,8 @@ export class GameWorld {
     this.mapConfig = getMapConfig('laboratory');
     this.clock = clock;
     this.player = player;
+    this.inputController = inputController;
+    this.supplySystem = new SupplySystem({ player, random: supplyRandom });
     this.camera = camera;
     this.enemies = [];
     this.projectiles = [];
@@ -125,12 +129,15 @@ export class GameWorld {
     const map = getMapConfig(id);
     if (!map || this.stateManager.currentState !== GAME_STATES.MENU) return false;
     this.mapConfig = map;
+    this.supplySystem.setEnabled(map.supplies);
     return true;
   }
 
   getMapSnapshot() {
     return Object.freeze({ id: this.mapConfig.id, name: this.mapConfig.name });
   }
+
+  getSupplySnapshot() { return this.supplySystem.getSnapshot(); }
 
   get killCount() {
     return this.#killCount;
@@ -230,13 +237,15 @@ export class GameWorld {
     this.particleSystem.update(deltaSeconds);
     this.damageSystem.update(deltaSeconds);
     this.playerSystem.update(deltaSeconds);
+    if (this.inputController?.consumeItemUsePress?.()) this.supplySystem.deploy();
+    this.supplySystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
     this.camera.follow(this.player);
     this.#settleEnemyDeaths();
     this.enemySystem.cleanup();
     const waveSnapshot = this.waveSystem.getSnapshot(this.clock.elapsedSeconds + deltaSeconds);
     this.spawnSystem.update(deltaSeconds, waveSnapshot);
     this.bossSystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
-    this.enemySystem.update(deltaSeconds);
+    this.enemySystem.update(deltaSeconds, (enemy) => this.supplySystem.targetFor(enemy));
     const damageResult = this.damageSystem.applyContactDamage(this.collisionSystem.getPlayerContacts());
     if (damageResult.damaged && !damageResult.killed) {
       this.particleSystem.emitPlayerHit(this.player);
@@ -258,7 +267,7 @@ export class GameWorld {
     });
     this.#settleEnemyDeaths();
     this.enemySystem.cleanup();
-    this.experienceSystem.update(deltaSeconds);
+    this.experienceSystem.update(deltaSeconds, this.supplySystem.pickupRadiusBonus);
     const gainedLevels = this.levelSystem.processExperience();
     this.clock.advance(deltaSeconds);
     this.#simulationSteps += 1;
@@ -312,6 +321,8 @@ export class GameWorld {
     this.clock.reset();
     this.particleSystem.reset();
     this.playerSystem.reset();
+    this.inputController?.clear?.();
+    this.supplySystem.reset();
     this.camera.follow(this.player);
     this.enemies.length = 0;
     this.bossSystem.reset();

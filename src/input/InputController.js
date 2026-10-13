@@ -17,6 +17,8 @@ export class InputController {
   #documentTarget;
   #pressedKeys = new Set();
   #started = false;
+  #itemUsePending = false;
+  #itemHeld = false;
   #unsubscribeState = null;
 
   constructor({
@@ -71,9 +73,24 @@ export class InputController {
 
   clear() {
     this.#pressedKeys.clear();
+    this.#itemUsePending = false;
+    this.#itemHeld = false;
+  }
+
+  consumeItemUsePress() {
+    const pending = this.#itemUsePending;
+    this.#itemUsePending = false;
+    return pending;
   }
 
   #handleKeyDown = (event) => {
+    if (event.code === 'KeyE') {
+      if (!this.#stateManager.isPlaying()) return;
+      event.preventDefault?.();
+      if (!event.repeat && !this.#itemHeld) this.#itemUsePending = true;
+      this.#itemHeld = true;
+      return;
+    }
     if (!Object.hasOwn(KEY_DIRECTIONS, event.code)) return;
     if (!this.#stateManager.isPlaying()) {
       this.clear();
@@ -85,6 +102,7 @@ export class InputController {
   };
 
   #handleKeyUp = (event) => {
+    if (event.code === 'KeyE') { this.#itemHeld = false; return; }
     if (!Object.hasOwn(KEY_DIRECTIONS, event.code)) return;
     event.preventDefault?.();
     this.#pressedKeys.delete(event.code);

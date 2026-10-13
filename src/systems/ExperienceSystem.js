@@ -67,7 +67,8 @@ export class ExperienceSystem {
     this.#nextId += 1;
   }
 
-  update(deltaSeconds) {
+  update(deltaSeconds, pickupRadiusBonus = 0) {
+    if (!Number.isFinite(pickupRadiusBonus) || pickupRadiusBonus < 0) throw new RangeError('Invalid pickup radius bonus');
     if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0) {
       throw new RangeError('deltaSeconds must be a non-negative finite number');
     }
@@ -78,7 +79,7 @@ export class ExperienceSystem {
 
       const distance = Math.hypot(this.player.x - crystal.x, this.player.y - crystal.y);
       if (this.player.alive === true
-        && distance <= this.player.radius + crystal.pickupRadius) {
+        && distance <= this.player.radius + crystal.pickupRadius + pickupRadiusBonus) {
         crystal.active = false;
         this.player.exp += crystal.expValue;
         continue;

@@ -24,7 +24,7 @@ export class EnemySystem {
     this.world = world;
   }
 
-  update(deltaSeconds) {
+  update(deltaSeconds, targetFor = null) {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0) {
       throw new RangeError('deltaSeconds must be a non-negative finite number');
     }
@@ -33,8 +33,9 @@ export class EnemySystem {
     for (const enemy of this.enemies) {
       if (!enemy.alive || enemy.hp <= 0 || enemy.category === 'boss') continue;
 
-      const deltaX = this.player.x - enemy.x;
-      const deltaY = this.player.y - enemy.y;
+      const target = targetFor?.(enemy) ?? this.player;
+      const deltaX = target.x - enemy.x;
+      const deltaY = target.y - enemy.y;
       const distance = Math.hypot(deltaX, deltaY);
       if (distance === 0) continue;
 
