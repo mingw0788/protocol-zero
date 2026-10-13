@@ -5,6 +5,10 @@ export class MapRenderer {
     this.map = map;
   }
 
+  setMap(map) {
+    this.map = map;
+  }
+
   render(context, camera) {
     const { width, height, gridSpacing } = this.map;
 
@@ -19,6 +23,24 @@ export class MapRenderer {
 
     context.fillStyle = this.map.backgroundColor;
     context.fillRect(0, 0, width, height);
+
+    if (this.map.theme === 'city') {
+      context.fillStyle = '#202c39';
+      context.fillRect(0, 535, width, 280);
+      context.fillRect(1040, 0, 320, height);
+      context.fillStyle = '#96834b';
+      for (let x = 24; x < width; x += 96) context.fillRect(x, 671, 48, 6);
+      for (let y = 24; y < height; y += 96) context.fillRect(1197, y, 6, 48);
+      context.fillStyle = '#284a50';
+      for (let x = 120; x < width; x += 480) {
+        for (const y of [160, 980]) {
+          context.fillRect(x, y, 180, 80);
+          context.fillStyle = '#5a9393';
+          context.fillRect(x + 12, y + 12, 80, 4);
+          context.fillStyle = '#284a50';
+        }
+      }
+    }
 
     context.beginPath();
     for (let x = 0; x < width; x += gridSpacing) {

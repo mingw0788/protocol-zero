@@ -22,6 +22,7 @@ import { UpgradeSystem } from '../systems/UpgradeSystem.js';
 import { UpgradeEffectSystem } from '../systems/UpgradeEffectSystem.js';
 import { ParticleSystem } from '../systems/ParticleSystem.js';
 import { createRandomStream } from './createRandomStream.js';
+import { getMapConfig } from '../config/mapConfig.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -60,6 +61,7 @@ export class GameWorld {
   } = {}) {
     requireCamera(camera);
     this.stateManager = stateManager;
+    this.mapConfig = getMapConfig('laboratory');
     this.clock = clock;
     this.player = player;
     this.camera = camera;
@@ -117,6 +119,17 @@ export class GameWorld {
 
   get simulationSteps() {
     return this.#simulationSteps;
+  }
+
+  setMap(id) {
+    const map = getMapConfig(id);
+    if (!map || this.stateManager.currentState !== GAME_STATES.MENU) return false;
+    this.mapConfig = map;
+    return true;
+  }
+
+  getMapSnapshot() {
+    return Object.freeze({ id: this.mapConfig.id, name: this.mapConfig.name });
   }
 
   get killCount() {

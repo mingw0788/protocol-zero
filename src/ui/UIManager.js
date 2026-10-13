@@ -105,6 +105,11 @@ export class UIManager {
     if (this.#started) return;
     this.#started = true;
     const e = this.#elements;
+    const mapSelect = this.#root.querySelector('#map-select');
+    if (mapSelect) this.#listen(mapSelect, 'change', () => {
+      this.#game.selectMap(mapSelect.value);
+      mapSelect.value = this.#game.getMapSnapshot().id;
+    });
     this.#listen(e.start, 'click', () => this.#game.startGame());
     this.#listen(e.showHelp, 'click', () => this.#showHelp(true));
     this.#listen(e.hideHelp, 'click', () => this.#showHelp(false));

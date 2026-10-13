@@ -21,6 +21,7 @@ export class Game {
   #audioManager;
   #unsubscribeSoundEvents;
   #progressSystem;
+  #mapRenderer = new MapRenderer();
 
   constructor({
     canvas = null,
@@ -69,7 +70,7 @@ export class Game {
       ? new CanvasRenderer({
         canvas,
         camera: this.camera,
-        mapRenderer: new MapRenderer(),
+        mapRenderer: this.#mapRenderer,
         experienceCrystalRenderer: new ExperienceCrystalRenderer(),
         projectileRenderer: new ProjectileRenderer(),
         enemyRenderer: new EnemyRenderer(),
@@ -148,6 +149,16 @@ export class Game {
     if (this.#soundEnabled) this.#audioManager.unlock();
     this.world.reset();
     return this.stateManager.startGame();
+  }
+
+  selectMap(id) {
+    if (!this.world.setMap(id)) return false;
+    this.#mapRenderer.setMap(this.world.mapConfig);
+    return true;
+  }
+
+  getMapSnapshot() {
+    return this.world.getMapSnapshot();
   }
 
   getHudSnapshot() {

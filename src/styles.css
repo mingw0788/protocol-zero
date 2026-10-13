@@ -656,3 +656,6 @@ h2 {
     transition: none;
   }
 }
+/* Deployment region selection shares the existing menu flow. */
+.map-choice { display: grid; gap: .45rem; margin: .75rem 0; color: #b7d4df; font-size: .85rem; }
+.map-choice select { width: 100%; padding: .65rem; color: #e2f8ff; background: #122536; border: 1px solid #3d647b; border-radius: 6px; font: inherit; }
