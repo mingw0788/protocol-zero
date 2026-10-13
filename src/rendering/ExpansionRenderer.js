@@ -1,5 +1,5 @@
 const CAPSULES = Object.freeze({
-  battery: { color: '#ffcc77', symbol: '+' },
+  overclock: { color: '#ffcc77', symbol: '+' },
   decoy: { color: '#ff88c8', symbol: '◎' },
   scanner: { color: '#83efba', symbol: '⌖' },
 });

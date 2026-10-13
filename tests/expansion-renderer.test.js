@@ -17,7 +17,7 @@ describe('ExpansionRenderer', () => {
   it('clips world art, distinguishes capsules and draws beams without modifying snapshots', () => {
     const ctx = context();
     const snapshot = { supply: { station: { x: 1200, y: 675, radius: 56, progress: 0.5 },
-      pickups: ['battery', 'decoy', 'scanner'].map((type, i) => ({ type, x: 1200 + i * 40, y: 750 })),
+      pickups: ['overclock', 'decoy', 'scanner'].map((type, i) => ({ type, x: 1200 + i * 40, y: 750 })),
       decoy: { x: 1200, y: 800, radius: 420 } },
     arc: [{ x1: 1200, y1: 675, x2: 1300, y2: 675, color: '#a796ff' }],
     rail: [{ x1: 1200, y1: 675, x2: 2000, y2: 675, color: '#ffcc77' }] };
@@ -34,7 +34,7 @@ describe('ExpansionRenderer', () => {
   it('keeps offscreen station hints inside the viewport and omits offscreen capsules', () => {
     const ctx = context();
     new ExpansionRenderer().render(ctx, new Camera(), { supply: {
-      station: { x: 0, y: 0, radius: 56, progress: 0 }, pickups: [{ x: -1000, y: -1000, type: 'battery' }],
+      station: { x: 0, y: 0, radius: 56, progress: 0 }, pickups: [{ x: -1000, y: -1000, type: 'overclock' }],
     }, arc: [], rail: [] });
     const hint = ctx.fillText.mock.calls.find(([text]) => text.includes('补给'));
     expect(hint).toBeDefined();
