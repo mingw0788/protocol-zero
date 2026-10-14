@@ -33,25 +33,64 @@ function createController() {
 }
 
 describe('InputController', () => {
-  it('consumes E once per press and clears pending actions on pause and blur', () => {
+  it('consumes E and Q once per press, and clears item actions on pause and blur', () => {
     const { controller, stateManager, windowTarget } = createController();
     controller.start();
     stateManager.startGame();
     windowTarget.dispatchEvent('keydown', { code: 'KeyE' });
     windowTarget.dispatchEvent('keydown', { code: 'KeyE', repeat: true });
-    expect(controller.consumeItemUsePress()).toBe(true);
-    expect(controller.consumeItemUsePress()).toBe(false);
+    expect(controller.consumeItemUsePress()).toEqual({ slot: 0 });
+    expect(controller.consumeItemUsePress()).toBeNull();
     windowTarget.dispatchEvent('keyup', { code: 'KeyE' });
     windowTarget.dispatchEvent('keydown', { code: 'KeyE' });
     stateManager.pause();
-    expect(controller.consumeItemUsePress()).toBe(false);
+    expect(controller.consumeItemUsePress()).toBeNull();
     stateManager.resume();
     windowTarget.dispatchEvent('keydown', { code: 'KeyE', repeat: true });
-    expect(controller.consumeItemUsePress()).toBe(false);
+    expect(controller.consumeItemUsePress()).toBeNull();
     windowTarget.dispatchEvent('keyup', { code: 'KeyE' });
     windowTarget.dispatchEvent('keydown', { code: 'KeyE' });
     windowTarget.dispatchEvent('blur');
-    expect(controller.consumeItemUsePress()).toBe(false);
+    expect(controller.consumeItemUsePress()).toBeNull();
+    controller.stop();
+  });
+
+  it('maps Q to the second item slot and F to a separate one-shot exchange action', () => {
+    const { controller, stateManager, windowTarget } = createController();
+    controller.start();
+    stateManager.startGame();
+    windowTarget.dispatchEvent('keydown', { code: 'KeyQ' });
+    windowTarget.dispatchEvent('keydown', { code: 'KeyQ', repeat: true });
+    expect(controller.consumeItemUsePress()).toEqual({ slot: 1 });
+    windowTarget.dispatchEvent('keyup', { code: 'KeyQ' });
+    windowTarget.dispatchEvent('keydown', { code: 'KeyF' });
+    windowTarget.dispatchEvent('keydown', { code: 'KeyF', repeat: true });
+    expect(controller.consumeItemExchangePress()).toBe(true);
+    expect(controller.consumeItemExchangePress()).toBe(false);
+    windowTarget.dispatchEvent('keyup', { code: 'KeyF' });
+    windowTarget.dispatchEvent('keydown', { code: 'KeyE' });
+    windowTarget.dispatchEvent('keydown', { code: 'KeyF' });
+    expect(controller.consumeItemExchangePress()).toBe(true);
+    expect(controller.consumeItemUsePress()).toEqual({ slot: 0 });
+    stateManager.pause();
+    expect(controller.consumeItemExchangePress()).toBe(false);
+    expect(controller.consumeItemUsePress()).toBeNull();
+    controller.stop();
+  });
+
+  it('selects a slot with C without queuing use and clears selection input on pause', () => {
+    const { controller, stateManager, windowTarget } = createController();
+    controller.start();
+    stateManager.startGame();
+    windowTarget.dispatchEvent('keydown', { code: 'KeyC' });
+    windowTarget.dispatchEvent('keydown', { code: 'KeyC', repeat: true });
+    expect(controller.consumeItemSelectPress()).toBe(true);
+    expect(controller.consumeItemSelectPress()).toBe(false);
+    expect(controller.consumeItemUsePress()).toBeNull();
+    windowTarget.dispatchEvent('keyup', { code: 'KeyC' });
+    windowTarget.dispatchEvent('keydown', { code: 'KeyC' });
+    stateManager.pause();
+    expect(controller.consumeItemSelectPress()).toBe(false);
     controller.stop();
   });
   it('maps WASD and arrow keys to a movement vector and releases individual keys', () => {

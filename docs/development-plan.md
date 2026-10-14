@@ -325,3 +325,7 @@ Git Commit：哈希或未提交原因
 ## 最新玩法扩展路线：T034–T045
 
 用户授权执行 `docs/superpowers/plans/2026-10-14-gameplay-expansion-roadmap.md`。T034 已完成并为后续来源伤害建立统计口径；T035–T045 按该路线图依赖顺序实施。T034 规格为 `docs/superpowers/specs/2026-10-14-t034-combat-statistics-design.md`，报告为 `docs/task-report-T034.md`。
+
+### T035 双主动道具槽
+
+依赖 T034，已完成双槽状态、离散输入、原子地面交换、失败提示与 UI/帮助。规格见 `docs/superpowers/specs/2026-10-14-t035-active-item-slots-design.md`，验证与限制见 `docs/task-report-T035.md`。下一依赖项 T036 负责地图事件，T041 才扩展四种新物品。

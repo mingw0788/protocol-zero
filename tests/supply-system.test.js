@@ -21,7 +21,7 @@ describe('city supplies', () => {
     expect(system.getSnapshot().pickups).toHaveLength(0);
   });
 
-  it('uses one active slot for EMP or relay cell and preserves a relay cell out of range', () => {
+  it('uses a selected active slot for EMP or relay cell and preserves it out of range', () => {
     const { player, system } = setup();
     const enemies = [{id:'near',x:player.x+100,y:player.y,radius:16,hp:100,alive:true},
       {id:'boss',x:player.x+100,y:player.y+15,radius:24,hp:100,alive:true,category:'boss'},
@@ -88,10 +88,11 @@ describe('city supplies', () => {
     expect(system.getSnapshot().pickups).toHaveLength(0);
   });
 
-  it('carries one charge, preserves overflow, deploys one beacon and excludes Boss', () => {
+  it('carries two charges, preserves overflow, deploys one beacon and excludes Boss', () => {
     const { player, system } = setup();
     system.addPickup('decoy', player.x, player.y);
     system.addPickup('decoy', player.x, player.y);
+    system.addPickup('emp-charge', player.x, player.y);
     system.update(.1, .1);
     expect(system.getSnapshot().pickups).toHaveLength(1);
     expect(system.deploy()).toBe(true);
@@ -101,7 +102,7 @@ describe('city supplies', () => {
     expect(system.targetFor({ x: 360, y: 360, category: 'boss' })).toBeNull();
     system.update(5, 5.1);
     expect(system.getSnapshot().decoy).toBeNull();
-    expect(system.getSnapshot().activeItem).toBe('decoy');
+    expect(system.getSnapshot().activeItems).toEqual(['emp-charge', 'decoy']);
     system.reset();
     expect(system.getSnapshot()).toMatchObject({ activeItem: null, scannerStacks: 0, overclockRemaining: 0, station: null, pickups: [] });
   });

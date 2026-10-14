@@ -548,3 +548,7 @@ TacticalHUD 消费扩展快照并显示状态/导航；TacticalRenderer 分为�
 CombatStatsSystem 只持有本局聚合数字与只读快照，不拥有实体、伤害计算或 UI。EnemyDamageSystem 对每次有效伤害发出包含来源、目标种类、请求伤害和实际生命扣除量的只读记录；武器、EMP 与中继在调用时给出稳定来源 ID。致死过量只记录目标剩余生命。Enemy 实体暂存最后有效伤害来源，GameWorld 的现有幂等死亡收尾据此记录一次击杀归属，同时保留原公开敌人死亡事件字段。
 
 DamageSystem 继续对同一固定步所有接触取最大单体伤害一次，并在结果补充实际生命损失、护盾吸收及达到最大伤害的来源种类。并列来源对各自伤害统计等分，避免按来源求和时重复。GameWorld 在实际战斗事件处更新统计，重开时清零，并只在正式结果快照附带冻结摘要；HUD 当前保持不变，结算展示留待 T043。
+
+### T035 双主动槽
+
+SupplySystem 持有两槽与选中槽，自动拾取填第一个空槽；交换原子替换地面对象类型，不创建额外实体。快照深冻结 activeItems/nearbyActivePickup，activeItem 暂为 slot0 别名。InputController 对 E/Q/F/C 只记录一次按下，GameWorld 先选槽再处理交换或使用；同一固定步 F 优先并消费使用请求。UIManager 只读取槽位与附近物状态；清理、冻结和 reset 仍沿用同一世界生命周期。

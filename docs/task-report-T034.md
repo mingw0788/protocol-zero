@@ -2,7 +2,7 @@
 
 - Task ID：T034
 - 执行状态：完成（统计接口、回归覆盖、文档和生产构建通过；无 UI 展示，展示归 T043）。
-- 实现提交：待提交。
+- 实现提交：`6a75acb`。
 - 设计与范围：`docs/superpowers/specs/2026-10-14-t034-combat-statistics-design.md`；总路线：`docs/superpowers/plans/2026-10-14-gameplay-expansion-roadmap.md`。
 
 ## 实现内容

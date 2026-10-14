@@ -130,12 +130,12 @@ describe('UIManager with real Game state', () => {
     h.get('map-select').value = 'east-city';
     emit(h.get('map-select'), 'change');
     h.click('start-game-button');
-    expect(h.get('expansion-hud').textContent).toContain('主动道具空槽');
+    expect(h.get('active-item-slot-0').textContent).toContain('E · 空槽');
     const player = h.game.world.player;
     h.game.world.supplySystem.addPickup('decoy', player.x, player.y);
     h.game.world.update(1 / 60);
     h.ui.renderSnapshot(h.game.getHudSnapshot(), GAME_STATES.PLAYING);
-    expect(h.get('expansion-hud').textContent).toContain('E · 部署诱饵');
+    expect(h.get('active-item-slot-0').textContent).toContain('E · 诱饵信标');
     h.key('KeyE');
     h.game.world.update(1 / 60);
     expect(h.game.getExpansionSnapshot().supply.decoy).not.toBeNull();
@@ -148,7 +148,7 @@ describe('UIManager with real Game state', () => {
     h.click('confirm-return-button');
     h.click('start-game-button');
     expect(h.game.getMapSnapshot().id).toBe('east-city');
-    expect(h.get('expansion-hud').textContent).toContain('主动道具空槽');
+    expect(h.get('active-item-slot-0').textContent).toContain('E · 空槽');
     expect(h.game.getExpansionSnapshot().supply.decoy).toBeNull();
     player.x = 620; player.y = 360; player.hp = 50;
     h.game.world.supplySystem.addPickup('medkit', player.x, player.y);
@@ -162,6 +162,64 @@ describe('UIManager with real Game state', () => {
     h.key('KeyE'); h.game.world.update(1 / 60);
     expect(h.game.world.getExpansionSnapshot().relays[0].energy).toBe(100);
     expect(h.game.world.getSupplySnapshot().activeItem).toBeNull();
+  });
+
+  it('shows two selectable item slots and uses the Q slot independently', () => {
+    const h = createHarness();
+    h.get('map-select').value = 'east-city';
+    emit(h.get('map-select'), 'change');
+    h.click('start-game-button');
+    const player = h.game.world.player;
+    h.game.world.supplySystem.addPickup('decoy', player.x, player.y);
+    h.game.world.supplySystem.addPickup('emp-charge', player.x, player.y);
+    h.game.world.update(1 / 60);
+    h.ui.renderSnapshot(h.game.getHudSnapshot(), GAME_STATES.PLAYING);
+    expect(h.get('active-item-slot-0').textContent).toContain('E · 诱饵信标');
+    expect(h.get('active-item-slot-1').textContent).toContain('Q · EMP 电荷');
+    expect(h.get('active-item-hud').getAttribute('data-selected-slot')).toBe('0');
+
+    const enemy = new Enemy({ id: 'q-slot-emp-target', x: player.x + 80, y: player.y });
+    h.game.world.enemies.push(enemy);
+    h.key('KeyQ');
+    h.game.world.update(1 / 60);
+    h.ui.renderSnapshot(h.game.getHudSnapshot(), GAME_STATES.PLAYING);
+    expect(enemy.hp).toBe(0);
+    expect(h.get('active-item-hud').getAttribute('data-selected-slot')).toBe('1');
+    expect(h.game.world.getSupplySnapshot().activeItems).toEqual(['decoy', null]);
+  });
+
+  it('prioritizes F exchange when E is pressed in the same simulation step', () => {
+    const h = createHarness();
+    h.click('start-game-button');
+    const player = h.game.world.player;
+    h.game.world.supplySystem.addPickup('decoy', player.x, player.y);
+    h.game.world.supplySystem.addPickup('emp-charge', player.x, player.y);
+    h.game.world.update(1 / 60);
+    h.game.world.supplySystem.addPickup('relay-cell', player.x + 40, player.y);
+    h.key('KeyE');
+    h.key('KeyF');
+    h.game.world.update(1 / 60);
+    expect(h.game.world.getSupplySnapshot().activeItems).toEqual(['relay-cell', 'emp-charge']);
+    expect(h.game.world.getSupplySnapshot().decoy).toBeNull();
+    expect(h.game.world.getSupplySnapshot().pickups[0].type).toBe('decoy');
+  });
+
+  it('uses C to select a full Q slot without deploying it before F exchange', () => {
+    const h = createHarness();
+    h.click('start-game-button');
+    const player = h.game.world.player;
+    h.game.world.supplySystem.addPickup('decoy', player.x, player.y);
+    h.game.world.supplySystem.addPickup('emp-charge', player.x, player.y);
+    h.game.world.update(1 / 60);
+    h.key('KeyC');
+    h.game.world.update(1 / 60);
+    expect(h.game.world.getSupplySnapshot().selectedSlot).toBe(1);
+    expect(h.game.world.getSupplySnapshot().activeItems).toEqual(['decoy', 'emp-charge']);
+    h.game.world.supplySystem.addPickup('relay-cell', player.x + 40, player.y);
+    h.key('KeyF');
+    h.game.world.update(1 / 60);
+    expect(h.game.world.getSupplySnapshot().activeItems).toEqual(['decoy', 'relay-cell']);
+    expect(h.game.world.getSupplySnapshot().pulse).toBeNull();
   });
 
   it('shows an immutable victory summary and restarts a clean run from the result panel', () => {

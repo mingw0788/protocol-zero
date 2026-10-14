@@ -10,6 +10,8 @@ describe('world supply lifecycle', () => {
     world.stateManager.startGame();
     world.supplySystem.addPickup('scanner', world.player.x, world.player.y);
     world.supplySystem.addPickup('overclock', world.player.x, world.player.y);
+    world.supplySystem.addPickup('decoy', world.player.x, world.player.y);
+    world.supplySystem.addPickup('emp-charge', world.player.x, world.player.y);
     world.experienceCrystals.push(new ExperienceCrystal({ id: 'scanner-range', x: world.player.x + 35, y: world.player.y, expValue: 1 }));
     world.update(1 / 60);
     expect(world.player.exp).toBe(1);
@@ -25,6 +27,12 @@ describe('world supply lifecycle', () => {
     world.stateManager.completeLevelUp();
     world.reset();
     expect(world.getMapSnapshot().id).toBe('east-city');
-    expect(world.getSupplySnapshot()).toMatchObject({ scannerStacks: 0, overclockRemaining: 0, activeItem: null });
+    expect(world.getSupplySnapshot()).toMatchObject({
+      scannerStacks: 0,
+      overclockRemaining: 0,
+      activeItem: null,
+      activeItems: [null, null],
+      selectedSlot: 0,
+    });
   });
 });

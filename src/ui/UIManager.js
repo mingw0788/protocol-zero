@@ -1,5 +1,6 @@
 import { GAME_STATES } from '../core/GameStateManager.js';
 import { TacticalHUD } from './TacticalHUD.js';
+import { SUPPLY_NAMES } from '../config/supplyConfig.js';
 
 const WEAPON_LABELS = Object.freeze({ 'pulse-gun': '脉冲枪', 'orbital-blade': '轨道刃',
   'arc-coil': '弧光线圈', railgun: '磁轨炮' });
@@ -82,6 +83,9 @@ export class UIManager {
     this.#tacticalHUD = new TacticalHUD(root);
     this.#elements.reroll = root.querySelector('#reroll-upgrades-button');
     this.#elements.expansion = root.querySelector('#expansion-hud');
+    this.#elements.activeItemHud = root.querySelector('#active-item-hud');
+    this.#elements.activeItemSlots = [0, 1].map((index) => root.querySelector(`#active-item-slot-${index}`));
+    this.#elements.activeItemExchange = root.querySelector('#active-item-exchange');
     this.#game = game;
     this.#windowTarget = windowTarget;
     for (const [name, id] of Object.entries(ELEMENT_IDS)) {
@@ -168,6 +172,7 @@ export class UIManager {
   renderSnapshot(snapshot, currentState, bossSnapshot = this.#game.getBossSnapshot()) {
     this.#tacticalHUD.render(this.#game.getExpansionSnapshot?.(), currentState === GAME_STATES.PLAYING);
     this.#renderExpansion(currentState);
+    this.#renderActiveItems(currentState);
     this.#renderBossSnapshot(bossSnapshot, currentState);
     this.#renderRunResult(currentState);
     this.#renderRecords();
@@ -220,8 +225,7 @@ export class UIManager {
     element.hidden = state !== GAME_STATES.PLAYING || !snapshot;
     if (element.hidden) return;
     const { supply, map } = snapshot;
-    const itemNames = { decoy: '部署诱饵', 'emp-charge': '释放 EMP', 'relay-cell': '使用中继电芯' };
-    const parts = [map.name, supply.activeItem ? `E · ${itemNames[supply.activeItem] ?? supply.activeItem}` : 'E · 主动道具空槽'];
+    const parts = [map.name];
     const origin = snapshot.playerPosition;
     if (origin && snapshot.relays?.length) {
       const available = snapshot.relays
@@ -241,6 +245,30 @@ export class UIManager {
     if (supply.scannerStacks > 0) parts.push(`扫描器 ${supply.scannerStacks}/3`);
     if (supply.station) parts.push(`救援补给 ${Math.ceil(supply.station.remaining)}s · 蓄能 ${Math.floor(supply.station.progress * 100)}%`);
     this.#setText(element, parts.join('  /  '));
+  }
+
+  #renderActiveItems(state) {
+    const e = this.#elements;
+    const hud = e.activeItemHud;
+    if (!hud) return;
+    const snapshot = this.#game.getExpansionSnapshot?.();
+    hud.hidden = state !== GAME_STATES.PLAYING || !snapshot;
+    if (hud.hidden) return;
+    const { activeItems, selectedSlot, nearbyActivePickup } = snapshot.supply;
+    hud.setAttribute('data-selected-slot', String(selectedSlot));
+    for (let index = 0; index < e.activeItemSlots.length; index += 1) {
+      const slot = e.activeItemSlots[index];
+      if (!slot) continue;
+      const type = activeItems?.[index] ?? null;
+      this.#setText(slot, `${index === 0 ? 'E' : 'Q'} · ${type ? SUPPLY_NAMES[type] ?? type : '空槽'}`);
+      slot.setAttribute('data-selected', String(selectedSlot === index));
+    }
+    if (e.activeItemExchange) {
+      const hint = nearbyActivePickup
+        ? `C 选槽 · F 换 ${SUPPLY_NAMES[nearbyActivePickup.type] ?? nearbyActivePickup.type}`
+        : 'C 选槽 · F 交换';
+      this.#setText(e.activeItemExchange, hint);
+    }
   }
 
   #renderState(state) {

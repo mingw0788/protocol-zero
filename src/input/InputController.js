@@ -17,8 +17,12 @@ export class InputController {
   #documentTarget;
   #pressedKeys = new Set();
   #started = false;
-  #itemUsePending = false;
-  #itemHeld = false;
+  #itemUsePending = null;
+  #itemKeys = new Set();
+  #itemExchangePending = false;
+  #exchangeHeld = false;
+  #itemSelectPending = false;
+  #selectHeld = false;
   #dashPending = false;
   #dashKeys = new Set();
   #unsubscribeState = null;
@@ -75,8 +79,12 @@ export class InputController {
 
   clear() {
     this.#pressedKeys.clear();
-    this.#itemUsePending = false;
-    this.#itemHeld = false;
+    this.#itemUsePending = null;
+    this.#itemKeys.clear();
+    this.#itemExchangePending = false;
+    this.#exchangeHeld = false;
+    this.#itemSelectPending = false;
+    this.#selectHeld = false;
     this.#dashPending = false;
     this.#dashKeys.clear();
   }
@@ -89,7 +97,19 @@ export class InputController {
 
   consumeItemUsePress() {
     const pending = this.#itemUsePending;
-    this.#itemUsePending = false;
+    this.#itemUsePending = null;
+    return pending;
+  }
+
+  consumeItemExchangePress() {
+    const pending = this.#itemExchangePending;
+    this.#itemExchangePending = false;
+    return pending;
+  }
+
+  consumeItemSelectPress() {
+    const pending = this.#itemSelectPending;
+    this.#itemSelectPending = false;
     return pending;
   }
 
@@ -101,11 +121,27 @@ export class InputController {
       this.#dashKeys.add(event.code);
       return;
     }
-    if (event.code === 'KeyE') {
+    if (event.code === 'KeyE' || event.code === 'KeyQ') {
       if (!this.#stateManager.isPlaying()) return;
       event.preventDefault?.();
-      if (!event.repeat && !this.#itemHeld) this.#itemUsePending = true;
-      this.#itemHeld = true;
+      if (!event.repeat && !this.#itemKeys.has(event.code) && this.#itemUsePending === null) {
+        this.#itemUsePending = { slot: event.code === 'KeyE' ? 0 : 1 };
+      }
+      this.#itemKeys.add(event.code);
+      return;
+    }
+    if (event.code === 'KeyF') {
+      if (!this.#stateManager.isPlaying()) return;
+      event.preventDefault?.();
+      if (!event.repeat && !this.#exchangeHeld) this.#itemExchangePending = true;
+      this.#exchangeHeld = true;
+      return;
+    }
+    if (event.code === 'KeyC') {
+      if (!this.#stateManager.isPlaying()) return;
+      event.preventDefault?.();
+      if (!event.repeat && !this.#selectHeld) this.#itemSelectPending = true;
+      this.#selectHeld = true;
       return;
     }
     if (!Object.hasOwn(KEY_DIRECTIONS, event.code)) return;
@@ -120,7 +156,9 @@ export class InputController {
 
   #handleKeyUp = (event) => {
     if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') { this.#dashKeys.delete(event.code); return; }
-    if (event.code === 'KeyE') { this.#itemHeld = false; return; }
+    if (event.code === 'KeyE' || event.code === 'KeyQ') { this.#itemKeys.delete(event.code); return; }
+    if (event.code === 'KeyF') { this.#exchangeHeld = false; return; }
+    if (event.code === 'KeyC') { this.#selectHeld = false; return; }
     if (!Object.hasOwn(KEY_DIRECTIONS, event.code)) return;
     event.preventDefault?.();
     this.#pressedKeys.delete(event.code);

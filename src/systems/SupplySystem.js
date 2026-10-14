@@ -10,7 +10,8 @@ export class SupplySystem {
   #station = null;
   #pickups = [];
   #decoy = null;
-  #activeItem = null;
+  #activeSlots = [null, null];
+  #selectedSlot = 0;
   #overclockRemaining = 0;
   #scannerStacks = 0;
   #pulse = null;
@@ -24,7 +25,7 @@ export class SupplySystem {
       throw new TypeError('SupplySystem requires player coordinates, radius and random source');
     }
     for (const key of ['windowSeconds', 'channelSeconds', 'stationRadius', 'pickupRadius', 'pickupLifetime',
-      'overclockSeconds', 'fireRateBonus', 'decoySeconds', 'decoyRadius', 'scannerBonus', 'scannerCap',
+      'overclockSeconds', 'fireRateBonus', 'decoySeconds', 'decoyRadius', 'scannerBonus', 'scannerCap', 'exchangeRadius',
       'medkitHealing', 'empRadius', 'empDamage', 'empBossDamage', 'empVisualSeconds']) {
       if (!Number.isFinite(config?.[key]) || config[key] <= 0) throw new RangeError('Invalid supply setting: ' + key);
     }
@@ -81,33 +82,94 @@ export class SupplySystem {
     return true;
   }
 
-  deploy() {
-    if (!this.player.alive || !this.#activeItem) return false;
-    if (this.#activeItem === 'decoy') {
-      this.#activeItem = null;
+  selectSlot(slotIndex) {
+    if (!Number.isSafeInteger(slotIndex) || slotIndex < 0 || slotIndex >= this.#activeSlots.length) {
+      throw new RangeError('Active item slot must be 0 or 1');
+    }
+    this.#selectedSlot = slotIndex;
+    return true;
+  }
+
+  cycleSelectedSlot() {
+    this.#selectedSlot = 1 - this.#selectedSlot;
+    return this.#selectedSlot;
+  }
+
+  deploy(slotIndex = this.#selectedSlot) {
+    this.selectSlot(slotIndex);
+    const activeItem = this.#activeSlots[slotIndex];
+    if (!this.player.alive) return false;
+    if (!activeItem) {
+      this.notify(`${slotIndex === 0 ? 'E' : 'Q'} 道具槽为空`);
+      return false;
+    }
+    if (activeItem === 'decoy') {
+      this.#activeSlots[slotIndex] = null;
       this.#decoy = { x: this.player.x, y: this.player.y, radius: this.config.decoyRadius, remaining: this.config.decoySeconds };
       this.onEvent?.('decoy-deploy');
       return true;
     }
-    if (this.#activeItem === 'emp-charge' && this.enemyDamageSystem && this.enemies) {
+    if (activeItem === 'emp-charge' && this.enemyDamageSystem && this.enemies) {
       for (const enemy of this.enemies) {
         if (enemy.alive && Math.hypot(enemy.x - this.player.x, enemy.y - this.player.y) <= this.config.empRadius + enemy.radius) {
           this.enemyDamageSystem.applyDamage(enemy, enemy.category === 'boss' ? this.config.empBossDamage : this.config.empDamage, 'emp-charge');
         }
       }
-      this.#activeItem = null;
+      this.#activeSlots[slotIndex] = null;
       this.#pulse = { x: this.player.x, y: this.player.y, radius: this.config.empRadius,
         remaining: this.config.empVisualSeconds, lifetime: this.config.empVisualSeconds };
       this.onEvent?.('emp-fire');
       return true;
     }
-    if (this.#activeItem === 'relay-cell' && this.relaySystem?.rechargeNearest(this.player.x, this.player.y)) {
-      this.#activeItem = null;
+    if (activeItem === 'relay-cell' && this.relaySystem?.rechargeNearest(this.player.x, this.player.y)) {
+      this.#activeSlots[slotIndex] = null;
       this.onEvent?.('relay-recharge');
       return true;
     }
-    if (this.#activeItem === 'relay-cell') this.notify('电芯未消耗 · 靠近未满能量中继后按 E');
+    if (activeItem === 'relay-cell') this.notify('电芯未消耗 · 靠近未满能量中继后按 E 或 Q');
     return false;
+  }
+
+  exchangeNearby() {
+    if (!this.player.alive) return false;
+    const pickupIndex = this.#findNearbyActivePickupIndex();
+    if (pickupIndex < 0) {
+      this.notify('附近没有可交换的主动道具');
+      return false;
+    }
+    const pickup = this.#pickups[pickupIndex];
+    const previousItem = this.#activeSlots[this.#selectedSlot];
+    const nextItem = pickup.type;
+    this.#activeSlots[this.#selectedSlot] = nextItem;
+    if (previousItem) {
+      pickup.type = previousItem;
+      pickup.remaining = this.config.pickupLifetime;
+    } else {
+      this.#pickups.splice(pickupIndex, 1);
+    }
+    this.#collected += 1;
+    this.notify(previousItem
+      ? `道具已交换 · ${SUPPLY_NAMES[nextItem]} / ${SUPPLY_NAMES[previousItem]}`
+      : `已拾取 · ${SUPPLY_NAMES[nextItem]}`);
+    this.onEvent?.('item-pickup');
+    return true;
+  }
+
+  #findNearbyActivePickupIndex() {
+    let index = -1;
+    let distance = Infinity;
+    for (let candidateIndex = 0; candidateIndex < this.#pickups.length; candidateIndex += 1) {
+      const pickup = this.#pickups[candidateIndex];
+      if (!['decoy', 'emp-charge', 'relay-cell'].includes(pickup.type)) continue;
+      const candidateDistance = Math.hypot(this.player.x - pickup.x, this.player.y - pickup.y);
+      if (candidateDistance > this.config.exchangeRadius) continue;
+      const current = index >= 0 ? this.#pickups[index] : null;
+      if (candidateDistance < distance || (candidateDistance === distance && pickup.id.localeCompare(current.id) < 0)) {
+        index = candidateIndex;
+        distance = candidateDistance;
+      }
+    }
+    return index;
   }
 
   targetFor(enemy) {
@@ -148,8 +210,9 @@ export class SupplySystem {
         const amount = this.experienceSystem.collectAll();
         this.notify(`回收磁铁 · +${amount} 经验`);
       } else if (['decoy', 'emp-charge', 'relay-cell'].includes(pickup.type)) {
-        if (this.#activeItem) return true;
-        this.#activeItem = pickup.type;
+        const emptySlot = this.#activeSlots.indexOf(null);
+        if (emptySlot < 0) return true;
+        this.#activeSlots[emptySlot] = pickup.type;
       } else {
         if (this.#scannerStacks >= this.config.scannerCap) return true;
         this.#scannerStacks += 1;
@@ -187,12 +250,19 @@ export class SupplySystem {
   }
 
   getSnapshot() {
+    const nearbyIndex = this.#findNearbyActivePickupIndex();
+    const nearbyPickup = nearbyIndex < 0 ? null : this.#pickups[nearbyIndex];
+    const nearbyActivePickup = nearbyPickup ? freeze({
+      ...nearbyPickup,
+      distance: Math.hypot(this.player.x - nearbyPickup.x, this.player.y - nearbyPickup.y),
+    }) : null;
     return Object.freeze({
       enabled: this.#enabled,
       station: this.#station ? freeze({ x: this.#station.x, y: this.#station.y, radius: this.config.stationRadius,
         progress: Math.min(1, this.#station.charge / this.config.channelSeconds), remaining: this.#station.remaining }) : null,
       pickups: Object.freeze(this.#pickups.map(freeze)), decoy: freeze(this.#decoy),
-      pulse: freeze(this.#pulse), activeItem: this.#activeItem, overclockRemaining: this.#overclockRemaining, scannerStacks: this.#scannerStacks,
+      pulse: freeze(this.#pulse), activeItem: this.#activeSlots[0], activeItems: Object.freeze([...this.#activeSlots]),
+      selectedSlot: this.#selectedSlot, nearbyActivePickup, overclockRemaining: this.#overclockRemaining, scannerStacks: this.#scannerStacks,
       collected: this.#collected, killsUntilDrop: TACTICAL_CONFIG.killsPerDrop - this.#normalKills % TACTICAL_CONFIG.killsPerDrop,
       notices: Object.freeze(this.#notices.map(freeze)),
     });
@@ -203,7 +273,8 @@ export class SupplySystem {
     this.#pickups = [];
     this.#decoy = null;
     this.#pulse = null;
-    this.#activeItem = null;
+    this.#activeSlots = [null, null];
+    this.#selectedSlot = 0;
     this.#overclockRemaining = 0;
     this.#scannerStacks = 0;
     this.#nextEvent = 0;

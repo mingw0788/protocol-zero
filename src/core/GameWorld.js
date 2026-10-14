@@ -308,7 +308,11 @@ export class GameWorld {
     if (!this.dashSystem.update(deltaSeconds, direction, this.inputController?.consumeDashPress?.())) {
       this.playerSystem.update(deltaSeconds);
     }
-    if (this.inputController?.consumeItemUsePress?.()) this.supplySystem.deploy();
+    if (this.inputController?.consumeItemSelectPress?.()) this.supplySystem.cycleSelectedSlot();
+    const exchangeItem = this.inputController?.consumeItemExchangePress?.() ?? false;
+    const itemUse = this.inputController?.consumeItemUsePress?.() ?? null;
+    if (exchangeItem) this.supplySystem.exchangeNearby();
+    else if (itemUse) this.supplySystem.deploy(itemUse.slot);
     this.supplySystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
     if (this.relaySystem.update(deltaSeconds) > 0) this.#emitSoundEvent('relay-pulse');
     this.camera.follow(this.player);

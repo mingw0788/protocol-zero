@@ -679,6 +679,37 @@ h2 {
   font-variant-numeric: tabular-nums;
 }
 
+.active-item-hud {
+  position: absolute;
+  right: 14px;
+  bottom: 56px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 28px);
+  padding: 7px 9px;
+  border: 1px solid rgb(92 122 151 / 72%);
+  background: rgb(6 16 28 / 92%);
+  color: #cce8f4;
+  font-size: 11px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.active-item-slot {
+  padding: 4px 6px;
+  border: 1px solid #3a566a;
+  color: #91aab8;
+}
+
+.active-item-slot[data-selected="true"] {
+  border-color: #78e9ff;
+  color: #e3fbff;
+  box-shadow: 0 0 8px rgb(120 233 255 / 24%);
+}
+
+.active-item-exchange { color: #d6c5ff; }
+
 #hud-weapons { font-size: 12px; }
 .tactical-hud, .objective-hud, .pickup-notice {
   position: absolute;
@@ -707,6 +738,8 @@ button:disabled { opacity: .45; cursor: default; }
   .objective-hud { top: 138px; max-width: 170px; }
   .pickup-notice { bottom: 76px; max-width: 230px; }
   .expansion-hud { inset: auto 8px 6px; padding: 4px 6px; font-size: 10px; }
+  .active-item-hud { right: 8px; bottom: 36px; gap: 3px; padding: 3px 4px; font-size: 9px; flex-wrap: wrap; }
+  .active-item-slot { padding: 2px 3px; }
   #hud-weapons { font-size: 10px; }
   .boss-hud { top: 106px; }
 }
