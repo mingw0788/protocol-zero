@@ -195,7 +195,8 @@ export class SpawnSystem {
     );
     if (activeCount >= spawn.maxActive) return false;
 
-    const enemyConfig = this.#selectEnemyConfig(weightedConfigs);
+    let enemyConfig = this.#selectEnemyConfig(weightedConfigs);
+    if (enemyConfig.elite && this.enemies.some(enemy => enemy.elite && enemy.alive && enemy.hp > 0)) enemyConfig = this.#enemyConfig.EN01;
     const segments = this.#getSpawnSegments(
       enemyConfig.radius + spawn.viewportClearance,
       enemyConfig.radius,

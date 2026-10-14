@@ -73,5 +73,11 @@ export class Enemy {
     this.alive = true;
     this.deathProcessed = false;
     this.lastDamageSourceId = null;
+    this.behavior = config.behavior ?? 'chase';
+    this.elite = config.elite === true;
+    this.auraRadius = config.auraRadius ?? 0;
+    this.auraMultiplier = config.auraMultiplier ?? 1;
+    this.attackLocked = false;
+    this.defeatedBySelf = false;
   }
 }

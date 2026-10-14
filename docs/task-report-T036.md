@@ -3,7 +3,7 @@
 - Task ID：T036
 - 执行状态：完成（功能及列明验证范围）。
 - 规格：`docs/superpowers/specs/2026-10-14-t036-encounters-design.md`。
-- Git Commit：见本任务交付提交。
+- Git Commit：`f11ce05`。
 
 ## 内容
 

@@ -15,12 +15,12 @@ describe('WaveSystem effective-time profiles', () => {
   it.each([
     [0, 'opening', 1, { 'EN-01': 1, 'EN-02': 0, 'EN-03': 0 }],
     [59.999, 'opening', 1, { 'EN-01': 1, 'EN-02': 0, 'EN-03': 0 }],
-    [60, 'swift-intro', 0.9, { 'EN-01': 0.75, 'EN-02': 0.25, 'EN-03': 0 }],
-    [120, 'heavy-intro', 0.8, { 'EN-01': 0.6, 'EN-02': 0.25, 'EN-03': 0.15 }],
-    [180, 'mixed-pressure', 0.65, { 'EN-01': 0.5, 'EN-02': 0.32, 'EN-03': 0.18 }],
-    [240, 'high-pressure', 0.55, { 'EN-01': 0.45, 'EN-02': 0.35, 'EN-03': 0.2 }],
-    [270, 'boss-approach', 0.55, { 'EN-01': 0.45, 'EN-02': 0.35, 'EN-03': 0.2 }],
-    [500, 'boss-approach', 0.55, { 'EN-01': 0.45, 'EN-02': 0.35, 'EN-03': 0.2 }],
+    [60, 'swift-intro', 0.9, { 'EN-01': 0.58, 'EN-02': 0.25, 'EN-03': 0, 'EN-04': 0.17, 'EN-05': 0, 'EN-06': 0 }],
+    [120, 'heavy-intro', 0.8, { 'EN-01': 0.4, 'EN-02': 0.22, 'EN-03': 0.16, 'EN-04': 0.1, 'EN-05': 0.1, 'EN-06': 0.02 }],
+    [180, 'mixed-pressure', 0.65, { 'EN-01': 0.32, 'EN-02': 0.25, 'EN-03': 0.18, 'EN-04': 0.12, 'EN-05': 0.1, 'EN-06': 0.03 }],
+    [240, 'high-pressure', 0.55, { 'EN-01': 0.25, 'EN-02': 0.28, 'EN-03': 0.2, 'EN-04': 0.13, 'EN-05': 0.1, 'EN-06': 0.04 }],
+    [270, 'boss-approach', 0.55, { 'EN-01': 0.25, 'EN-02': 0.28, 'EN-03': 0.2, 'EN-04': 0.13, 'EN-05': 0.1, 'EN-06': 0.04 }],
+    [500, 'boss-approach', 0.55, { 'EN-01': 0.25, 'EN-02': 0.28, 'EN-03': 0.2, 'EN-04': 0.13, 'EN-05': 0.1, 'EN-06': 0.04 }],
   ])('uses the configured profile at effective time %s', (elapsedSeconds, phaseId, interval, weights) => {
     const system = new WaveSystem();
 

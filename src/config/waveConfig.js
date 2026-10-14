@@ -1,9 +1,9 @@
 const ENEMY_WEIGHTS = Object.freeze({
   opening: Object.freeze({ 'EN-01': 1, 'EN-02': 0, 'EN-03': 0 }),
-  swiftIntro: Object.freeze({ 'EN-01': 0.75, 'EN-02': 0.25, 'EN-03': 0 }),
-  heavyIntro: Object.freeze({ 'EN-01': 0.6, 'EN-02': 0.25, 'EN-03': 0.15 }),
-  mixedPressure: Object.freeze({ 'EN-01': 0.5, 'EN-02': 0.32, 'EN-03': 0.18 }),
-  highPressure: Object.freeze({ 'EN-01': 0.45, 'EN-02': 0.35, 'EN-03': 0.2 }),
+  swiftIntro: Object.freeze({ 'EN-01': .58, 'EN-02': .25, 'EN-03': 0, 'EN-04': .17, 'EN-05': 0, 'EN-06': 0 }),
+  heavyIntro: Object.freeze({ 'EN-01': .4, 'EN-02': .22, 'EN-03': .16, 'EN-04': .1, 'EN-05': .1, 'EN-06': .02 }),
+  mixedPressure: Object.freeze({ 'EN-01': .32, 'EN-02': .25, 'EN-03': .18, 'EN-04': .12, 'EN-05': .1, 'EN-06': .03 }),
+  highPressure: Object.freeze({ 'EN-01': .25, 'EN-02': .28, 'EN-03': .2, 'EN-04': .13, 'EN-05': .1, 'EN-06': .04 }),
 });
 
 function phase(phaseId, startSeconds, endSeconds, spawnIntervalSeconds, enemyWeights) {

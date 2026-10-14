@@ -558,3 +558,7 @@ SupplySystem 持有两槽与选中槽，自动拾取填第一个空槽；交换�
 EncounterSystem 持有配置时间线和事件进度，使用独立随机流。SpawnSystem.spawnEncounterElite 仍检查视口外、单精英和普通数量上限。GameWorld 在死亡收尾把原公开事件及内部步结束时间交给事件系统，防止晚于期限的死亡奖励。RunRewardSystem 按 ID 幂等发经验，物品受地面上限时排队重试；重开清空收据和队列。
 
 ObjectiveSystem 只保存所选目标 ID，消费事件/探索/补给/中继快照，默认优先限时事件，G 循环。EncounterRenderer 绘制事件世界标记，TacticalRenderer 增加雷达橙点；TacticalHUD 只显示唯一主目标方向，其他状态不另加箭头。新增状态、奖励与计时均受固定步/暂停/reset 控制。
+
+### T037 战术敌人
+
+EnemyAttackSystem 持有按敌人 ID 的瞄准/引信状态和有界敌弹、爆炸。它只报告伤害候选；GameWorld 将候选与移动后接触合并交给 DamageSystem.applyDamageBatch，一次取最大伤害，保持统一护盾/冲刺/无敌/死亡统计。自爆只设置 defeatedBySelf，deathProcessed 仍由 GameWorld 收尾；不发玩家奖励。EnemySystem 读取停步标记与本步开始位置的非叠加光环，SpawnSystem 限制共享单精英。新增表现只读快照，暂停和 reset 清理与既有世界一致。

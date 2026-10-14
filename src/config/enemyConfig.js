@@ -35,6 +35,12 @@ export const ENEMY_CONFIG = Object.freeze({
     expDrop: 3,
     color: '#a9bacd',
   }),
+  EN04: Object.freeze({ typeId: 'EN-04', name: '狙击哨兵', category: 'normal', behavior: 'sniper',
+    hp: 36, maxHp: 36, speed: 60, radius: 15, contactDamage: 6, expDrop: 2, color: '#ed8eb8' }),
+  EN05: Object.freeze({ typeId: 'EN-05', name: '自爆爬行器', category: 'normal', behavior: 'bomber',
+    hp: 24, maxHp: 24, speed: 125, radius: 13, contactDamage: 6, expDrop: 2, color: '#f9a75e' }),
+  EN06: Object.freeze({ typeId: 'EN-06', name: '干扰精英', category: 'normal', behavior: 'aura', elite: true,
+    hp: 220, maxHp: 220, speed: 60, radius: 24, contactDamage: 16, expDrop: 8, color: '#ffcf68', auraRadius: 240, auraMultiplier: 1.2 }),
   spawn: Object.freeze({
     intervalSeconds: 1,
     viewportClearance: 32,

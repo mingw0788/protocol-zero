@@ -35,6 +35,7 @@ import { CombatStatsSystem } from '../systems/CombatStatsSystem.js';
 import { EncounterSystem } from '../systems/EncounterSystem.js';
 import { RunRewardSystem } from '../systems/RunRewardSystem.js';
 import { ObjectiveSystem } from '../systems/ObjectiveSystem.js';
+import { EnemyAttackSystem } from '../systems/EnemyAttackSystem.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -52,6 +53,7 @@ function requireCamera(camera) {
 export class GameWorld {
   #simulationSteps = 0;
   #lastWeaponHitSoundAt = Number.NEGATIVE_INFINITY;
+  #lastEnemyWarningAt = Number.NEGATIVE_INFINITY;
   #killCount = 0;
   #rerolls = TACTICAL_CONFIG.initialRerolls;
   #playerDeathFrozen = false;
@@ -92,6 +94,11 @@ export class GameWorld {
     this.dashSystem = new DashSystem({ player, onDash: () => this.#emitSoundEvent('dash') });
     this.camera.follow(this.player);
     this.enemySystem = new EnemySystem({ enemies: this.enemies, player, world });
+    this.enemyAttackSystem = new EnemyAttackSystem({ player, enemies: this.enemies, onWarning: () => {
+      if (this.clock.elapsedSeconds - this.#lastEnemyWarningAt < .2) return;
+      this.#lastEnemyWarningAt = this.clock.elapsedSeconds;
+      this.#emitSoundEvent('enemy-warning');
+    } });
     this.bossSystem = new BossSystem({
       enemies: this.enemies,
       player,
@@ -204,7 +211,8 @@ export class GameWorld {
       exploration: this.explorationSystem.getSnapshot(),
       playerPosition: Object.freeze({ x: this.player.x, y: this.player.y }),
       arc: this.arcCoilSystem.getSnapshot(), rail: this.railgunSystem.getSnapshot(), relays: this.relaySystem.getSnapshot(),
-      encounters: this.encounterSystem.getSnapshot(), rewards: this.rewardSystem.getSnapshot() };
+      encounters: this.encounterSystem.getSnapshot(), rewards: this.rewardSystem.getSnapshot(),
+      hostileAttacks: this.enemyAttackSystem.getSnapshot() };
     snapshot.trackedObjective = this.objectiveSystem.getTrackedSnapshot(snapshot);
     return Object.freeze(snapshot);
   }
@@ -346,9 +354,13 @@ export class GameWorld {
     const waveSnapshot = this.waveSystem.getSnapshot(this.clock.elapsedSeconds + deltaSeconds);
     this.spawnSystem.update(deltaSeconds, waveSnapshot);
     this.bossSystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
+    const hostileHits = this.enemyAttackSystem.update(deltaSeconds, enemy => this.supplySystem.targetFor(enemy));
     this.enemySystem.update(deltaSeconds, (enemy) => this.supplySystem.targetFor(enemy));
     const contacts = this.collisionSystem.getPlayerContacts();
-    const damageResult = this.damageSystem.applyContactDamage(contacts);
+    const damageResult = this.damageSystem.applyDamageBatch([
+      ...contacts.map(enemy => ({ damage: enemy.contactDamage, sourceTypeId: enemy.typeId })),
+      ...hostileHits,
+    ]);
     if (damageResult.damaged) {
       this.combatStatsSystem.recordPlayerDamage({
         sourceTypeIds: damageResult.sourceTypeIds,
@@ -417,6 +429,7 @@ export class GameWorld {
       if ((enemy.alive === true && enemy.hp > 0) || enemy.deathProcessed === true) continue;
 
       enemy.deathProcessed = true;
+      if (enemy.defeatedBySelf) continue;
       this.recordKill();
       this.combatStatsSystem.recordEnemyKill({
         sourceId: enemy.lastDamageSourceId ?? 'unknown',
@@ -446,6 +459,7 @@ export class GameWorld {
     this.particleSystem.reset();
     this.playerSystem.reset();
     this.dashSystem.reset();
+    this.enemyAttackSystem.reset();
     this.inputController?.clear?.();
     this.supplySystem.reset();
     this.relaySystem.reset();
@@ -468,6 +482,7 @@ export class GameWorld {
     this.spawnSystem.reset();
     this.#simulationSteps = 0;
     this.#lastWeaponHitSoundAt = Number.NEGATIVE_INFINITY;
+    this.#lastEnemyWarningAt = Number.NEGATIVE_INFINITY;
     this.#killCount = 0;
     this.combatStatsSystem.reset();
     this.#playerDeathFrozen = false;

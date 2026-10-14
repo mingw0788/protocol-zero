@@ -33,25 +33,33 @@ export class DamageSystem {
     if (!Array.isArray(contacts)) {
       throw new TypeError('contacts must be an array');
     }
+    return this.applyDamageBatch(contacts.map(contact => {
+      if (!contact || typeof contact !== 'object') throw new TypeError('Each contact must be an object');
+      return { damage: contact.contactDamage, sourceTypeId: contact.typeId ?? 'unknown' };
+    }));
+  }
+
+  applyDamageBatch(hits) {
+    if (!Array.isArray(hits)) throw new TypeError('hits must be an array');
 
     let maximumDamage = 0;
     let sourceTypeIds = [];
-    for (const contact of contacts) {
-      if (!contact || typeof contact !== 'object') {
-        throw new TypeError('Each contact must be an object');
+    for (const hit of hits) {
+      if (!hit || typeof hit !== 'object' || typeof hit.sourceTypeId !== 'string' || !hit.sourceTypeId.trim()) {
+        throw new TypeError('Each hit must provide a source type');
       }
-      if (!Number.isFinite(contact.contactDamage) || contact.contactDamage < 0) {
-        throw new RangeError('contactDamage must be a non-negative finite number');
+      if (!Number.isFinite(hit.damage) || hit.damage < 0) {
+        throw new RangeError('damage must be a non-negative finite number');
       }
-      if (contact.contactDamage > maximumDamage) {
-        maximumDamage = contact.contactDamage;
-        sourceTypeIds = [contact.typeId ?? 'unknown'];
-      } else if (contact.contactDamage === maximumDamage && maximumDamage > 0) {
-        sourceTypeIds.push(contact.typeId ?? 'unknown');
+      if (hit.damage > maximumDamage) {
+        maximumDamage = hit.damage;
+        sourceTypeIds = [hit.sourceTypeId];
+      } else if (hit.damage === maximumDamage && maximumDamage > 0) {
+        sourceTypeIds.push(hit.sourceTypeId);
       }
     }
 
-    if (contacts.length === 0
+    if (hits.length === 0
       || maximumDamage === 0
       || this.player.alive !== true
       || this.player.hp <= 0

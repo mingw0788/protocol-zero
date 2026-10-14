@@ -20,6 +20,15 @@ export const SPRITE_PATTERNS = Object.freeze({
       rows('..SSSS../.SBBBB S./SBBBBBBS/SBBXXBBS/SBBBBBBS/SBBBBBBS/.SS..SS../SS....SS'),
       rows('..SSSS../.SBBBB S./SBBBBBBS/SBBXXBBS/SBBBBBBS/SBBBBBBS/SS....SS/.SS..SS..'),
     ]),
+    'EN-04': Object.freeze([
+      rows('....TT../...TBT../..TBBT../TTBBXBTT/.TBBBBT./...BB.../..T..T../.T....T.'),
+    ]),
+    'EN-05': Object.freeze([
+      rows('..OO OO./.OBBBBO./OBBXXBBO/.OBBBBO./O.BBBBO./.OOOOO../O..O..O./.O...O..'),
+    ]),
+    'EN-06': Object.freeze([
+      rows('G..GG..G/.GGBBGG./GBBBBBBG/GBBXXBBG/GBBBBBBG/.GBBBBG./GG....GG/.GG..GG.'),
+    ]),
     fallback: Object.freeze([
       rows('...??.../..?BB?../.?BBBB?./?BBBBBB?/??BBBB??/.?BBBB?../..?...?.../...??...'),
     ]),
@@ -32,6 +41,9 @@ export const SPRITE_PALETTES = Object.freeze({
   'EN-01': Object.freeze({ D: '#ab314f', B: '#ff5e70', X: '#ffe4ea' }),
   'EN-02': Object.freeze({ A: '#d45f2d', B: '#ff944d', X: '#fff0bd' }),
   'EN-03': Object.freeze({ S: '#637487', B: '#a9bacd', X: '#f6fbff' }),
+  'EN-04': Object.freeze({ T: '#9e446f', B: '#ed8eb8', X: '#fff1f8' }),
+  'EN-05': Object.freeze({ O: '#aa5834', B: '#f9a75e', X: '#ffed8b' }),
+  'EN-06': Object.freeze({ G: '#9e7135', B: '#ffcf68', X: '#ffffff' }),
   fallback: Object.freeze({ '?': '#9aa9b9', B: '#657487' }),
   boss: Object.freeze({ R: '#7c234a', B: '#dc426c', X: '#ffb0c0' }),
 });
