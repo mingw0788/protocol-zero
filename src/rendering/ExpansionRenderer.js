@@ -134,6 +134,11 @@ export class ExpansionRenderer {
     for (const [kind, segments] of [['arc', snapshot.arc], ['rail', snapshot.rail]]) {
       for (const beam of segments ?? []) {
         const a = camera.worldToScreen(beam.x1, beam.y1), b = camera.worldToScreen(beam.x2, beam.y2);
+        if (beam.shape === 'blast') {
+          ctx.strokeStyle = beam.color; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(a.x, a.y, beam.radius, 0, Math.PI * 2); ctx.stroke();
+          continue;
+        }
         ctx.strokeStyle = beam.color;
         ctx.lineWidth = kind === 'rail' ? 5 : 3;
         ctx.beginPath();

@@ -92,6 +92,8 @@ export class UpgradeEffectSystem {
         : 0,
       arcCoilLevel: levels.get('UP-07'),
       railgunLevel: levels.get('UP-08'),
+      cryoLevel: levels.get('UP-09'),
+      droneLevel: levels.get('UP-10'),
     });
     for (const [key, value] of Object.entries(snapshot)) {
       if (!Number.isFinite(value) || value <= 0 && !key.endsWith('Level')) {
@@ -146,7 +148,7 @@ export class UpgradeEffectSystem {
     this.player.moveSpeed = nextMoveSpeed;
     this.player.maxHp = nextMaxHp;
     this.player.hp = nextHp;
-    const weaponId = { 'UP-07': 'arc-coil', 'UP-08': 'railgun' }[selection.id];
+    const weaponId = { 'UP-07': 'arc-coil', 'UP-08': 'railgun', 'UP-09': 'cryo-sprayer', 'UP-10': 'drone-swarm' }[selection.id];
     if (weaponId && !this.player.weaponStates.some((weapon) => weapon.id === weaponId)) {
       this.player.weaponStates.push({ id: weaponId, cooldownRemaining: 0 });
     }

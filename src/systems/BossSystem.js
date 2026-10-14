@@ -235,7 +235,7 @@ export class BossSystem {
 
     const direction = { x: deltaX / distance, y: deltaY / distance };
     this.#lastDirection = direction;
-    const travel = Math.min(speed * deltaSeconds, distance);
+    const travel = Math.min(speed * (this.#boss.slowMultiplier ?? 1) * deltaSeconds, distance);
     this.#boss.x = clamp(
       this.#boss.x + direction.x * travel,
       this.#boss.radius,
@@ -250,7 +250,7 @@ export class BossSystem {
 
   #moveAlongCharge(deltaSeconds) {
     const requestedDistance = Math.min(
-      this.#config.chargeSpeed * deltaSeconds,
+      this.#config.chargeSpeed * (this.#boss.slowMultiplier ?? 1) * deltaSeconds,
       this.#chargeDistanceRemaining,
     );
     const previousX = this.#boss.x;

@@ -39,12 +39,12 @@ describe('Experience polish integration', () => {
   });
 
   it('emits dedicated weapon cues through legal unlocks and clears firing feedback on restart', () => {
-    let sample = .76;
+    let sample = .65;
     const world = new GameWorld({ camera: new Camera(), upgradeRandom: () => sample });
     world.stateManager.startGame();
     world.player.exp = 6; world.update(1 / 60);
     expect(world.chooseUpgrade('UP-07')).toBe(true);
-    sample = .99; world.player.exp = 10; world.update(1 / 60);
+    sample = .75; world.player.exp = 10; world.update(1 / 60);
     expect(world.chooseUpgrade('UP-08')).toBe(true);
     world.enemies.push({ id: 'durable', typeId: 'EN-01', category: 'normal', x: world.player.x + 150,
       y: world.player.y, radius: 16, hp: 1000, alive: true, speed: 0, contactDamage: 10, expDrop: 1 });

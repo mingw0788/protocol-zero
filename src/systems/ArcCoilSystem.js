@@ -1,4 +1,5 @@
 import { ARC_COIL_CONFIG } from '../config/expansionWeaponConfig.js';
+import { ARC_EVOLUTION_CONFIG } from '../config/evolutionConfig.js';
 import { initializeWeapon, nearest, prepareShot, resetWeapon, weaponSnapshot } from './weaponTargeting.js';
 
 export class ArcCoilSystem {
@@ -21,6 +22,15 @@ export class ArcCoilSystem {
       origin = target;
       damage *= this.config.falloff;
       target = nearest(origin, shot.targets, this.config.jumpRange, hit);
+    }
+    if (options.evolved === true && hit.size > 0) {
+      for (const enemy of shot.targets) {
+        if (enemy.alive && enemy.hp > 0 && Math.hypot(enemy.x - origin.x, enemy.y - origin.y) <= ARC_EVOLUTION_CONFIG.radius + enemy.radius) {
+          this.enemyDamageSystem.applyDamage(enemy, ARC_EVOLUTION_CONFIG.damage * (options.damageMultiplier ?? 1), this.config.id);
+        }
+      }
+      this.visuals.push({ shape: 'blast', x1: origin.x, y1: origin.y, x2: origin.x, y2: origin.y,
+        radius: ARC_EVOLUTION_CONFIG.radius, color: '#d6b7ff', remaining: ARC_EVOLUTION_CONFIG.visualSeconds });
     }
     return hit.size;
   }

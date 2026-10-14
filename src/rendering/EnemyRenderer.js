@@ -32,6 +32,10 @@ export class EnemyRenderer {
       const base = SPRITE_PALETTES[enemy.typeId] ?? SPRITE_PALETTES.fallback;
       const palette = enemy.hitFlashRemaining > 0 ? { ...base, B: '#ffffff', X: '#ffffff' } : base;
       drawPixelPattern(context, patterns[frame], palette, x, y, diameter);
+      if ((enemy.slowMultiplier ?? 1) < 1) {
+        context.fillStyle = '#8af5f6';
+        context.fillRect(x - 3, y, 3, 7); context.fillRect(x + diameter, y + diameter - 7, 3, 7);
+      }
     }
 
     context.restore();

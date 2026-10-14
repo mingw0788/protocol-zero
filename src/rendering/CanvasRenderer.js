@@ -12,6 +12,7 @@ import { TacticalRenderer } from './TacticalRenderer.js';
 import { EncounterRenderer } from './EncounterRenderer.js';
 import { EnemyAttackRenderer } from './EnemyAttackRenderer.js';
 import { HazardRenderer } from './HazardRenderer.js';
+import { AdvancedWeaponRenderer } from './AdvancedWeaponRenderer.js';
 
 export class CanvasRenderer {
   #canvas;
@@ -30,6 +31,7 @@ export class CanvasRenderer {
   #encounterRenderer = new EncounterRenderer();
   #enemyAttackRenderer = new EnemyAttackRenderer();
   #hazardRenderer = new HazardRenderer();
+  #advancedWeaponRenderer = new AdvancedWeaponRenderer();
   #windowTarget;
   #devicePixelRatio;
   #started = false;
@@ -163,6 +165,7 @@ export class CanvasRenderer {
     this.#enemyAttackRenderer.render(this.#context, this.#camera, expansionSnapshot, enemies);
     this.#experienceCrystalRenderer.render(this.#context, this.#camera, experienceCrystals);
     this.#expansionRenderer.render(this.#context, this.#camera, expansionSnapshot);
+    this.#advancedWeaponRenderer.render(this.#context, this.#camera, expansionSnapshot);
     this.#projectileRenderer.render(this.#context, this.#camera, projectiles);
     this.#particleRenderer.render(this.#context, this.#camera, visualEffects);
     this.#bossRenderer.render(this.#context, this.#camera, bossSnapshot, effectiveTime);

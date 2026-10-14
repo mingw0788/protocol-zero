@@ -3,7 +3,7 @@ import { TacticalHUD } from './TacticalHUD.js';
 import { SUPPLY_NAMES } from '../config/supplyConfig.js';
 
 const WEAPON_LABELS = Object.freeze({ 'pulse-gun': '脉冲枪', 'orbital-blade': '轨道刃',
-  'arc-coil': '弧光线圈', railgun: '磁轨炮' });
+  'arc-coil': '弧光线圈', railgun: '磁轨炮', 'cryo-sprayer': '冷凝喷射器', 'drone-swarm': '蜂群无人机' });
 const ELEMENT_IDS = Object.freeze({
   menu: 'main-menu-panel',
   help: 'help-panel',

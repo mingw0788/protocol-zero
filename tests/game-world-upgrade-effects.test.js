@@ -10,9 +10,9 @@ const OFFER_RANDOM_VALUES = Object.freeze({
   'UP-01': [0, 0, 0],
   'UP-02': [0, 0, 0],
   'UP-03': [0, 0, 0],
-  'UP-04': [0.4, 0, 0],
-  'UP-05': [0, 0.5, 0.55],
-  'UP-06': [0.65, 0, 0],
+  'UP-04': [0.35, 0, 0],
+  'UP-05': [0.45, 0, 0],
+  'UP-06': [0.55, 0, 0],
 });
 
 function createWorld(randomValues = [0]) {
@@ -115,7 +115,7 @@ describe('GameWorld upgrade effect integration', () => {
 
   it('clears selected gameplay effects and restores player baselines on reset', () => {
     // Each offer includes a pulse improvement under the owned-weapon guarantee.
-    const world = createWorld([0, 0, 0, 0, 0.5, 0, 0.65, 0, 0]);
+    const world = createWorld([0, 0, 0, 0.45, 0, 0, 0.55, 0, 0]);
     enterLevelUp(world, 35);
     for (const upgradeId of ['UP-01', 'UP-05', 'UP-06']) {
       expect(world.getUpgradeChoices().map(({ id }) => id)).toContain(upgradeId);

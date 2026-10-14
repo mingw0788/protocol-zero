@@ -1,4 +1,6 @@
 const TONES = Object.freeze({
+  'cryo-fire': Object.freeze({ waveform: 'sawtooth', startFrequencyHz: 750, bodyFrequencyHz: 380, endFrequencyHz: 260, durationSeconds: .14, peak: .025, priority: 1 }),
+  'drone-fire': Object.freeze({ waveform: 'sine', startFrequencyHz: 1250, endFrequencyHz: 850, durationSeconds: .07, peak: .04, priority: 1 }),
   'barrel-blast': Object.freeze({ waveform: 'triangle', startFrequencyHz: 170, bodyFrequencyHz: 80, endFrequencyHz: 36, durationSeconds: .24, peak: .1, priority: 1 }),
   'enemy-warning': Object.freeze({ waveform: 'sine', startFrequencyHz: 480, bodyFrequencyHz: 760, endFrequencyHz: 480, durationSeconds: .16, peak: .06, priority: 2 }),
   dash: Object.freeze({ waveform: 'triangle', startFrequencyHz: 240, bodyFrequencyHz: 600, endFrequencyHz: 170, durationSeconds: .13, peak: .07, priority: 1 }),

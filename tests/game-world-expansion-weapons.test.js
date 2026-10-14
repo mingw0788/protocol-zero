@@ -4,13 +4,13 @@ import { Camera } from '../src/rendering/Camera.js';
 
 describe('new weapon integration', () => {
   it('unlocks both through legal choices, settles a shared target once and resets weapons', () => {
-    let randomValue = .76;
+    let randomValue = .65;
     const world = new GameWorld({ camera: new Camera(), upgradeRandom: () => randomValue });
     world.stateManager.startGame();
     world.player.exp = 6;
     world.update(1 / 60);
     expect(world.chooseUpgrade('UP-07')).toBe(true);
-    randomValue = .99;
+    randomValue = .75;
     world.player.exp = 10;
     world.update(1 / 60);
     expect(world.chooseUpgrade('UP-08')).toBe(true);

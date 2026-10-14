@@ -31,6 +31,17 @@ export class PlayerRenderer {
     if (weaponIds.has('pulse-gun')) this.#drawPulseGun(context, screenPosition, this.#weaponAngle(player, 'pulse-gun'), firing('pulse-gun'));
     if (weaponIds.has('arc-coil')) this.#drawArcCoil(context, screenPosition);
     if (weaponIds.has('railgun')) this.#drawRailgun(context, screenPosition, this.#weaponAngle(player, 'railgun'), firing('railgun'));
+    if (weaponIds.has('cryo-sprayer')) {
+      context.save(); context.translate(screenPosition.x - 7, screenPosition.y - 8);
+      context.rotate(this.#weaponAngle(player, 'cryo-sprayer'));
+      context.fillStyle = '#32616b'; context.fillRect(-4, -6, 19, 12);
+      context.fillStyle = '#8af5f6'; context.fillRect(0, -4, 17, 8);
+      context.fillStyle = '#f0ffff'; context.fillRect(14, -6, 4, 12); context.restore();
+    }
+    if (weaponIds.has('drone-swarm')) {
+      context.fillStyle = '#344a37'; context.fillRect(screenPosition.x - 7, screenPosition.y + 6, 14, 10);
+      context.fillStyle = '#b4f09c'; context.fillRect(screenPosition.x - 4, screenPosition.y + 8, 8, 5);
+    }
   }
 
   #weaponAngle(player, id) {

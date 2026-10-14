@@ -44,6 +44,8 @@ describe('UpgradeEffectSystem', () => {
       orbitalBladeLevel: 0,
       arcCoilLevel: 0,
       railgunLevel: 0,
+      cryoLevel: 0,
+      droneLevel: 0,
     });
 
     const maximum = new UpgradeEffectSystem({
@@ -57,6 +59,8 @@ describe('UpgradeEffectSystem', () => {
         'UP-06': 5,
         'UP-07': 5,
         'UP-08': 5,
+        'UP-09': 5,
+        'UP-10': 5,
       }),
     });
 
@@ -68,6 +72,8 @@ describe('UpgradeEffectSystem', () => {
       orbitalBladeLevel: 5,
       arcCoilLevel: 5,
       railgunLevel: 5,
+      cryoLevel: 5,
+      droneLevel: 5,
     });
     expect(Object.isFrozen(maximum.getSnapshot())).toBe(true);
   });

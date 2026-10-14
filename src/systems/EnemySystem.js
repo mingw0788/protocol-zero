@@ -49,7 +49,7 @@ export class EnemySystem {
       }
       const auraMultiplier = enemy.elite ? 1 : auras.reduce((bonus, aura) => aura.id !== enemy.id
         && Math.hypot(aura.x - enemy.x, aura.y - enemy.y) <= aura.auraRadius ? Math.max(bonus, aura.auraMultiplier) : bonus, 1);
-      const travelDistance = Math.min(enemy.speed * auraMultiplier * deltaSeconds, distance) * movementDirection;
+      const travelDistance = Math.min(enemy.speed * auraMultiplier * (enemy.slowMultiplier ?? 1) * deltaSeconds, distance) * movementDirection;
       const nextX = enemy.x + (deltaX / distance) * travelDistance;
       const nextY = enemy.y + (deltaY / distance) * travelDistance;
       enemy.x = clamp(nextX, enemy.radius, this.world.width - enemy.radius);

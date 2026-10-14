@@ -9,7 +9,7 @@ function createSystem({ random = () => 0, upgrades = UPGRADE_CONFIG } = {}) {
 }
 
 describe('UPGRADE_CONFIG', () => {
-  it('freezes the six original and two expansion upgrade definitions', () => {
+  it('freezes the six original and four expansion upgrade definitions', () => {
     expect(UPGRADE_CONFIG.map(({ id, maxLevel }) => [id, maxLevel])).toEqual([
       ['UP-01', 5],
       ['UP-02', 5],
@@ -19,6 +19,8 @@ describe('UPGRADE_CONFIG', () => {
       ['UP-06', 5],
       ['UP-07', 5],
       ['UP-08', 5],
+      ['UP-09', 5],
+      ['UP-10', 5],
     ]);
     expect(Object.isFrozen(UPGRADE_CONFIG)).toBe(true);
     expect(UPGRADE_CONFIG.every((upgrade) => Object.isFrozen(upgrade))).toBe(true);

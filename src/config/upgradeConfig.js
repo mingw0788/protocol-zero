@@ -40,4 +40,6 @@ export const UPGRADE_CONFIG = Object.freeze([
   }),
   Object.freeze({ id: 'UP-07', weaponId: 'arc-coil', unlocksWeapon: true, name: '弧光线圈模块', description: '首次解锁连锁电击；后续每级伤害 +12%，3/5 级多连锁一个目标', maxLevel: 5 }),
   Object.freeze({ id: 'UP-08', weaponId: 'railgun', unlocksWeapon: true, name: '磁轨炮模块', description: '首次解锁贯穿光束；后续每级伤害 +12%，3/5 级多贯穿一个目标', maxLevel: 5 }),
+  Object.freeze({ id: 'UP-09', weaponId: 'cryo-sprayer', unlocksWeapon: true, name: '冷凝喷射器模块', description: '近距扇形喷射并减速；后续每级伤害 +12%，Boss 仅弱减速', maxLevel: 5 }),
+  Object.freeze({ id: 'UP-10', weaponId: 'drone-swarm', unlocksWeapon: true, name: '蜂群无人机模块', description: '无人机随行自动射击；后续每级伤害 +12%，3/5 级多一架', maxLevel: 5 }),
 ]);
