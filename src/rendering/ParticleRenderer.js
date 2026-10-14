@@ -1,5 +1,5 @@
 export class ParticleRenderer {
-  render(context, camera, particles = []) {
+  render(context, camera, particles = [], feedback = {}) {
     if (!Array.isArray(particles)) throw new TypeError('ParticleRenderer requires a particle array');
     if (!context || typeof context.fillRect !== 'function'
       || typeof context.save !== 'function' || typeof context.restore !== 'function') {
@@ -29,7 +29,7 @@ export class ParticleRenderer {
       const y = position.y - particle.radius;
       if (x + diameter <= 0 || y + diameter <= 0
         || x >= camera.viewportWidth || y >= camera.viewportHeight) continue;
-      context.globalAlpha = Math.max(0, Math.min(1, particle.remainingSeconds / particle.lifetimeSeconds));
+      context.globalAlpha = Math.max(0, Math.min(1, particle.remainingSeconds / particle.lifetimeSeconds)) * (feedback.reducedFlash ? .3 : 1);
       context.fillStyle = particle.color;
       context.fillRect(x, y, diameter, diameter);
     }

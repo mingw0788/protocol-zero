@@ -15,9 +15,11 @@ class FakeElement extends EventTarget {
   open = false;
   textWrites = 0;
   focusCount = 0;
+  children = [];
 
   get textContent() { return this.#textContent; }
-  set textContent(value) { this.#textContent = value; this.textWrites += 1; }
+  set textContent(value) { this.#textContent = value; this.children = []; this.textWrites += 1; }
+  appendChild(element) { this.children.push(element); return element; }
   setAttribute(name, value) { this.attributes.set(name, String(value)); }
   getAttribute(name) { return this.attributes.get(name) ?? null; }
   focus() {
@@ -47,6 +49,7 @@ function createHarness({ upgradeChoices = null } = {}) {
   const documentTarget = new EventTarget();
   documentTarget.hidden = false;
   documentTarget.activeElement = null;
+  documentTarget.createElement = () => { const element = new FakeElement(); element.ownerDocument = documentTarget; return element; };
   windowTarget.document = documentTarget;
   for (const match of html.matchAll(/<[a-z][\w-]*\b[^>]*\bid="([^"]+)"[^>]*>/g)) {
     const element = new FakeElement();

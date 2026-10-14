@@ -47,6 +47,21 @@ function createAudioHarness({ state = 'suspended' } = {}) {
 }
 
 describe('AudioManager', () => {
+  it('keeps music independent of effect volume and releases its three voices on pause and mute', () => {
+    const h = createAudioHarness();
+    const audio = new AudioManager({ contextFactory: h.contextFactory });
+    expect(audio.updateMusic({ active: true })).toBe(false);
+    audio.unlock(); audio.setVolume(.4); audio.setMusicVolume(.2);
+    for (let i = 0; i < 100; i++) expect(audio.updateMusic({ active: true, elapsedSeconds: i / 10 })).toBe(true);
+    expect(h.oscillators).toHaveLength(3);
+    expect(h.gains[0].gain.value).toBe(.4); expect(h.gains[1].gain.value).toBe(.2);
+    audio.updateMusic({ active: false });
+    expect(h.oscillators.every(voice => voice.disconnect.mock.calls.length === 1)).toBe(true);
+    audio.updateMusic({ active: true, elapsedSeconds: 10 });
+    expect(h.oscillators).toHaveLength(6); audio.setEnabled(false);
+    expect(h.oscillators.every(voice => voice.disconnect.mock.calls.length === 1)).toBe(true);
+    audio.dispose();
+  });
   it('preempts a lower priority voice for player danger while preserving the cap', () => {
     const h = createAudioHarness();
     const audio = new AudioManager({ contextFactory: h.contextFactory });

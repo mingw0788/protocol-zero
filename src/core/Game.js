@@ -14,6 +14,7 @@ import { OrbitalBladeRenderer } from '../rendering/OrbitalBladeRenderer.js';
 import { BossRenderer } from '../rendering/BossRenderer.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { LocalProgressSystem } from '../systems/LocalProgressSystem.js';
+import { FeedbackSettingsSystem } from '../systems/FeedbackSettingsSystem.js';
 
 export class Game {
   #uiManager = null;
@@ -22,6 +23,9 @@ export class Game {
   #unsubscribeSoundEvents;
   #progressSystem;
   #mapRenderer = new MapRenderer();
+  #feedbackSettings;
+  #unsubscribeAudioState;
+  #feedbackSaved = true;
 
   constructor({
     canvas = null,
@@ -29,6 +33,7 @@ export class Game {
     inputOptions = {},
     audioManager = new AudioManager(),
     progressSystem = new LocalProgressSystem(),
+    feedbackSettings = new FeedbackSettingsSystem(),
   } = {}) {
     if (!audioManager
       || !['unlock', 'setEnabled', 'setVolume', 'playEvent', 'dispose'].every((method) => typeof audioManager[method] === 'function')
@@ -40,6 +45,7 @@ export class Game {
       throw new TypeError('Game requires a compatible local progress system');
     }
     this.#progressSystem = progressSystem;
+    this.#feedbackSettings = feedbackSettings;
     const savedProgress = this.#progressSystem.getSnapshot();
     if (!savedProgress || typeof savedProgress.soundEnabled !== 'boolean'
       || !Number.isFinite(savedProgress.soundVolume)) {
@@ -49,7 +55,11 @@ export class Game {
     this.#audioManager = audioManager;
     this.#audioManager.setEnabled(this.#soundEnabled);
     this.#audioManager.setVolume(savedProgress.soundVolume);
+    this.#audioManager.setMusicVolume?.(this.#feedbackSettings.getSnapshot().musicVolume);
     this.stateManager = new GameStateManager();
+    this.#unsubscribeAudioState = this.stateManager.subscribe(state => {
+      if (state !== GAME_STATES.PLAYING) this.#audioManager.updateMusic?.({ active: false });
+    });
     this.clock = new GameClock();
     this.inputController = new InputController({ ...inputOptions, stateManager: this.stateManager });
     this.camera = new Camera();
@@ -84,6 +94,9 @@ export class Game {
       stateManager: this.stateManager,
       world: this.world,
       render: () => {
+        this.#audioManager.updateMusic?.({ elapsedSeconds: this.clock.elapsedSeconds,
+          active: this.stateManager.currentState === GAME_STATES.PLAYING,
+          intensity: this.world.getBossSnapshot()?.alive ? 1 : Math.min(.7, this.world.enemies.length / 100) });
         this.renderer?.render(
           this.world.player,
           this.world.enemies,
@@ -163,7 +176,15 @@ export class Game {
     return this.world.getMapSnapshot();
   }
 
-  getExpansionSnapshot() { return this.world.getExpansionSnapshot(); }
+  getExpansionSnapshot() { return Object.freeze({ ...this.world.getExpansionSnapshot(), feedback: this.#feedbackSettings.getSnapshot() }); }
+  getFeedbackSettings() { return this.#feedbackSettings.getSnapshot(); }
+  get feedbackSaved() { return this.#feedbackSaved; }
+  setFeedbackSettings(patch) {
+    const saved = this.#feedbackSettings.update(patch);
+    this.#feedbackSaved = saved;
+    this.#audioManager.setMusicVolume?.(this.#feedbackSettings.getSnapshot().musicVolume);
+    return saved;
+  }
   selectMode(id) { return this.world.setMode(id); }
   getRunConfigSnapshot() { return this.world.getRunConfigSnapshot(); }
 
@@ -224,6 +245,7 @@ export class Game {
   }
 
   stop() {
+    this.#unsubscribeAudioState?.(); this.#unsubscribeAudioState = null;
     this.#unsubscribeSoundEvents?.();
     this.#unsubscribeSoundEvents = null;
     this.#audioManager.dispose();

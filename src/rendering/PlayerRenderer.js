@@ -1,11 +1,11 @@
 import { drawPixelPattern, SPRITE_PALETTES, SPRITE_PATTERNS } from './spritePatterns.js';
 
 export class PlayerRenderer {
-  render(context, camera, player, effectiveTime = 0) {
+  render(context, camera, player, effectiveTime = 0, feedback = {}) {
     const screenPosition = camera.worldToScreen(player.x, player.y);
     const diameter = player.radius * 2;
     const frame = player.moving ? Math.floor(effectiveTime * 8) % 2 : Math.floor(effectiveTime * 5) % 2;
-    const palette = player.invulnerabilityRemaining > 0
+    const palette = !feedback.reducedFlash && player.invulnerabilityRemaining > 0
       && Math.floor(player.invulnerabilityRemaining / 0.08) % 2 === 0
       ? { ...SPRITE_PALETTES.player, B: '#ffffff', C: '#ffffff' }
       : SPRITE_PALETTES.player;
@@ -27,7 +27,11 @@ export class PlayerRenderer {
       markerSize,
     );
     const weaponIds = new Set(player.weaponStates?.map(({ id }) => id) ?? []);
-    const firing = (id) => player.weaponStates.find(w => w.id === id)?.fireFlashRemaining > 0;
+    if (feedback.reducedFlash && player.invulnerabilityRemaining > 0) {
+      context.strokeStyle = '#b3f3ff'; context.lineWidth = 2;
+      context.strokeRect(screenPosition.x - player.radius - 3, screenPosition.y - player.radius - 3, diameter + 6, diameter + 6);
+    }
+    const firing = (id) => !feedback.reducedFlash && player.weaponStates.find(w => w.id === id)?.fireFlashRemaining > 0;
     if (weaponIds.has('pulse-gun')) this.#drawPulseGun(context, screenPosition, this.#weaponAngle(player, 'pulse-gun'), firing('pulse-gun'));
     if (weaponIds.has('arc-coil')) this.#drawArcCoil(context, screenPosition);
     if (weaponIds.has('railgun')) this.#drawRailgun(context, screenPosition, this.#weaponAngle(player, 'railgun'), firing('railgun'));

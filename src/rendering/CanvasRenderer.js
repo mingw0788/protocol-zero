@@ -14,6 +14,7 @@ import { EnemyAttackRenderer } from './EnemyAttackRenderer.js';
 import { HazardRenderer } from './HazardRenderer.js';
 import { AdvancedWeaponRenderer } from './AdvancedWeaponRenderer.js';
 import { DeployableRenderer } from './DeployableRenderer.js';
+import { DamageNumberRenderer } from './DamageNumberRenderer.js';
 
 export class CanvasRenderer {
   #canvas;
@@ -34,6 +35,7 @@ export class CanvasRenderer {
   #hazardRenderer = new HazardRenderer();
   #advancedWeaponRenderer = new AdvancedWeaponRenderer();
   #deployableRenderer = new DeployableRenderer();
+  #damageNumberRenderer = new DamageNumberRenderer();
   #windowTarget;
   #devicePixelRatio;
   #started = false;
@@ -160,21 +162,23 @@ export class CanvasRenderer {
     this.#context.setTransform(this.#scale, 0, 0, this.#scale, this.#offsetX, this.#offsetY);
     this.#context.imageSmoothingEnabled = false;
     this.#camera.update();
+    const feedback = expansionSnapshot?.feedback ?? {};
     this.#mapRenderer.render(this.#context, this.#camera);
     this.#tacticalRenderer.renderWorld(this.#context, this.#camera, expansionSnapshot);
-    this.#hazardRenderer.render(this.#context, this.#camera, expansionSnapshot);
+    this.#hazardRenderer.render(this.#context, this.#camera, expansionSnapshot, feedback);
     this.#encounterRenderer.render(this.#context, this.#camera, expansionSnapshot);
-    this.#enemyAttackRenderer.render(this.#context, this.#camera, expansionSnapshot, enemies);
+    this.#enemyAttackRenderer.render(this.#context, this.#camera, expansionSnapshot, enemies, feedback);
     this.#experienceCrystalRenderer.render(this.#context, this.#camera, experienceCrystals);
     this.#expansionRenderer.render(this.#context, this.#camera, expansionSnapshot);
     this.#advancedWeaponRenderer.render(this.#context, this.#camera, expansionSnapshot);
     this.#deployableRenderer.render(this.#context, this.#camera, expansionSnapshot);
     this.#projectileRenderer.render(this.#context, this.#camera, projectiles);
-    this.#particleRenderer.render(this.#context, this.#camera, visualEffects);
-    this.#bossRenderer.render(this.#context, this.#camera, bossSnapshot, effectiveTime);
-    this.#enemyRenderer.render(this.#context, this.#camera, enemies, effectiveTime);
+    this.#particleRenderer.render(this.#context, this.#camera, visualEffects, feedback);
+    this.#bossRenderer.render(this.#context, this.#camera, bossSnapshot, effectiveTime, feedback);
+    this.#enemyRenderer.render(this.#context, this.#camera, enemies, effectiveTime, feedback);
     this.#orbitalBladeRenderer.render(this.#context, this.#camera, orbitalBlade);
-    if (player) this.#playerRenderer.render(this.#context, this.#camera, player, effectiveTime);
+    if (player) this.#playerRenderer.render(this.#context, this.#camera, player, effectiveTime, feedback);
+    this.#damageNumberRenderer.render(this.#context, this.#camera, expansionSnapshot);
     this.#tacticalRenderer.renderOverlay(this.#context, this.#camera, expansionSnapshot, player);
   }
 

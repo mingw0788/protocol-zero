@@ -1,4 +1,5 @@
 import { AUDIO_CONFIG } from '../config/audioConfig.js';
+import { MusicLayer } from './MusicLayer.js';
 
 const VALID_WAVEFORMS = new Set(['sine', 'square', 'sawtooth', 'triangle']);
 
@@ -47,6 +48,8 @@ export class AudioManager {
   #enabled = true;
   #volume;
   #disposed = false;
+  #music = null;
+  #musicVolume = .2;
 
   constructor({ contextFactory = resolveContextFactory(), config = AUDIO_CONFIG } = {}) {
     if (contextFactory !== null && typeof contextFactory !== 'function') {
@@ -93,6 +96,7 @@ export class AudioManager {
     if (typeof enabled !== 'boolean') throw new TypeError('Audio enabled state must be boolean');
     this.#enabled = enabled;
     this.#syncMasterGain();
+    if (!enabled) this.#music?.stop();
     return this.#enabled;
   }
 
@@ -103,6 +107,23 @@ export class AudioManager {
     this.#volume = volume;
     this.#syncMasterGain();
     return this.#volume;
+  }
+
+  setMusicVolume(volume) {
+    if (!Number.isFinite(volume) || volume < 0 || volume > 1) throw new RangeError('Invalid music volume');
+    this.#musicVolume = volume;
+    if (volume === 0) this.#music?.stop();
+    return volume;
+  }
+
+  updateMusic({ elapsedSeconds = 0, active = false, intensity = 0 } = {}) {
+    if (this.#disposed || !active || !this.#enabled || !this.#context || this.#musicVolume === 0) {
+      this.#music?.stop(); return false;
+    }
+    try {
+      this.#music ??= new MusicLayer({ context: this.#context });
+      return this.#music.update({ elapsedSeconds, intensity, volume: this.#musicVolume });
+    } catch { this.#music?.stop(); return false; }
   }
 
   playEvent(eventType) {
@@ -194,6 +215,7 @@ export class AudioManager {
   }
 
   #releaseContext() {
+    this.#music?.stop(); this.#music = null;
     const context = this.#context;
     const masterGain = this.#masterGain;
     for (const voice of [...this.#voices]) this.#stopVoice(voice);

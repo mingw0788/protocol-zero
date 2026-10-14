@@ -1,8 +1,9 @@
 export class EnemyAttackRenderer {
-  render(ctx, camera, snapshot, enemies = []) {
+  render(ctx, camera, snapshot, enemies = [], feedback = {}) {
     const attacks = snapshot?.hostileAttacks;
     if (!attacks) return;
     ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, camera.viewportWidth, camera.viewportHeight); ctx.clip();
     for (const enemy of enemies) {
       if (!enemy.alive || enemy.behavior !== 'aura') continue;
       const p = camera.worldToScreen(enemy.x, enemy.y);
@@ -12,13 +13,13 @@ export class EnemyAttackRenderer {
     }
     for (const aim of attacks.aims) {
       const a = camera.worldToScreen(aim.x1, aim.y1), b = camera.worldToScreen(aim.x2, aim.y2);
-      ctx.strokeStyle = '#ff729b'; ctx.lineWidth = 3;
+      ctx.strokeStyle = '#ff729b'; ctx.lineWidth = feedback.strongDanger ? 5 : 3;
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
       ctx.strokeRect(b.x - 9, b.y - 9, 18, 18);
     }
     for (const fuse of attacks.fuses) {
       const p = camera.worldToScreen(fuse.x, fuse.y);
-      ctx.strokeStyle = '#ffa364'; ctx.fillStyle = '#f96b4140'; ctx.lineWidth = 3;
+      ctx.strokeStyle = '#ffa364'; ctx.fillStyle = '#f96b4140'; ctx.lineWidth = feedback.strongDanger ? 5 : 3;
       ctx.beginPath(); ctx.arc(p.x, p.y, fuse.radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       ctx.strokeStyle = '#fff0bd'; ctx.lineWidth = 5;
       ctx.beginPath(); ctx.arc(p.x, p.y, fuse.radius - 5, -Math.PI / 2, -Math.PI / 2 + fuse.progress * Math.PI * 2); ctx.stroke();

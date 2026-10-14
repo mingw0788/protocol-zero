@@ -1,7 +1,7 @@
 import { drawPixelPattern, SPRITE_PALETTES, SPRITE_PATTERNS } from './spritePatterns.js';
 
 export class EnemyRenderer {
-  render(context, camera, enemies = [], effectiveTime = 0) {
+  render(context, camera, enemies = [], effectiveTime = 0, feedback = {}) {
     if (!context || typeof context.fillRect !== 'function') {
       throw new TypeError('EnemyRenderer requires a Canvas 2D context');
     }
@@ -30,8 +30,11 @@ export class EnemyRenderer {
       const phase = stablePhase(enemy.id);
       const frame = Math.floor(effectiveTime * 4 + phase) % patterns.length;
       const base = SPRITE_PALETTES[enemy.typeId] ?? SPRITE_PALETTES.fallback;
-      const palette = enemy.hitFlashRemaining > 0 ? { ...base, B: '#ffffff', X: '#ffffff' } : base;
+      const palette = !feedback.reducedFlash && enemy.hitFlashRemaining > 0 ? { ...base, B: '#ffffff', X: '#ffffff' } : base;
       drawPixelPattern(context, patterns[frame], palette, x, y, diameter);
+      if (feedback.reducedFlash && enemy.hitFlashRemaining > 0) {
+        context.fillStyle = '#e7a29d'; context.fillRect(x, y - 3, diameter, 2);
+      }
       if ((enemy.slowMultiplier ?? 1) < 1) {
         context.fillStyle = '#8af5f6';
         context.fillRect(x - 3, y, 3, 7); context.fillRect(x + diameter, y + diameter - 7, 3, 7);

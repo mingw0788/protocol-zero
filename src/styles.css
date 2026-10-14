@@ -743,3 +743,22 @@ button:disabled { opacity: .45; cursor: default; }
   #hud-weapons { font-size: 10px; }
   .boss-hud { top: 106px; }
 }
+.feedback-settings { margin-top: 14px; padding: 10px 12px; border: 1px solid #304c60; color: #b4c9d6; font-size: 12px; }
+.feedback-settings summary { cursor: pointer; color: #c5e4ed; }
+.feedback-settings > label:not(.sound-volume-control) { display: flex; gap: 8px; align-items: center; margin-top: 9px; }
+.feedback-settings input[type="checkbox"] { accent-color: #7bd7e7; }
+.feedback-settings .sound-volume-control { margin-top: 10px; }
+.pause-card { width: min(100%, 640px); }
+.build-details { padding: 12px 14px; background: #0b1b2a; border-left: 2px solid #b09de0; color: #bed0df; font-size: 12px; line-height: 1.8; }
+.build-details h3 { margin: 0 0 8px; color: #d9c4ff; font-size: 14px; }
+.build-details p { margin: 5px 0; overflow-wrap: anywhere; }
+.result-card { width: min(100%, 720px); }
+.combat-summary { color: #b4ced7; text-align: center; font-size: 12px; line-height: 1.8; }
+.damage-table-wrap { overflow-x: auto; margin: 12px 0; }
+.damage-table { width: 100%; border-collapse: collapse; font-size: 12px; color: #bbd1dd; }
+.damage-table caption { padding: 8px; color: #d9c4ff; }
+.damage-table th,.damage-table td { padding: 7px 9px; border-bottom: 1px solid #294354; text-align: right; }
+.damage-table th:first-child,.damage-table td:first-child { text-align: left; }
+.tutorial-tip { position: absolute; left: 14px; bottom: 48px; max-width: 56%; padding: 7px 10px; color: #b7d7e1; background: #0d2135ed; border: 1px solid #345970; font-size: 12px; pointer-events: auto; }
+.tutorial-tip button { display: inline; width: auto; min-height: 24px; padding: 1px 7px; margin-left: 8px; border: 0; background: transparent; color: #c3e9f2; }
+@container (max-width:700px) { .tutorial-tip { font-size: 9px; max-width: 52%; bottom: 60px; left: 8px; } .damage-table th,.damage-table td { padding: 5px 4px; font-size: 10px; } }

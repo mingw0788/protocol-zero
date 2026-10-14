@@ -13,7 +13,7 @@ export class BossRenderer {
     this.#warningWidthPadding = warningWidthPadding;
   }
 
-  render(context, camera, bossSnapshot = null, effectiveTime = 0) {
+  render(context, camera, bossSnapshot = null, effectiveTime = 0, feedback = {}) {
     if (!context || typeof context.stroke !== 'function'
       || typeof context.moveTo !== 'function' || typeof context.lineTo !== 'function'
       || typeof context.fillRect !== 'function') {
@@ -34,7 +34,7 @@ export class BossRenderer {
       context.save(); context.beginPath(); context.rect(0, 0, camera.viewportWidth, camera.viewportHeight); context.clip();
       for (const warning of bossSnapshot.electricalWarnings) {
         const point = camera.worldToScreen(warning.x, warning.y);
-        context.strokeStyle = '#f4b46b'; context.lineWidth = 3;
+        context.strokeStyle = '#f4b46b'; context.lineWidth = feedback.strongDanger ? 5 : 3;
         context.fillStyle = '#f4b46b22'; context.beginPath(); context.arc(point.x, point.y, warning.radius, 0, Math.PI * 2); context.fill(); context.stroke();
         context.beginPath(); context.moveTo(point.x - 12, point.y); context.lineTo(point.x + 12, point.y);
         context.moveTo(point.x, point.y - 12); context.lineTo(point.x, point.y + 12); context.stroke();
@@ -55,7 +55,7 @@ export class BossRenderer {
         drawPixelPattern(
           context,
           SPRITE_PATTERNS.boss,
-          bossSnapshot.hitFlashRemaining > 0 ? { ...SPRITE_PALETTES.boss, B: '#ffffff' }
+          !feedback.reducedFlash && bossSnapshot.hitFlashRemaining > 0 ? { ...SPRITE_PALETTES.boss, B: '#ffffff' }
             : bossSnapshot.typeId === 'BOSS-02' ? { ...SPRITE_PALETTES.boss, B: '#a6bbff', C: '#7cd1df' } : SPRITE_PALETTES.boss,
           position.x - bossSnapshot.radius,
           position.y - bossSnapshot.radius,

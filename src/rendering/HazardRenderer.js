@@ -1,5 +1,5 @@
 export class HazardRenderer {
-  render(ctx, camera, snapshot) {
+  render(ctx, camera, snapshot, feedback = {}) {
     const hazards = snapshot?.hazards;
     if (!hazards) return;
     ctx.save();
@@ -11,7 +11,7 @@ export class HazardRenderer {
       const color = zone.disabled ? '#70a99c' : zone.phase === 'active' ? '#ff6682' : zone.phase === 'warning' ? '#ffd075' : '#385267';
       ctx.fillStyle = zone.phase === 'active' ? '#ff466922' : '#20344933';
       ctx.fillRect(p.x, p.y, zone.width, zone.height);
-      ctx.strokeStyle = color; ctx.lineWidth = zone.phase === 'safe' ? 1 : 3;
+      ctx.strokeStyle = color; ctx.lineWidth = zone.phase === 'safe' ? 1 : feedback.strongDanger ? 5 : 3;
       ctx.strokeRect(p.x, p.y, zone.width, zone.height);
       if (zone.phase !== 'safe') {
         ctx.beginPath();

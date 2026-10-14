@@ -1,9 +1,9 @@
 import { GAME_STATES } from '../core/GameStateManager.js';
 import { TacticalHUD } from './TacticalHUD.js';
 import { SUPPLY_NAMES } from '../config/supplyConfig.js';
+import { formatBuildSummary, formatCombatSummary, WEAPON_NAMES } from './buildSummary.js';
 
-const WEAPON_LABELS = Object.freeze({ 'pulse-gun': '脉冲枪', 'orbital-blade': '轨道刃',
-  'arc-coil': '弧光线圈', railgun: '磁轨炮', 'cryo-sprayer': '冷凝喷射器', 'drone-swarm': '蜂群无人机' });
+const WEAPON_LABELS = WEAPON_NAMES;
 const ELEMENT_IDS = Object.freeze({
   menu: 'main-menu-panel',
   help: 'help-panel',
@@ -62,6 +62,7 @@ export class UIManager {
   #removeListeners = [];
   #displayedChoices = Object.freeze([]);
   #tacticalHUD;
+  #lastStatsResult = null;
 
   constructor({ root, game, windowTarget = globalThis.window ?? null } = {}) {
     if (!root || typeof root.querySelector !== 'function') {
@@ -128,6 +129,16 @@ export class UIManager {
       modeSelect.value = this.#game.getRunConfigSnapshot().modeId;
     });
     this.#listen(e.start, 'click', () => this.#game.startGame());
+    for (const prefix of ['', 'pause-']) {
+      for (const [id, key] of [['damage-numbers', 'showDamageNumbers'], ['reduced-flash', 'reducedFlash'], ['danger', 'strongDanger'], ['tutorial', 'showTutorial']]) {
+        const control = this.#root.querySelector(`#${prefix}feedback-${id}`);
+        if (control) this.#listen(control, 'change', () => { this.#game.setFeedbackSettings?.({ [key]: control.checked }); this.#renderFeedback(); });
+      }
+      const music = this.#root.querySelector(`#${prefix}music-volume-slider`);
+      if (music) this.#listen(music, 'input', () => { this.#game.setFeedbackSettings?.({ musicVolume: Number(music.value) / 100 }); this.#renderFeedback(); });
+    }
+    const dismissTutorial = this.#root.querySelector('#dismiss-tutorial-button');
+    if (dismissTutorial) this.#listen(dismissTutorial, 'click', () => { this.#game.setFeedbackSettings?.({ showTutorial: false }); this.#renderFeedback(); });
     this.#listen(e.showHelp, 'click', () => this.#showHelp(true));
     this.#listen(e.hideHelp, 'click', () => this.#showHelp(false));
     this.#listen(e.sound, 'click', () => {
@@ -175,6 +186,8 @@ export class UIManager {
   }
 
   renderSnapshot(snapshot, currentState, bossSnapshot = this.#game.getBossSnapshot()) {
+    this.#renderFeedback(currentState, snapshot);
+    if (currentState === GAME_STATES.PAUSED) this.#renderBuild();
     this.#tacticalHUD.render(this.#game.getExpansionSnapshot?.(), currentState === GAME_STATES.PLAYING);
     this.#renderExpansion(currentState);
     this.#renderActiveItems(currentState);
@@ -343,6 +356,52 @@ export class UIManager {
     const detail = this.#root.querySelector('#run-result-exploration');
     const expansion = this.#game.getExpansionSnapshot?.();
     if (detail) this.#setText(detail, `档案 ${expansion?.exploration.completed ?? 0}/3 · 事件 ${expansion?.encounters.completed ?? 0}/2 · 拾取补给 ${expansion?.supply.collected ?? 0} 件`);
+    const table = this.#root.querySelector('#result-damage-body');
+    const summaryElement = this.#root.querySelector('#result-combat-summary');
+    if (table && summaryElement && this.#lastStatsResult !== snapshot) {
+      this.#lastStatsResult = snapshot;
+      const summary = formatCombatSummary(snapshot, expansion?.build);
+      table.textContent = '';
+      if (summary) {
+        this.#setText(summaryElement, `有效伤害 ${summary.total.toFixed(1)} · DPS ${summary.dps.toFixed(1)} · 生命承伤 ${summary.received.toFixed(1)} · 护盾吸收 ${summary.shield.toFixed(1)}`);
+        for (const row of summary.rows) {
+          const tr = table.ownerDocument.createElement('tr');
+          for (const text of [row.name, row.damage.toFixed(1), `${row.share.toFixed(1)}%`, String(row.kills)]) {
+            const td = table.ownerDocument.createElement('td'); td.textContent = text; tr.appendChild(td);
+          }
+          table.appendChild(tr);
+        }
+      } else this.#setText(summaryElement, '尚无战斗统计');
+    }
+  }
+
+  #renderBuild() {
+    const data = this.#game.getExpansionSnapshot?.();
+    const summary = formatBuildSummary(data);
+    for (const [key, id] of [['weapons', 'pause-weapons'], ['upgrades', 'pause-upgrades'], ['buffs', 'pause-buffs']]) {
+      const element = this.#root.querySelector(`#${id}`); if (element) this.#setText(element, summary[key]);
+    }
+  }
+
+  #renderFeedback(state = this.#game.stateManager.currentState, hud = this.#game.getHudSnapshot()) {
+    const settings = this.#game.getFeedbackSettings?.();
+    if (!settings) return;
+    for (const prefix of ['', 'pause-']) {
+      for (const [id, key] of [['damage-numbers', 'showDamageNumbers'], ['reduced-flash', 'reducedFlash'], ['danger', 'strongDanger'], ['tutorial', 'showTutorial']]) {
+        const control = this.#root.querySelector(`#${prefix}feedback-${id}`); if (control) control.checked = settings[key];
+      }
+      const music = this.#root.querySelector(`#${prefix}music-volume-slider`), value = this.#root.querySelector(`#${prefix}music-volume-value`);
+      if (music) music.value = String(Math.round(settings.musicVolume * 100));
+      if (value) this.#setText(value, `${Math.round(settings.musicVolume * 100)}%`);
+      const notice = this.#root.querySelector(`#${prefix}feedback-save-notice`);
+      if (notice) { notice.hidden = this.#game.feedbackSaved !== false; this.#setText(notice, '设置本次已生效，本机存储暂不可用或版本较新，尚未保存。'); }
+    }
+    const tip = this.#root.querySelector('#tutorial-tip'), text = this.#root.querySelector('#tutorial-tip-text');
+    if (!tip || !text) return;
+    tip.hidden = state !== GAME_STATES.PLAYING || !settings.showTutorial || hud.elapsedSeconds >= 60;
+    if (!tip.hidden) this.#setText(text, hud.elapsedSeconds < 15 ? 'WASD 移动 · 靠近敌人自动攻击 · Shift 冲刺脱围'
+      : hud.elapsedSeconds < 35 ? '拾取晶体积累经验 · 升级时查看武器进化条件 · E/Q 使用道具'
+        : 'G 切换目标 · 探索终端获取补给 · 事件倒计时内完成可得额外奖励');
   }
 
   #rerollUpgrades() {

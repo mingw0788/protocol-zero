@@ -44,6 +44,7 @@ import { DroneSystem } from '../systems/DroneSystem.js';
 import { DeployableSystem } from '../systems/DeployableSystem.js';
 import { ENERGY_LAYOUTS } from '../config/energyMapConfig.js';
 import { GridBossSystem } from '../systems/GridBossSystem.js';
+import { DamageNumberSystem } from '../systems/DamageNumberSystem.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -128,8 +129,10 @@ export class GameWorld {
     this.collisionSystem = new CollisionSystem({ player, enemies: this.enemies });
     this.damageSystem = new DamageSystem({ player });
     this.combatStatsSystem = new CombatStatsSystem();
+    this.damageNumberSystem = new DamageNumberSystem();
     this.enemyDamageSystem = new EnemyDamageSystem({ onDamage: (event) => {
       this.combatStatsSystem.recordEnemyDamage(event);
+      this.damageNumberSystem.emit({ targetId: event.enemyId, x: event.x, y: event.y, amount: event.actualDamage });
       const { lethal } = event;
       if (!lethal) this.particleSystem?.emitEnemyHit(event);
       const elapsed = this.clock.elapsedSeconds;
@@ -279,6 +282,8 @@ export class GameWorld {
     snapshot.drones = this.droneSystem.getSnapshot();
     snapshot.railFields = this.railgunSystem.getFieldsSnapshot();
     snapshot.deployables = this.deployableSystem.getSnapshot();
+    snapshot.damageNumbers = this.damageNumberSystem.getSnapshot();
+    snapshot.upgrades = this.upgradeSystem.getUpgradeLevelsSnapshot();
     snapshot.trackedObjective = this.objectiveSystem.getTrackedSnapshot(snapshot);
     return Object.freeze(snapshot);
   }
@@ -398,6 +403,7 @@ export class GameWorld {
     if (!this.stateManager.isPlaying() || this.#playerDeathFrozen) return false;
 
     this.particleSystem.update(deltaSeconds);
+    this.damageNumberSystem.update(deltaSeconds);
     this.statusEffectSystem.update(deltaSeconds);
     for (const enemy of this.enemies) enemy.hitFlashRemaining = Math.max(0, (enemy.hitFlashRemaining ?? 0) - deltaSeconds);
     for (const weapon of this.player.weaponStates) weapon.fireFlashRemaining = Math.max(0, (weapon.fireFlashRemaining ?? 0) - deltaSeconds);
@@ -432,6 +438,10 @@ export class GameWorld {
       ...(this.bossSystem.getDamageCandidates?.() ?? []),
     ]);
     if (damageResult.damaged) {
+      this.damageNumberSystem.emit({ targetId: 'player', x: this.player.x, y: this.player.y,
+        amount: damageResult.damage, kind: 'player' });
+      this.damageNumberSystem.emit({ targetId: 'player-shield', x: this.player.x, y: this.player.y,
+        amount: damageResult.shieldDamage, kind: 'shield' });
       this.combatStatsSystem.recordPlayerDamage({
         sourceTypeIds: damageResult.sourceTypeIds,
         healthDamage: damageResult.damage,
@@ -536,6 +546,7 @@ export class GameWorld {
     this.clock.reset();
     this.#configureLayout();
     this.particleSystem.reset();
+    this.damageNumberSystem.reset();
     this.playerSystem.reset();
     this.dashSystem.reset();
     this.enemyAttackSystem.reset();

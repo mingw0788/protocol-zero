@@ -33,6 +33,15 @@
                 <output id="sound-volume-value" for="sound-volume-slider">65%</output>
               </label>
             </div>
+            <details class="feedback-settings">
+              <summary>显示、教学与音乐</summary>
+              <label><input id="feedback-damage-numbers" type="checkbox" checked /> 显示伤害数字</label>
+              <label><input id="feedback-reduced-flash" type="checkbox" /> 减少闪光</label>
+              <label><input id="feedback-danger" type="checkbox" checked /> 强化危险提示</label>
+              <label><input id="feedback-tutorial" type="checkbox" checked /> 开局教学提示</label>
+              <label class="sound-volume-control" for="music-volume-slider"><span>音乐音量</span><input id="music-volume-slider" type="range" min="0" max="100" step="5" value="20" /><output id="music-volume-value">20%</output></label>
+              <p id="feedback-save-notice" class="save-notice" role="status" hidden></p>
+            </details>
           </div>
         </section>
         <section id="help-panel" class="ui-panel" aria-labelledby="help-title" hidden>
@@ -93,11 +102,21 @@
           <span id="boss-health-value"></span>
           <progress id="boss-health-bar" aria-label="机械暴君 T-01 生命值" max="1800" value="1800"></progress>
         </section>
+        <section id="tutorial-tip" class="tutorial-tip" aria-label="教学提示" hidden><span id="tutorial-tip-text"></span><button id="dismiss-tutorial-button" type="button" aria-label="关闭教学提示">×</button></section>
         <section id="pause-panel" class="ui-panel" aria-labelledby="pause-title" hidden>
-          <div class="ui-card">
+          <div class="ui-card pause-card">
             <p class="eyebrow">ZERO / STANDBY</p>
             <h2 id="pause-title">战斗已暂停</h2>
             <p class="panel-description">准备好后，继续行动。</p>
+            <div class="build-details"><h3>本局构筑</h3><p id="pause-weapons"></p><p id="pause-upgrades"></p><p id="pause-buffs"></p></div>
+            <details class="feedback-settings"><summary>显示与音乐设置</summary>
+              <label><input id="pause-feedback-damage-numbers" type="checkbox" checked /> 显示伤害数字</label>
+              <label><input id="pause-feedback-reduced-flash" type="checkbox" /> 减少闪光</label>
+              <label><input id="pause-feedback-danger" type="checkbox" checked /> 强化危险提示</label>
+              <label><input id="pause-feedback-tutorial" type="checkbox" checked /> 开局教学提示</label>
+              <label class="sound-volume-control" for="pause-music-volume-slider"><span>音乐音量</span><input id="pause-music-volume-slider" type="range" min="0" max="100" step="5" value="20" /><output id="pause-music-volume-value">20%</output></label>
+              <p id="pause-feedback-save-notice" class="save-notice" role="status" hidden></p>
+            </details>
             <div class="button-stack">
               <button id="resume-game-button" class="button-primary" type="button">继续游戏</button>
               <button id="return-menu-button" type="button">返回主菜单</button>
@@ -150,6 +169,8 @@
             <p class="eyebrow">ZERO / RUN REPORT</p>
             <h2 id="run-result-title">任务结果</h2>
             <p id="run-result-exploration" class="upgrade-hint"></p>
+            <p id="result-combat-summary" class="combat-summary"></p>
+            <div class="damage-table-wrap"><table class="damage-table"><caption>本局武器与战术贡献</caption><thead><tr><th scope="col">来源</th><th scope="col">有效伤害</th><th scope="col">占比</th><th scope="col">击杀</th></tr></thead><tbody id="result-damage-body"></tbody></table></div>
             <dl class="result-stats">
               <div><dt>击杀</dt><dd id="run-result-kills">0</dd></div>
               <div><dt>存活时间</dt><dd id="run-result-time">00:00</dd></div>
