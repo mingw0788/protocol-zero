@@ -321,3 +321,7 @@ Git Commit：哈希或未提交原因
 ### T031 体验完善
 
 依赖 T030，用户已授权完善。实施命中与开火反馈、武器音色与声音优先级、城区中继和地标导航、地图屏外剔除；本轮规格及验证见 `docs/task-report-T031.md`。环境伤害危机和自然人工验收不纳入已完成声明。
+
+## 最新玩法扩展路线：T034–T045
+
+用户授权执行 `docs/superpowers/plans/2026-10-14-gameplay-expansion-roadmap.md`。T034 已完成并为后续来源伤害建立统计口径；T035–T045 按该路线图依赖顺序实施。T034 规格为 `docs/superpowers/specs/2026-10-14-t034-combat-statistics-design.md`，报告为 `docs/task-report-T034.md`。

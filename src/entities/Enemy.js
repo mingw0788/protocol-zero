@@ -72,5 +72,6 @@ export class Enemy {
     this.worldHeight = worldHeight;
     this.alive = true;
     this.deathProcessed = false;
+    this.lastDamageSourceId = null;
   }
 }

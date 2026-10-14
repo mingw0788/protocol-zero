@@ -92,7 +92,7 @@ export class SupplySystem {
     if (this.#activeItem === 'emp-charge' && this.enemyDamageSystem && this.enemies) {
       for (const enemy of this.enemies) {
         if (enemy.alive && Math.hypot(enemy.x - this.player.x, enemy.y - this.player.y) <= this.config.empRadius + enemy.radius) {
-          this.enemyDamageSystem.applyDamage(enemy, enemy.category === 'boss' ? this.config.empBossDamage : this.config.empDamage);
+          this.enemyDamageSystem.applyDamage(enemy, enemy.category === 'boss' ? this.config.empBossDamage : this.config.empDamage, 'emp-charge');
         }
       }
       this.#activeItem = null;

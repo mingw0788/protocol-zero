@@ -7,7 +7,7 @@ function requireNonNegativeFinite(value, name) {
 }
 
 function noDamageResult() {
-  return { damaged: false, killed: false, damage: 0 };
+  return { damaged: false, killed: false, damage: 0, shieldDamage: 0, sourceTypeIds: Object.freeze([]) };
 }
 
 export class DamageSystem {
@@ -35,6 +35,7 @@ export class DamageSystem {
     }
 
     let maximumDamage = 0;
+    let sourceTypeIds = [];
     for (const contact of contacts) {
       if (!contact || typeof contact !== 'object') {
         throw new TypeError('Each contact must be an object');
@@ -42,7 +43,12 @@ export class DamageSystem {
       if (!Number.isFinite(contact.contactDamage) || contact.contactDamage < 0) {
         throw new RangeError('contactDamage must be a non-negative finite number');
       }
-      maximumDamage = Math.max(maximumDamage, contact.contactDamage);
+      if (contact.contactDamage > maximumDamage) {
+        maximumDamage = contact.contactDamage;
+        sourceTypeIds = [contact.typeId ?? 'unknown'];
+      } else if (contact.contactDamage === maximumDamage && maximumDamage > 0) {
+        sourceTypeIds.push(contact.typeId ?? 'unknown');
+      }
     }
 
     if (contacts.length === 0
@@ -72,6 +78,12 @@ export class DamageSystem {
     this.player.invulnerabilityRemaining = this.invulnerabilitySeconds;
     if (killed) this.player.alive = false;
 
-    return { damaged: true, killed, damage: actualDamage };
+    return {
+      damaged: true,
+      killed,
+      damage: actualDamage,
+      shieldDamage: absorbed,
+      sourceTypeIds: Object.freeze([...new Set(sourceTypeIds)].sort()),
+    };
   }
 }

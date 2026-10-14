@@ -62,7 +62,7 @@ export class RelaySystem {
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.config.healing);
       for (const enemy of this.enemies) {
         if (enemy.alive && Math.hypot(enemy.x - station.x, enemy.y - station.y) <= this.config.pulseRadius + enemy.radius) {
-          this.damageSystem.applyDamage(enemy, enemy.category === 'boss' ? this.config.bossDamage : this.config.damage);
+          this.damageSystem.applyDamage(enemy, enemy.category === 'boss' ? this.config.bossDamage : this.config.damage, 'relay-pulse');
         }
       }
       activated++;

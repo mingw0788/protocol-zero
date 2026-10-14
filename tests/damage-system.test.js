@@ -15,6 +15,8 @@ describe('DamageSystem', () => {
       damaged: true,
       killed: false,
       damage: 10,
+      shieldDamage: 0,
+      sourceTypeIds: ['unknown'],
     });
     expect(player.hp).toBe(90);
     expect(player.hp).toBeLessThanOrEqual(player.maxHp);
@@ -28,6 +30,8 @@ describe('DamageSystem', () => {
       damaged: true,
       killed: true,
       damage: 5,
+      shieldDamage: 0,
+      sourceTypeIds: ['unknown'],
     });
     expect(lowHealthPlayer.hp).toBe(0);
     expect(lowHealthPlayer.alive).toBe(false);
@@ -35,6 +39,8 @@ describe('DamageSystem', () => {
       damaged: false,
       killed: false,
       damage: 0,
+      shieldDamage: 0,
+      sourceTypeIds: [],
     });
     expect(lowHealthPlayer.hp).toBeGreaterThanOrEqual(0);
   });
@@ -43,14 +49,14 @@ describe('DamageSystem', () => {
     const player = new Player();
     const damageSystem = new DamageSystem({ player });
 
-    expect(damageSystem.applyContactDamage([])).toEqual({ damaged: false, killed: false, damage: 0 });
-    expect(damageSystem.applyContactDamage([contact(0)])).toEqual({ damaged: false, killed: false, damage: 0 });
+    expect(damageSystem.applyContactDamage([])).toEqual({ damaged: false, killed: false, damage: 0, shieldDamage: 0, sourceTypeIds: [] });
+    expect(damageSystem.applyContactDamage([contact(0)])).toEqual({ damaged: false, killed: false, damage: 0, shieldDamage: 0, sourceTypeIds: [] });
 
     damageSystem.applyContactDamage([contact(10)]);
     damageSystem.update(0.2);
     const remainingAfterUpdate = player.invulnerabilityRemaining;
 
-    expect(damageSystem.applyContactDamage([contact(10)])).toEqual({ damaged: false, killed: false, damage: 0 });
+    expect(damageSystem.applyContactDamage([contact(10)])).toEqual({ damaged: false, killed: false, damage: 0, shieldDamage: 0, sourceTypeIds: [] });
     expect(player.hp).toBe(90);
     expect(player.invulnerabilityRemaining).toBe(remainingAfterUpdate);
     expect(player.invulnerabilityRemaining).toBeCloseTo(0.4, 12);
@@ -80,6 +86,8 @@ describe('DamageSystem', () => {
       damaged: true,
       killed: false,
       damage: 10,
+      shieldDamage: 0,
+      sourceTypeIds: ['unknown'],
     });
     expect(player.hp).toBe(80);
   });

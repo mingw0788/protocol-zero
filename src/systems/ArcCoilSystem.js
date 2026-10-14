@@ -15,7 +15,7 @@ export class ArcCoilSystem {
     let target = shot.target, origin = this.player, damage = shot.damage;
     while (target && hit.size < shot.maxTargets) {
       hit.add(target.id);
-      this.enemyDamageSystem.applyDamage(target, damage);
+      this.enemyDamageSystem.applyDamage(target, damage, this.config.id);
       this.visuals.push({ x1: origin.x, y1: origin.y, x2: target.x, y2: target.y,
         color: this.config.color, remaining: this.config.visualSeconds });
       origin = target;

@@ -82,7 +82,7 @@ export class ProjectileSystem {
       const effectiveDelta = Math.min(deltaSeconds, projectile.remainingLife);
       const hitEnemy = firstIntersectionParameter(projectile, this.enemies, effectiveDelta);
       if (hitEnemy) {
-        this.enemyDamageSystem.applyDamage(hitEnemy, projectile.damage);
+        this.enemyDamageSystem.applyDamage(hitEnemy, projectile.damage, projectile.weaponId);
         projectile.active = false;
         continue;
       }

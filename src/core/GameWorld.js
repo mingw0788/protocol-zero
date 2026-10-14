@@ -31,6 +31,7 @@ import { getExperienceToNextLevel } from '../systems/LevelSystem.js';
 import { DashSystem } from '../systems/DashSystem.js';
 import { ExplorationSystem } from '../systems/ExplorationSystem.js';
 import { TACTICAL_CONFIG } from '../config/tacticalConfig.js';
+import { CombatStatsSystem } from '../systems/CombatStatsSystem.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -95,7 +96,9 @@ export class GameWorld {
     this.waveSystem = new WaveSystem({ config: waveConfig });
     this.collisionSystem = new CollisionSystem({ player, enemies: this.enemies });
     this.damageSystem = new DamageSystem({ player });
+    this.combatStatsSystem = new CombatStatsSystem();
     this.enemyDamageSystem = new EnemyDamageSystem({ onDamage: (event) => {
+      this.combatStatsSystem.recordEnemyDamage(event);
       const { lethal } = event;
       if (!lethal) this.particleSystem?.emitEnemyHit(event);
       const elapsed = this.clock.elapsedSeconds;
@@ -223,6 +226,10 @@ export class GameWorld {
     return this.#runResult;
   }
 
+  getCombatStatsSnapshot() {
+    return this.combatStatsSystem.getSnapshot();
+  }
+
   getUpgradeChoices() {
     return this.upgradeSystem.getChoicesSnapshot();
   }
@@ -311,7 +318,15 @@ export class GameWorld {
     this.spawnSystem.update(deltaSeconds, waveSnapshot);
     this.bossSystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
     this.enemySystem.update(deltaSeconds, (enemy) => this.supplySystem.targetFor(enemy));
-    const damageResult = this.damageSystem.applyContactDamage(this.collisionSystem.getPlayerContacts());
+    const contacts = this.collisionSystem.getPlayerContacts();
+    const damageResult = this.damageSystem.applyContactDamage(contacts);
+    if (damageResult.damaged) {
+      this.combatStatsSystem.recordPlayerDamage({
+        sourceTypeIds: damageResult.sourceTypeIds,
+        healthDamage: damageResult.damage,
+        shieldDamage: damageResult.shieldDamage,
+      });
+    }
     if (damageResult.damaged && !damageResult.killed) {
       this.particleSystem.emitPlayerHit(this.player);
       this.#emitSoundEvent('player-hit');
@@ -372,6 +387,11 @@ export class GameWorld {
 
       enemy.deathProcessed = true;
       this.recordKill();
+      this.combatStatsSystem.recordEnemyKill({
+        sourceId: enemy.lastDamageSourceId ?? 'unknown',
+        targetTypeId: enemy.typeId ?? 'unknown',
+        category: enemy.category ?? 'normal',
+      });
       const snapshot = Object.freeze({
         enemyId: enemy.id,
         typeId: enemy.typeId,
@@ -414,6 +434,7 @@ export class GameWorld {
     this.#simulationSteps = 0;
     this.#lastWeaponHitSoundAt = Number.NEGATIVE_INFINITY;
     this.#killCount = 0;
+    this.combatStatsSystem.reset();
     this.#playerDeathFrozen = false;
     this.#runResult = null;
   }
@@ -423,6 +444,7 @@ export class GameWorld {
       outcome: outcome === GAME_STATES.VICTORY ? 'victory' : 'defeat',
       killCount: this.#killCount,
       elapsedSeconds: this.clock.elapsedSeconds,
+      statistics: this.combatStatsSystem.getSnapshot(),
     });
     if (!this.stateManager.finishRun(outcome)) {
       this.#runResult = null;

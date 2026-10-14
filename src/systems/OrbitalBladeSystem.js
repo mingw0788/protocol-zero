@@ -156,7 +156,7 @@ export class OrbitalBladeSystem {
       const distance = Math.hypot(bladeX - enemy.x, bladeY - enemy.y);
       if (distance > this.#config.bladeRadius + enemy.radius) continue;
 
-      if (this.enemyDamageSystem.applyDamage(enemy, damage)) {
+      if (this.enemyDamageSystem.applyDamage(enemy, damage, this.#config.id)) {
         this.#hitCooldowns.set(enemy.id, this.#config.hitCooldownSeconds / fireRateMultiplier);
       }
     }
