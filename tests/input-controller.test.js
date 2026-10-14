@@ -93,6 +93,21 @@ describe('InputController', () => {
     expect(controller.consumeItemSelectPress()).toBe(false);
     controller.stop();
   });
+
+  it('cycles objectives once with G and clears a pending request on blur', () => {
+    const { controller, stateManager, windowTarget } = createController();
+    controller.start();
+    stateManager.startGame();
+    windowTarget.dispatchEvent('keydown', { code: 'KeyG' });
+    windowTarget.dispatchEvent('keydown', { code: 'KeyG', repeat: true });
+    expect(controller.consumeObjectivePress()).toBe(true);
+    expect(controller.consumeObjectivePress()).toBe(false);
+    windowTarget.dispatchEvent('keyup', { code: 'KeyG' });
+    windowTarget.dispatchEvent('keydown', { code: 'KeyG' });
+    windowTarget.dispatchEvent('blur');
+    expect(controller.consumeObjectivePress()).toBe(false);
+    controller.stop();
+  });
   it('maps WASD and arrow keys to a movement vector and releases individual keys', () => {
     const { controller, stateManager, windowTarget } = createController();
     controller.start();

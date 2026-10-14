@@ -32,6 +32,9 @@ import { DashSystem } from '../systems/DashSystem.js';
 import { ExplorationSystem } from '../systems/ExplorationSystem.js';
 import { TACTICAL_CONFIG } from '../config/tacticalConfig.js';
 import { CombatStatsSystem } from '../systems/CombatStatsSystem.js';
+import { EncounterSystem } from '../systems/EncounterSystem.js';
+import { RunRewardSystem } from '../systems/RunRewardSystem.js';
+import { ObjectiveSystem } from '../systems/ObjectiveSystem.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -66,6 +69,7 @@ export class GameWorld {
     random = Math.random,
     upgradeRandom = createRandomStream(),
     supplyRandom = createRandomStream(),
+    encounterRandom = createRandomStream(),
     world = WORLD_MAP,
     enemyConfig = ENEMY_CONFIG,
     waveConfig = WAVE_CONFIG,
@@ -78,6 +82,8 @@ export class GameWorld {
     this.player = player;
     this.inputController = inputController;
     this.supplySystem = new SupplySystem({ player, random: supplyRandom });
+    this.rewardSystem = new RunRewardSystem({ player, supplySystem: this.supplySystem });
+    this.objectiveSystem = new ObjectiveSystem();
     this.camera = camera;
     this.enemies = [];
     this.projectiles = [];
@@ -131,6 +137,15 @@ export class GameWorld {
       world,
       enemyConfig,
     });
+    this.encounterSystem = new EncounterSystem({ player, enemies: this.enemies, random: encounterRandom, world,
+      spawnElite: options => this.spawnSystem.spawnEncounterElite(options),
+      onNotice: message => this.supplySystem.notify(message),
+      onReward: reward => {
+        this.rewardSystem.grant(reward);
+        this.supplySystem.notify(`事件完成 · ${reward.name} · +${reward.experience} 经验 / 补给`);
+        this.#emitSoundEvent('terminal-complete');
+      },
+    });
     this.experienceSystem = new ExperienceSystem({
       crystals: this.experienceCrystals,
       player: this.player,
@@ -171,6 +186,9 @@ export class GameWorld {
     this.supplySystem.setEnabled(map.supplies);
     this.relaySystem.setEnabled(map.id === 'east-city');
     this.explorationSystem.reset(map.id);
+    this.encounterSystem.reset(map.id);
+    this.rewardSystem.reset();
+    this.objectiveSystem.reset();
     return true;
   }
 
@@ -181,12 +199,17 @@ export class GameWorld {
   getSupplySnapshot() { return this.supplySystem.getSnapshot(); }
 
   getExpansionSnapshot() {
-    return Object.freeze({ map: this.getMapSnapshot(), supply: this.getSupplySnapshot(),
+    const snapshot = { map: this.getMapSnapshot(), supply: this.getSupplySnapshot(),
       dash: this.dashSystem.getSnapshot(), shield: this.player.shield,
       exploration: this.explorationSystem.getSnapshot(),
       playerPosition: Object.freeze({ x: this.player.x, y: this.player.y }),
-      arc: this.arcCoilSystem.getSnapshot(), rail: this.railgunSystem.getSnapshot(), relays: this.relaySystem.getSnapshot() });
+      arc: this.arcCoilSystem.getSnapshot(), rail: this.railgunSystem.getSnapshot(), relays: this.relaySystem.getSnapshot(),
+      encounters: this.encounterSystem.getSnapshot(), rewards: this.rewardSystem.getSnapshot() };
+    snapshot.trackedObjective = this.objectiveSystem.getTrackedSnapshot(snapshot);
+    return Object.freeze(snapshot);
   }
+
+  cycleObjective() { return this.objectiveSystem.cycle(this.getExpansionSnapshot()); }
 
   get killCount() {
     return this.#killCount;
@@ -309,14 +332,16 @@ export class GameWorld {
       this.playerSystem.update(deltaSeconds);
     }
     if (this.inputController?.consumeItemSelectPress?.()) this.supplySystem.cycleSelectedSlot();
+    if (this.inputController?.consumeObjectivePress?.()) this.cycleObjective();
     const exchangeItem = this.inputController?.consumeItemExchangePress?.() ?? false;
     const itemUse = this.inputController?.consumeItemUsePress?.() ?? null;
     if (exchangeItem) this.supplySystem.exchangeNearby();
     else if (itemUse) this.supplySystem.deploy(itemUse.slot);
+    this.rewardSystem.update();
     this.supplySystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
     if (this.relaySystem.update(deltaSeconds) > 0) this.#emitSoundEvent('relay-pulse');
     this.camera.follow(this.player);
-    this.#settleEnemyDeaths();
+    this.#settleEnemyDeaths(this.clock.elapsedSeconds + deltaSeconds);
     this.enemySystem.cleanup();
     const waveSnapshot = this.waveSystem.getSnapshot(this.clock.elapsedSeconds + deltaSeconds);
     this.spawnSystem.update(deltaSeconds, waveSnapshot);
@@ -354,10 +379,12 @@ export class GameWorld {
     const weaponStep = { deltaSeconds, damageMultiplier: upgradeEffects.damageMultiplier, fireRateMultiplier: this.supplySystem.fireRateMultiplier };
     if (this.arcCoilSystem.update({ ...weaponStep, level: upgradeEffects.arcCoilLevel }) > 0) this.#emitSoundEvent('arc-fire');
     if (this.railgunSystem.update({ ...weaponStep, level: upgradeEffects.railgunLevel }) > 0) this.#emitSoundEvent('rail-fire');
-    this.#settleEnemyDeaths();
+    this.#settleEnemyDeaths(this.clock.elapsedSeconds + deltaSeconds);
     this.enemySystem.cleanup();
     this.experienceSystem.update(deltaSeconds, this.supplySystem.pickupRadiusBonus);
     this.explorationSystem.update(deltaSeconds);
+    this.encounterSystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds,
+      [...this.explorationSystem.getSnapshot().terminals, ...this.relaySystem.getSnapshot()]);
     const gainedLevels = this.levelSystem.processExperience();
     this.clock.advance(deltaSeconds);
     this.#simulationSteps += 1;
@@ -385,7 +412,7 @@ export class GameWorld {
     return true;
   }
 
-  #settleEnemyDeaths() {
+  #settleEnemyDeaths(elapsedSeconds) {
     for (const enemy of [...this.enemies]) {
       if ((enemy.alive === true && enemy.hp > 0) || enemy.deathProcessed === true) continue;
 
@@ -404,6 +431,7 @@ export class GameWorld {
         expDrop: enemy.expDrop,
       });
       this.supplySystem.notifyEnemyDeath({ ...snapshot, category: enemy.category });
+      this.encounterSystem.notifyEnemyDeath(snapshot, elapsedSeconds);
       for (const listener of [...this.#enemyDeathListeners]) listener(snapshot);
       this.#emitSoundEvent('enemy-death');
     }
@@ -422,6 +450,9 @@ export class GameWorld {
     this.supplySystem.reset();
     this.relaySystem.reset();
     this.explorationSystem.reset(this.mapConfig.id);
+    this.encounterSystem.reset(this.mapConfig.id);
+    this.rewardSystem.reset();
+    this.objectiveSystem.reset();
     this.#rerolls = TACTICAL_CONFIG.initialRerolls;
     this.camera.follow(this.player);
     this.enemies.length = 0;

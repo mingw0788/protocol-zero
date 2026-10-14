@@ -23,6 +23,8 @@ export class InputController {
   #exchangeHeld = false;
   #itemSelectPending = false;
   #selectHeld = false;
+  #objectivePending = false;
+  #objectiveHeld = false;
   #dashPending = false;
   #dashKeys = new Set();
   #unsubscribeState = null;
@@ -85,6 +87,8 @@ export class InputController {
     this.#exchangeHeld = false;
     this.#itemSelectPending = false;
     this.#selectHeld = false;
+    this.#objectivePending = false;
+    this.#objectiveHeld = false;
     this.#dashPending = false;
     this.#dashKeys.clear();
   }
@@ -110,6 +114,12 @@ export class InputController {
   consumeItemSelectPress() {
     const pending = this.#itemSelectPending;
     this.#itemSelectPending = false;
+    return pending;
+  }
+
+  consumeObjectivePress() {
+    const pending = this.#objectivePending;
+    this.#objectivePending = false;
     return pending;
   }
 
@@ -144,6 +154,13 @@ export class InputController {
       this.#selectHeld = true;
       return;
     }
+    if (event.code === 'KeyG') {
+      if (!this.#stateManager.isPlaying()) return;
+      event.preventDefault?.();
+      if (!event.repeat && !this.#objectiveHeld) this.#objectivePending = true;
+      this.#objectiveHeld = true;
+      return;
+    }
     if (!Object.hasOwn(KEY_DIRECTIONS, event.code)) return;
     if (!this.#stateManager.isPlaying()) {
       this.clear();
@@ -159,6 +176,7 @@ export class InputController {
     if (event.code === 'KeyE' || event.code === 'KeyQ') { this.#itemKeys.delete(event.code); return; }
     if (event.code === 'KeyF') { this.#exchangeHeld = false; return; }
     if (event.code === 'KeyC') { this.#selectHeld = false; return; }
+    if (event.code === 'KeyG') { this.#objectiveHeld = false; return; }
     if (!Object.hasOwn(KEY_DIRECTIONS, event.code)) return;
     event.preventDefault?.();
     this.#pressedKeys.delete(event.code);

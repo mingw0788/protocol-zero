@@ -329,3 +329,7 @@ Git Commit：哈希或未提交原因
 ### T035 双主动道具槽
 
 依赖 T034，已完成双槽状态、离散输入、原子地面交换、失败提示与 UI/帮助。规格见 `docs/superpowers/specs/2026-10-14-t035-active-item-slots-design.md`，验证与限制见 `docs/task-report-T035.md`。下一依赖项 T036 负责地图事件，T041 才扩展四种新物品。
+
+### T036 动态事件
+
+依赖 T034，已交付三类事件、SpawnSystem 精英入口、RunRewardSystem、ObjectiveSystem、G 输入和世界/雷达/UI 接线。T037 可在此基础新增敌人行为；T041 扩展奖励池。详细验收见 `docs/task-report-T036.md`。

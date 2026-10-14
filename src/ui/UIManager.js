@@ -233,11 +233,9 @@ export class UIManager {
         .sort((a, b) => a.distance - b.distance);
       if (available.length) {
         const relay = available[0];
-        const arrows = ['→', '↘', '↓', '↙', '←', '↖', '↑', '↗'];
-        const direction = arrows[(Math.round(Math.atan2(relay.y - origin.y, relay.x - origin.x) / (Math.PI / 4)) + 8) % 8];
-        parts.push(relay.energy < 100 ? `${direction} ${relay.name} · 能量 ${relay.energy}% · 附近击杀补能`
+        parts.push(relay.energy < 100 ? `${relay.name} · 能量 ${relay.energy}% · 附近击杀补能`
           : relay.distance <= relay.radius ? `${relay.name} · 蓄能 ${Math.round(relay.progress * 100)}%`
-            : `${direction} ${relay.name} · 距离 ${Math.ceil(relay.distance)}`);
+            : `${relay.name} · 能量 ${relay.energy}%`);
       } else parts.push('中继站已全部耗尽');
     }
     if (supply.decoy) parts.push(`诱饵 ${Math.ceil(supply.decoy.remaining)}s`);
@@ -333,7 +331,7 @@ export class UIManager {
     this.#setText(this.#elements.resultTime, formatTime(snapshot.elapsedSeconds));
     const detail = this.#root.querySelector('#run-result-exploration');
     const expansion = this.#game.getExpansionSnapshot?.();
-    if (detail) this.#setText(detail, `档案 ${expansion?.exploration.completed ?? 0}/3 · 拾取补给 ${expansion?.supply.collected ?? 0} 件`);
+    if (detail) this.#setText(detail, `档案 ${expansion?.exploration.completed ?? 0}/3 · 事件 ${expansion?.encounters.completed ?? 0}/2 · 拾取补给 ${expansion?.supply.collected ?? 0} 件`);
   }
 
   #rerollUpgrades() {

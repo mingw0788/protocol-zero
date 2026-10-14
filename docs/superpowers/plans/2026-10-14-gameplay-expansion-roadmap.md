@@ -1,6 +1,6 @@
 # Protocol Zero 下一轮玩法与功能扩展计划
 
-日期：2026-10-14。状态：**路线经用户授权开始执行；T034–T035 已完成，T036–T045 待执行。**
+日期：2026-10-14。状态：**路线经用户授权开始执行；T034–T036 已完成，T037–T045 待执行。**
 
 本文件先按用户要求整理为计划，随后用户明确要求“根据上述方案执行计划”。本文件是分批产品与开发路线图，不是可直接逐项执行的详细代码实施规格。新增玩法的首轮值属于执行阶段设计提案；落实每项时会记录规格、接口与数值，并同步 SRS、SDD 和决策记录，不将计划草案误写成用户逐参数确认。
 
@@ -109,13 +109,13 @@
 - 版本化本地存档迁移，保留旧成绩和音量；导出/导入仅支持校验后的有限 JSON，不保存进行中战局。
 - 音频增加独立音乐/音效音量、低强度原创循环背景音与战斗层次；重要危险声优先，静音/低特效仍完整表达规则。
 
-## 6. 开发拆分与依赖（T034–T035 已完成，T036–T045 待开始）
+## 6. 开发拆分与依赖（T034–T036 已完成，T037–T045 待开始）
 
 | 任务 | 可独立验收的交付 | 依赖 | 主要改动位置 |
 |---|---|---|---|
 | T034 | 战斗统计口径、统一伤害来源归属（完成） | T033 | GameWorld、DamageSystem、EnemyDamageSystem、CombatStatsSystem |
 | T035 | 双道具槽、C 选槽/F 交换及失败提示（完成） | T034 | SupplySystem、InputController、UIManager |
-| T036 | 三类动态事件和统一奖励接口 | T034 | 拟新增 EncounterSystem、encounterConfig；接入 ExplorationSystem/SpawnSystem |
+| T036 | 三类动态事件、统一奖励接口和目标追踪（完成） | T034 | EncounterSystem、RunRewardSystem、ObjectiveSystem、encounterConfig、SpawnSystem |
 | T037 | 三种战术敌人、敌弹与预警 | T034、T036 | EnemySystem、SpawnSystem、DamageSystem；拟新增 EnemyAttackSystem |
 | T038 | 中继专长、电容桶与环境危机基础 | T034、T036 | RelaySystem、MapRenderer；拟新增 HazardSystem |
 | T039 | 升级保底、扩展武器栏及两种进化 | T034 | UpgradeSystem、UpgradeEffectSystem、weapon 配置与对应武器系统 |

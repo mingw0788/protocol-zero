@@ -175,6 +175,18 @@ export class SpawnSystem {
     this.#elapsedSeconds = 0;
   }
 
+  spawnEncounterElite({ x, y, config, encounterId } = {}) {
+    const aliveNormal = this.enemies.filter(enemy => enemy.alive && enemy.hp > 0 && enemy.category === 'normal');
+    if (aliveNormal.length >= this.#enemyConfig.spawn.maxActive || aliveNormal.some(enemy => enemy.elite)) return null;
+    if (!config || !this.#isValidPosition(x, y, config.radius, this.#enemyConfig.spawn.viewportClearance)) return null;
+    const enemy = new Enemy({ id: `enemy-${this.#nextId++}`, x, y, config,
+      worldWidth: this.world.width, worldHeight: this.world.height });
+    enemy.elite = true;
+    enemy.encounterId = encounterId;
+    this.enemies.push(enemy);
+    return enemy;
+  }
+
   #trySpawn(weightedConfigs) {
     const { spawn } = this.#enemyConfig;
     const activeCount = this.enemies.reduce(

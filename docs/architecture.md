@@ -552,3 +552,9 @@ DamageSystem 继续对同一固定步所有接触取最大单体伤害一次，�
 ### T035 双主动槽
 
 SupplySystem 持有两槽与选中槽，自动拾取填第一个空槽；交换原子替换地面对象类型，不创建额外实体。快照深冻结 activeItems/nearbyActivePickup，activeItem 暂为 slot0 别名。InputController 对 E/Q/F/C 只记录一次按下，GameWorld 先选槽再处理交换或使用；同一固定步 F 优先并消费使用请求。UIManager 只读取槽位与附近物状态；清理、冻结和 reset 仍沿用同一世界生命周期。
+
+### T036 事件、奖励与目标追踪
+
+EncounterSystem 持有配置时间线和事件进度，使用独立随机流。SpawnSystem.spawnEncounterElite 仍检查视口外、单精英和普通数量上限。GameWorld 在死亡收尾把原公开事件及内部步结束时间交给事件系统，防止晚于期限的死亡奖励。RunRewardSystem 按 ID 幂等发经验，物品受地面上限时排队重试；重开清空收据和队列。
+
+ObjectiveSystem 只保存所选目标 ID，消费事件/探索/补给/中继快照，默认优先限时事件，G 循环。EncounterRenderer 绘制事件世界标记，TacticalRenderer 增加雷达橙点；TacticalHUD 只显示唯一主目标方向，其他状态不另加箭头。新增状态、奖励与计时均受固定步/暂停/reset 控制。

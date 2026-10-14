@@ -54,7 +54,7 @@ export class TacticalRenderer {
     ctx.fillStyle = '#091728ee'; ctx.fillRect(x - 8, y - 26, width + 16, height + 52);
     ctx.strokeStyle = '#375c76'; ctx.lineWidth = 1; ctx.strokeRect(x, y, width, height);
     ctx.font = '11px "Microsoft YaHei", sans-serif'; ctx.textAlign = 'left';
-    ctx.fillStyle = '#aac7d5'; ctx.fillText('区域雷达', x, y - 10);
+    ctx.fillStyle = '#aac7d5'; ctx.fillText('区域雷达 · 橙：事件', x, y - 10);
     ctx.fillStyle = '#c5a0ff'; ctx.fillText('紫 · 档案', x, y + height + 17);
     ctx.fillStyle = '#ffd277'; ctx.fillText('金 · 补给', x + 73, y + height + 17);
     ctx.fillStyle = '#64dfde'; ctx.fillText('青 · 中继', x + 140, y + height + 17);
@@ -68,6 +68,7 @@ export class TacticalRenderer {
     for (const t of snapshot.relays ?? []) dot(t, t.energy >= 100 ? '#64dfde' : '#ae7951', 5);
     for (const item of snapshot.supply.pickups) dot(item, '#ffd277');
     if (snapshot.supply.station) dot(snapshot.supply.station, '#9dffac', 7);
+    if (snapshot.encounters?.active) dot(snapshot.encounters.active, '#ff9f52', 8);
     dot(player, '#ffffff', 6);
     ctx.strokeStyle = '#ffffff';
     ctx.beginPath();

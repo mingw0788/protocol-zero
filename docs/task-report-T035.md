@@ -2,7 +2,7 @@
 
 - Task ID：T035
 - 执行状态：完成（功能及以下列明验证范围）。
-- 实现提交：见本报告的交付提交。
+- 实现提交：`3acab79`。
 - 规格：`docs/superpowers/specs/2026-10-14-t035-active-item-slots-design.md`。
 
 ## 交付
