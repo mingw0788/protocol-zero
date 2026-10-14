@@ -43,8 +43,8 @@ export class ExplorationSystem {
         progress: Math.min(1, t.charge / this.config.terminalSeconds) }))) });
   }
 
-  reset(mapId = 'laboratory') {
-    this.#terminals = (EXPLORATION_CONFIG[mapId] ?? []).map(t => ({ ...t, charge: 0, completed: false }));
+  reset(mapId = 'laboratory', terminals = null) {
+    this.#terminals = (terminals ?? EXPLORATION_CONFIG[mapId] ?? []).map(t => ({ ...t, charge: 0, completed: false }));
     this.#completionAwarded = false;
   }
 }

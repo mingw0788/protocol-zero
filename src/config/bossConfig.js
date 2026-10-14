@@ -19,3 +19,5 @@ export const BOSS_CONFIG = Object.freeze({
   attackCooldownSeconds: 3.2,
   warningWidthPadding: 24,
 });
+export const GRID_BOSS_CONFIG = Object.freeze({ stageOneInterval: 3.5, stageTwoInterval: 2.6,
+  transitionSeconds: 1.4, warningSeconds: 1.2, damage: 16, radius: 80, spread: 130 });

@@ -22,7 +22,8 @@ export class TacticalRenderer {
       ctx.fillRect(p.x - 5, p.y + 17, 10, 5);
       ctx.fillStyle = t.completed ? '#86b1a4' : '#ebd9ff';
       ctx.fillText(t.name, p.x, p.y - 66);
-      ctx.fillText(t.completed ? '档案已上传' : `连续站入 ${t.channelSeconds} 秒 · +${t.experienceReward} 经验 / ${SUPPLY_NAMES[t.reward]}`, p.x, p.y + 73);
+      ctx.fillText(t.completed ? t.disableZone ? '档案已上传 · 走廊已断电' : '档案已上传'
+        : `连续站入 ${t.channelSeconds} 秒 · +${t.experienceReward} 经验 / ${SUPPLY_NAMES[t.reward]}${t.disableZone ? ' / 断电' : ''}`, p.x, p.y + 73);
     }
     ctx.restore();
   }
@@ -59,6 +60,10 @@ export class TacticalRenderer {
     ctx.fillStyle = '#ffd277'; ctx.fillText('金 · 补给', x + 73, y + height + 17);
     ctx.fillStyle = '#64dfde'; ctx.fillText('青 · 中继', x + 140, y + height + 17);
     ctx.strokeStyle = '#355064';
+    for (const zone of snapshot.hazards?.zones ?? []) {
+      ctx.fillStyle = zone.disabled ? '#3b7369' : zone.phase === 'active' ? '#ff6682' : zone.phase === 'warning' ? '#ffd075' : '#385267';
+      ctx.fillRect(x + zone.x * sx, y + zone.y * sy, zone.width * sx, zone.height * sy);
+    }
     ctx.strokeRect(x + camera.x * sx, y + camera.y * sy, camera.viewportWidth * sx, camera.viewportHeight * sy);
     const dot = (point, color, size = 4) => {
       ctx.fillStyle = color;

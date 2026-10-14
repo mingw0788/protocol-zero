@@ -30,6 +30,17 @@ export class BossRenderer {
       return false;
     }
     const warningActive = bossSnapshot.phase === 'telegraph' || bossSnapshot.phase === 'charging';
+    if (bossSnapshot.electricalWarnings?.length) {
+      context.save(); context.beginPath(); context.rect(0, 0, camera.viewportWidth, camera.viewportHeight); context.clip();
+      for (const warning of bossSnapshot.electricalWarnings) {
+        const point = camera.worldToScreen(warning.x, warning.y);
+        context.strokeStyle = '#f4b46b'; context.lineWidth = 3;
+        context.fillStyle = '#f4b46b22'; context.beginPath(); context.arc(point.x, point.y, warning.radius, 0, Math.PI * 2); context.fill(); context.stroke();
+        context.beginPath(); context.moveTo(point.x - 12, point.y); context.lineTo(point.x + 12, point.y);
+        context.moveTo(point.x, point.y - 12); context.lineTo(point.x, point.y + 12); context.stroke();
+      }
+      context.restore();
+    }
     if (warningActive) this.#drawWarning(context, camera, bossSnapshot, effectiveTime);
     const position = camera.worldToScreen(bossSnapshot.x, bossSnapshot.y);
     if (Number.isFinite(position?.x) && Number.isFinite(position?.y)) {
@@ -44,11 +55,18 @@ export class BossRenderer {
         drawPixelPattern(
           context,
           SPRITE_PATTERNS.boss,
-          bossSnapshot.hitFlashRemaining > 0 ? { ...SPRITE_PALETTES.boss, B: '#ffffff' } : SPRITE_PALETTES.boss,
+          bossSnapshot.hitFlashRemaining > 0 ? { ...SPRITE_PALETTES.boss, B: '#ffffff' }
+            : bossSnapshot.typeId === 'BOSS-02' ? { ...SPRITE_PALETTES.boss, B: '#a6bbff', C: '#7cd1df' } : SPRITE_PALETTES.boss,
           position.x - bossSnapshot.radius,
           position.y - bossSnapshot.radius,
           diameter,
         );
+        if (bossSnapshot.combatStage) {
+          context.strokeStyle = bossSnapshot.combatStage === 2 ? '#ffd482' : '#a6bbff'; context.lineWidth = 3;
+          context.beginPath(); context.arc(position.x, position.y, bossSnapshot.radius + 9, 0, Math.PI * 2); context.stroke();
+          context.fillStyle = '#e1e9ff'; context.font = 'bold 13px "Microsoft YaHei", sans-serif'; context.textAlign = 'center';
+          context.fillText(bossSnapshot.transitionRemaining > 0 ? '电网重构 · 安全预警' : `电网阶段 ${bossSnapshot.combatStage}`, position.x, position.y - bossSnapshot.radius - 18);
+        }
         context.restore();
       }
     }

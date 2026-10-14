@@ -7,11 +7,11 @@ export class ObjectiveSystem {
     if (event) targets.push({ ...event, kind: 'event', action: event.type === 'elite' ? '消灭物资守卫'
       : event.type === 'transport' ? '靠近并跟随无人机' : '留在圆环内防守' });
     for (const terminal of exploration?.terminals ?? []) {
-      if (!terminal.completed) targets.push({ ...terminal, kind: 'terminal', action: `连续站入 ${terminal.channelSeconds} 秒` });
+      if (!terminal.completed) targets.push({ ...terminal, kind: 'terminal', action: `连续站入 ${terminal.channelSeconds} 秒${terminal.disableZone ? ' · 完成关闭电弧' : ''}` });
     }
     if (supply?.station) targets.push({ ...supply.station, id: 'supply-station', kind: 'supply', name: '救援补给', action: '站入圆环领取补给' });
     for (const relay of relays) targets.push({ ...relay, id: `relay-${relay.id}`, kind: 'relay',
-      action: relay.energy >= 100 ? relay.effect === 'firepower' ? '站入获取火力增益与冲击' : '站入获取治疗与冲击' : '附近击杀或电芯补能' });
+      action: relay.energy >= 100 ? relay.effect === 'reactor' ? '站入释放反应堆冲击' : relay.effect === 'firepower' ? '站入获取火力增益与冲击' : '站入获取治疗与冲击' : '附近击杀或电芯补能' });
     return targets;
   }
 

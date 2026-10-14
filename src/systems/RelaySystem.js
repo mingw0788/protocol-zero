@@ -6,6 +6,7 @@ export class RelaySystem {
   #firepowerRemaining = 0;
   #firepowerBonus = 0;
   #amplifierArmed = false;
+  #definitions;
 
   constructor({ player, enemies, enemyDamageSystem, config = RELAY_CONFIG }) {
     if (!player || !Array.isArray(enemies) || typeof enemyDamageSystem?.applyDamage !== 'function') {
@@ -20,12 +21,20 @@ export class RelaySystem {
     this.enemies = enemies;
     this.damageSystem = enemyDamageSystem;
     this.config = Object.freeze({ ...config, stations: Object.freeze(config.stations.map(s => Object.freeze({ ...s }))) });
+    this.#definitions = this.config.stations;
     this.reset();
   }
 
   setEnabled(enabled) { this.#enabled = Boolean(enabled); this.reset(); }
+  configure({ enabled, stations = this.config.stations } = {}) {
+    if (!Array.isArray(stations) || new Set(stations.map(station => station.id)).size !== stations.length
+      || stations.some(station => !station.id || !station.name || !Number.isFinite(station.x) || !Number.isFinite(station.y))) throw new RangeError('Invalid relay layout');
+    this.#definitions = Object.freeze(stations.map(station => Object.freeze({ ...station })));
+    this.#enabled = Boolean(enabled); this.reset();
+  }
   reset() {
-    this.#stations = this.config.stations.map(s => ({ ...s, charge: 0, energy: this.config.energyCap, pulseRemaining: 0 }));
+    this.#stations = this.#definitions.map(s => ({ ...s, charge: 0, energy: s.initialEnergy ?? this.config.energyCap,
+      basePulseRadius: s.pulseRadius ?? this.config.pulseRadius, pulseRemaining: 0 }));
     this.#firepowerRemaining = 0;
     this.#firepowerBonus = 0;
     this.#amplifierArmed = false;
@@ -41,7 +50,7 @@ export class RelaySystem {
     if (!this.#enabled) return 0;
     let recharged = 0;
     for (const station of this.#stations) {
-      if (Math.hypot(event.x - station.x, event.y - station.y) > this.config.energyRadius) continue;
+      if (Math.hypot(event.x - station.x, event.y - station.y) > (station.energyRadius ?? this.config.energyRadius)) continue;
       const next = Math.min(this.config.energyCap, station.energy + this.config.killEnergy);
       if (next !== station.energy) { station.energy = next; recharged++; }
     }
@@ -67,23 +76,24 @@ export class RelaySystem {
     for (const station of this.#stations) {
       station.pulseRemaining = Math.max(0, station.pulseRemaining - deltaSeconds);
       if (station.energy < this.config.energyCap || !this.player.alive || this.player.hp <= 0
-        || Math.hypot(this.player.x - station.x, this.player.y - station.y) > this.config.radius) continue;
-      station.charge = Math.min(this.config.channelSeconds, station.charge + deltaSeconds);
-      if (station.charge + 1e-9 < this.config.channelSeconds) continue;
+        || Math.hypot(this.player.x - station.x, this.player.y - station.y) > (station.radius ?? this.config.radius)) continue;
+      const channelSeconds = station.channelSeconds ?? this.config.channelSeconds;
+      station.charge = Math.min(channelSeconds, station.charge + deltaSeconds);
+      if (station.charge + 1e-9 < channelSeconds) continue;
       station.energy = 0;
       station.charge = 0;
       station.pulseRemaining = this.config.visualSeconds;
       const multiplier = this.#amplifierArmed ? this.config.amplifierMultiplier : 1;
       station.amplified = this.#amplifierArmed;
-      station.pulseRadius = this.config.pulseRadius * (this.#amplifierArmed ? this.config.amplifierRadiusMultiplier : 1);
+      station.pulseRadius = station.basePulseRadius * (this.#amplifierArmed ? this.config.amplifierRadiusMultiplier : 1);
       this.#amplifierArmed = false;
       if (station.effect === 'firepower') {
         this.#firepowerRemaining = this.config.firepowerSeconds * multiplier;
         this.#firepowerBonus = this.config.firepowerBonus * multiplier;
-      } else this.player.hp = Math.min(this.player.maxHp, this.player.hp + Math.round(this.config.healing * multiplier));
+      } else if (station.effect !== 'reactor') this.player.hp = Math.min(this.player.maxHp, this.player.hp + Math.round((station.healing ?? this.config.healing) * multiplier));
       for (const enemy of this.enemies) {
         if (enemy.alive && Math.hypot(enemy.x - station.x, enemy.y - station.y) <= station.pulseRadius + enemy.radius) {
-          this.damageSystem.applyDamage(enemy, (enemy.category === 'boss' ? this.config.bossDamage : this.config.damage) * multiplier, 'relay-pulse');
+          this.damageSystem.applyDamage(enemy, (enemy.category === 'boss' ? station.bossDamage ?? this.config.bossDamage : station.damage ?? this.config.damage) * multiplier, 'relay-pulse');
         }
       }
       activated++;
@@ -93,11 +103,11 @@ export class RelaySystem {
 
   getSnapshot() {
     return Object.freeze(this.#enabled ? this.#stations.map(s => Object.freeze({ ...s, used: s.energy === 0,
-      radius: this.config.radius, pulseRadius: s.pulseRadius ?? this.config.pulseRadius,
-      channelSeconds: this.config.channelSeconds, healing: this.config.healing,
+      radius: s.radius ?? this.config.radius, pulseRadius: s.pulseRadius ?? this.config.pulseRadius,
+      channelSeconds: s.channelSeconds ?? this.config.channelSeconds, healing: s.healing ?? this.config.healing,
       firepowerBonus: this.config.firepowerBonus, firepowerSeconds: this.config.firepowerSeconds,
       pulseProgress: 1 - s.pulseRemaining / this.config.visualSeconds,
-      progress: Math.min(1, s.charge / this.config.channelSeconds),
+      progress: Math.min(1, s.charge / (s.channelSeconds ?? this.config.channelSeconds)),
     })) : []);
   }
 }

@@ -52,7 +52,8 @@ export class ExpansionRenderer {
       }
       ctx.fillStyle = relay.used ? '#91a4ad' : '#c6ffff';
       ctx.fillText(relay.name, p.x, p.y - relay.radius - 18);
-      const specialty = relay.effect === 'firepower' ? `火力 +${Math.round((relay.firepowerBonus ?? .25) * 100)}% / ${relay.firepowerSeconds ?? 10}s`
+      const specialty = relay.effect === 'reactor' ? '反应堆冲击 100 / 首领 50'
+        : relay.effect === 'firepower' ? `火力 +${Math.round((relay.firepowerBonus ?? .25) * 100)}% / ${relay.firepowerSeconds ?? 10}s`
         : `修复 +${relay.healing ?? 15}`;
       const relayStatus = energy === 0 ? '能量耗尽 · 就近击杀补充'
         : energy < 100 ? `能量 ${energy}% · 就近击杀补充`

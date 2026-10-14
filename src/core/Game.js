@@ -149,6 +149,7 @@ export class Game {
     if (this.stateManager.currentState !== GAME_STATES.MENU) return false;
     if (this.#soundEnabled) this.#audioManager.unlock();
     this.world.reset();
+    this.#mapRenderer.setMap(this.world.mapConfig);
     return this.stateManager.startGame();
   }
 
@@ -197,6 +198,7 @@ export class Game {
       && this.stateManager.currentState !== GAME_STATES.VICTORY
       && this.stateManager.currentState !== GAME_STATES.DEFEAT) return false;
     this.world.reset();
+    this.#mapRenderer.setMap(this.world.mapConfig);
     return this.stateManager.returnToMenu();
   }
 
@@ -205,6 +207,7 @@ export class Game {
       && this.stateManager.currentState !== GAME_STATES.DEFEAT) return false;
     if (this.#soundEnabled) this.#audioManager.unlock();
     this.world.reset();
+    this.#mapRenderer.setMap(this.world.mapConfig);
     return this.stateManager.restartRun();
   }
 

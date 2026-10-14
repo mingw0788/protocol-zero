@@ -100,11 +100,11 @@ export class HazardSystem {
       effects: Object.freeze(this.#effects.map(effect => Object.freeze({ ...effect }))) });
   }
 
-  reset(mapId = this.#mapId) {
+  reset(mapId = this.#mapId, layout = null) {
     this.#mapId = mapId;
-    this.#barrels = (this.config.barrels[mapId] ?? []).map(barrel => ({ ...barrel, kind: 'barrel',
+    this.#barrels = (layout?.barrels ?? this.config.barrels[mapId] ?? []).map(barrel => ({ ...barrel, kind: 'barrel',
       hp: this.config.barrelHp, radius: this.config.barrelRadius, alive: true }));
-    this.#zones = (this.config.zones[mapId] ?? []).map(zone => ({ ...zone, phase: 'safe', disabled: false }));
+    this.#zones = (layout?.zones ?? this.config.zones[mapId] ?? []).map(zone => ({ ...zone, phase: 'safe', disabled: false }));
     this.#effects = [];
   }
 }

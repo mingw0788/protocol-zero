@@ -29,6 +29,8 @@ export class MapRenderer {
       this.#drawCity(context, width, height, camera);
     } else if (this.map.theme === 'laboratory') {
       this.#drawLaboratory(context, width, height, camera);
+    } else if (this.map.theme === 'energy') {
+      this.#drawEnergyHub(context, camera);
     }
 
     context.beginPath();
@@ -77,6 +79,42 @@ export class MapRenderer {
   #visible(camera, x, y, width, height) {
     return x + width >= camera.x && y + height >= camera.y
       && x <= camera.x + camera.viewportWidth && y <= camera.y + camera.viewportHeight;
+  }
+
+  #drawEnergyHub(ctx, camera) {
+    // Broad, walkable service lanes connect three distinct equipment districts.
+    ctx.fillStyle = '#233747'; ctx.fillRect(0, 590, 2400, 170); ctx.fillRect(1110, 0, 180, 1350);
+    ctx.strokeStyle = '#577b83'; ctx.lineWidth = 44; ctx.strokeRect(900, 480, 600, 420);
+    ctx.strokeStyle = '#99bc95'; ctx.lineWidth = 2; ctx.strokeRect(875, 455, 650, 470);
+    ctx.fillStyle = '#8dab8c';
+    for (let x = 900; x <= 1500; x += 50) { ctx.fillRect(x, 472, 20, 4); ctx.fillRect(x, 904, 20, 4); }
+    for (const [index, landmark] of (this.map.layout?.landmarks ?? []).entries()) {
+      const { x, y } = landmark;
+      if (!this.#visible(camera, x - 190, y - 150, 380, 300)) continue;
+      ctx.fillStyle = ['#203d43', '#35394b', '#3b3a30'][index]; ctx.fillRect(x - 180, y - 140, 360, 280);
+      ctx.strokeStyle = ['#71c5ce', '#aea9e2', '#d0b67c'][index]; ctx.lineWidth = 3; ctx.strokeRect(x - 180, y - 140, 360, 280);
+      for (let i = 0; i < 6; i++) {
+        const ex = x - 155 + (i % 3) * 112, ey = y - 115 + Math.floor(i / 3) * 188;
+        ctx.fillStyle = '#152735'; ctx.fillRect(ex, ey, 82, 48);
+        ctx.fillStyle = ['#5f9fba', '#837fb9', '#b3a36c'][index];
+        if (index === 0) { for (let strip = 0; strip < 4; strip++) ctx.fillRect(ex + 8, ey + 8 + strip * 8, 65, 4); }
+        else if (index === 1) { ctx.fillRect(ex + 10, ey + 8, 62, 28); ctx.fillStyle = '#c3cee5'; ctx.fillRect(ex + 15, ey + 14, 35, 3); }
+        else { for (let coil = 0; coil < 3; coil++) { ctx.fillRect(ex + 10 + coil * 22, ey + 6, 14, 36); ctx.fillStyle = '#dfc88e'; ctx.fillRect(ex + 13 + coil * 22, ey + 17, 8, 3); } }
+      }
+      ctx.strokeStyle = '#5c8792'; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, 675); ctx.lineTo(1200, 675); ctx.stroke();
+    }
+    const x = 1200, y = 675;
+    ctx.fillStyle = '#182c3c'; ctx.fillRect(x - 125, y - 110, 250, 220);
+    ctx.strokeStyle = '#6eacc1'; ctx.lineWidth = 5; ctx.strokeRect(x - 125, y - 110, 250, 220);
+    ctx.fillStyle = '#33586a'; ctx.fillRect(x - 90, y - 80, 180, 160);
+    for (const offset of [-1, 1]) {
+      ctx.fillStyle = '#739baa'; ctx.fillRect(x + offset * 100 - 10, y - 70, 20, 140);
+      ctx.fillStyle = '#9ad6df'; for (let i = 0; i < 6; i++) ctx.fillRect(x + offset * 100 - 6, y - 60 + i * 22, 12, 6);
+    }
+    ctx.strokeStyle = '#90d4df'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, 75, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#8eafa4'; ctx.font = '14px "Microsoft YaHei", sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('安全环道 · 开放通行', 1200, 940);
   }
 
   #drawCity(context, width, height, camera) {

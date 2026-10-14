@@ -47,6 +47,7 @@ export class EncounterSystem {
   #nextId = 1;
   #availableTypes = [];
   #mapId = 'laboratory';
+  #anchors = [];
   #completed = 0;
   #failed = 0;
   #skipped = 0;
@@ -101,7 +102,7 @@ export class EncounterSystem {
     const typeIndex = Math.floor(this.#sample() * this.#availableTypes.length);
     const type = this.#availableTypes.splice(typeIndex, 1)[0];
     if (!type || elapsed >= startAt + type.duration) { this.#skipped++; return; }
-    let anchors = (this.config.maps[this.#mapId] ?? []).filter(point => {
+    let anchors = this.#anchors.filter(point => {
       if (point.x < type.radius || point.y < type.radius || point.x + type.radius > this.world.width || point.y + type.radius > this.world.height) return false;
       if (Math.hypot(point.x - this.player.x, point.y - this.player.y) < this.config.minimumDistance
         || Math.hypot(point.x - this.world.width / 2, point.y - this.world.height / 2) < this.config.minimumDistance) return false;
@@ -164,8 +165,9 @@ export class EncounterSystem {
       completed: this.#completed, failed: this.#failed, skipped: this.#skipped, totalScheduled: this.config.schedule.length });
   }
 
-  reset(mapId = this.#mapId) {
+  reset(mapId = this.#mapId, anchors = null) {
     this.#mapId = mapId; this.#active = null; this.#nextEvent = 0; this.#nextId = 1;
+    this.#anchors = (anchors ?? this.config.maps[mapId] ?? []).map(point => ({ ...point }));
     this.#availableTypes = [...this.config.types];
     this.#completed = 0; this.#failed = 0; this.#skipped = 0;
   }

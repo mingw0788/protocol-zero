@@ -3,6 +3,7 @@ export class HazardRenderer {
     const hazards = snapshot?.hazards;
     if (!hazards) return;
     ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, camera.viewportWidth, camera.viewportHeight); ctx.clip();
     ctx.font = '12px "Microsoft YaHei", sans-serif'; ctx.textAlign = 'center';
     for (const zone of hazards.zones) {
       const p = camera.worldToScreen(zone.x, zone.y);

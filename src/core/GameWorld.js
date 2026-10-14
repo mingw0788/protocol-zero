@@ -42,6 +42,8 @@ import { StatusEffectSystem } from '../systems/StatusEffectSystem.js';
 import { CryoSystem } from '../systems/CryoSystem.js';
 import { DroneSystem } from '../systems/DroneSystem.js';
 import { DeployableSystem } from '../systems/DeployableSystem.js';
+import { ENERGY_LAYOUTS } from '../config/energyMapConfig.js';
+import { GridBossSystem } from '../systems/GridBossSystem.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -62,6 +64,9 @@ export class GameWorld {
   #lastEnemyWarningAt = Number.NEGATIVE_INFINITY;
   #killCount = 0;
   #modeId = 'standard';
+  #layout = null;
+  #layoutRandom;
+  #bossOptions;
   #rerolls = TACTICAL_CONFIG.initialRerolls;
   #playerDeathFrozen = false;
   #runResult = null;
@@ -80,12 +85,15 @@ export class GameWorld {
     supplyRandom = createRandomStream(),
     encounterRandom = createRandomStream(),
     encounterRewardRandom = createRandomStream(),
+    layoutRandom = createRandomStream(),
     world = WORLD_MAP,
     enemyConfig = ENEMY_CONFIG,
     waveConfig = WAVE_CONFIG,
     bossConfig = BOSS_CONFIG,
   } = {}) {
     requireCamera(camera);
+    if (typeof layoutRandom !== 'function') throw new TypeError('Layout random must be a function');
+    this.#layoutRandom = layoutRandom;
     this.stateManager = stateManager;
     this.mapConfig = getMapConfig('laboratory');
     this.clock = clock;
@@ -108,13 +116,14 @@ export class GameWorld {
       this.#lastEnemyWarningAt = this.clock.elapsedSeconds;
       this.#emitSoundEvent('enemy-warning');
     } });
-    this.bossSystem = new BossSystem({
+    this.#bossOptions = {
       enemies: this.enemies,
       player,
       camera,
       world,
       config: bossConfig,
-    });
+    };
+    this.bossSystem = new BossSystem(this.#bossOptions);
     this.waveSystem = new WaveSystem({ config: waveConfig });
     this.collisionSystem = new CollisionSystem({ player, enemies: this.enemies });
     this.damageSystem = new DamageSystem({ player });
@@ -180,6 +189,7 @@ export class GameWorld {
     this.supplySystem.experienceSystem = this.experienceSystem;
     this.explorationSystem = new ExplorationSystem({ player,
       onReward: terminal => {
+        if (terminal.disableZone) this.hazardSystem.disableZone(terminal.disableZone);
         this.supplySystem.addPickup(terminal.reward, terminal.x, terminal.y);
         this.supplySystem.notify(`${terminal.name} 已上传 · +${TACTICAL_CONFIG.terminalExperience} 经验`);
         this.#emitSoundEvent('terminal-complete');
@@ -210,18 +220,32 @@ export class GameWorld {
     const map = getMapConfig(id);
     if (!map || this.stateManager.currentState !== GAME_STATES.MENU) return false;
     this.mapConfig = map;
+    this.#configureLayout();
     this.supplySystem.setEnabled(map.supplies);
-    this.relaySystem.setEnabled(map.id === 'east-city');
-    this.explorationSystem.reset(map.id);
-    this.encounterSystem.reset(map.id);
+    this.explorationSystem.reset(map.id, this.#layout?.terminals);
+    this.encounterSystem.reset(map.id, this.#layout?.eventAnchors);
     this.rewardSystem.reset();
     this.objectiveSystem.reset();
-    this.hazardSystem.reset(map.id);
+    this.hazardSystem.reset(map.id, this.#layout);
+    this.bossSystem = map.id === 'energy-hub' ? new GridBossSystem({ ...this.#bossOptions, onWarning: () => this.#emitSoundEvent('enemy-warning') }) : new BossSystem(this.#bossOptions);
     return true;
   }
 
   getMapSnapshot() {
-    return Object.freeze({ id: this.mapConfig.id, name: this.mapConfig.name });
+    return Object.freeze({ id: this.mapConfig.id, name: this.mapConfig.name,
+      ...(this.#layout ? { layoutId: this.#layout.id, layoutName: this.#layout.name } : {}) });
+  }
+
+  #configureLayout() {
+    this.#layout = null;
+    if (this.mapConfig.id === 'energy-hub') {
+      const sample = this.#layoutRandom();
+      if (!Number.isFinite(sample) || sample < 0 || sample >= 1) throw new RangeError('Layout random must be in [0,1)');
+      this.#layout = ENERGY_LAYOUTS[Math.floor(sample * ENERGY_LAYOUTS.length)];
+    }
+    this.mapConfig = Object.freeze({ ...getMapConfig(this.mapConfig.id), layout: this.#layout });
+    this.relaySystem.configure({ enabled: ['east-city', 'energy-hub'].includes(this.mapConfig.id),
+      ...(this.#layout ? { stations: this.#layout.relays } : {}) });
   }
 
   setMode(id) {
@@ -405,6 +429,7 @@ export class GameWorld {
       ...contacts.map(enemy => ({ damage: enemy.contactDamage, sourceTypeId: enemy.typeId })),
       ...hostileHits,
       ...hazardHits,
+      ...(this.bossSystem.getDamageCandidates?.() ?? []),
     ]);
     if (damageResult.damaged) {
       this.combatStatsSystem.recordPlayerDamage({
@@ -509,6 +534,7 @@ export class GameWorld {
     }
 
     this.clock.reset();
+    this.#configureLayout();
     this.particleSystem.reset();
     this.playerSystem.reset();
     this.dashSystem.reset();
@@ -516,11 +542,11 @@ export class GameWorld {
     this.inputController?.clear?.();
     this.supplySystem.reset();
     this.relaySystem.reset();
-    this.explorationSystem.reset(this.mapConfig.id);
-    this.encounterSystem.reset(this.mapConfig.id);
+    this.explorationSystem.reset(this.mapConfig.id, this.#layout?.terminals);
+    this.encounterSystem.reset(this.mapConfig.id, this.#layout?.eventAnchors);
     this.rewardSystem.reset();
     this.objectiveSystem.reset();
-    this.hazardSystem.reset(this.mapConfig.id);
+    this.hazardSystem.reset(this.mapConfig.id, this.#layout);
     this.#rerolls = TACTICAL_CONFIG.initialRerolls;
     this.camera.follow(this.player);
     this.statusEffectSystem.reset();

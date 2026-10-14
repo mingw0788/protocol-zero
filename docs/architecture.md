@@ -582,3 +582,8 @@ StatusEffectSystem 按来源管理强弱减速独立时长，EnemySystem/BossSys
 ### T041 战术道具与分类奖励
 
 DeployableSystem 独立管理最多2炮台、1维修场和有界提示；SupplySystem 统一主动类型并路由使用，失败不消费。RelaySystem 储存一次增幅并只在成功激活时消费。EncounterSystem 使用独立奖励随机流，RunRewardSystem 继续幂等发放。原普通击杀恢复池和城区救援站8种基础补给保留，新四道具经事件池提供。UI 显示装置寿命、待用增幅，生命读数控制小数长度。修改范围：道具/事件配置，补给/部署/中继/事件/世界，绘制/HUD/帮助/音色和测试。
+
+
+### T042 能源枢纽与电网监护者
+
+energyMapConfig 统一提供每布局地标、终端、电弧、桶、事件锚点与中继。世界独立布局随机流在开局重抽，Game 同步MapRenderer；Exploration完成回调关闭指定区域。Relay支持配置站点和初始0能量，反应堆只冲击不治疗。GridBossSystem复用BossSystem实体/冲锋，额外管理有界电击预警和阶段；所有候选进入既有受伤批处理。切阶段取消旧冲锋、暂禁接触伤害而不重置HP。旧标准存档暂排除能源图，T044分配置记录。范围包含地图/危险/Boss配置、布局接口、世界/控制器、渲染/UI/帮助和回归。

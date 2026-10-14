@@ -215,8 +215,8 @@ export class UIManager {
     e.bossHud.hidden = !isActive;
     if (!isActive) return;
 
-    this.#setText(e.bossName, snapshot.name);
-    this.#setText(e.bossHealthValue, snapshot.hp + ' / ' + snapshot.maxHp);
+    this.#setText(e.bossName, snapshot.name + (snapshot.combatStage ? ` · 阶段 ${snapshot.combatStage}` : ''));
+    this.#setText(e.bossHealthValue, Number(snapshot.hp.toFixed(1)) + ' / ' + snapshot.maxHp);
     if (e.bossHealthBar.max !== snapshot.maxHp) e.bossHealthBar.max = snapshot.maxHp;
     if (e.bossHealthBar.value !== snapshot.hp) e.bossHealthBar.value = snapshot.hp;
     const label = snapshot.name + '生命值';
@@ -232,7 +232,7 @@ export class UIManager {
     element.hidden = state !== GAME_STATES.PLAYING || !snapshot;
     if (element.hidden) return;
     const { supply, map } = snapshot;
-    const parts = [map.name];
+    const parts = [map.name + (map.layoutName ? ` · ${map.layoutName}` : '')];
     const origin = snapshot.playerPosition;
     if (origin && snapshot.relays?.length) {
       const available = snapshot.relays

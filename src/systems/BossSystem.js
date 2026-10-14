@@ -191,6 +191,11 @@ export class BossSystem {
     this.#lastDirection = Object.freeze({ x: 1, y: 0 });
   }
 
+  cancelAttack() {
+    this.#phase = 'approach'; this.#phaseRemaining = this.#config.initialAttackDelaySeconds;
+    this.#chargeDirection = null; this.#chargeEnd = null; this.#chargeDistanceRemaining = 0;
+  }
+
   #updatePhase(deltaSeconds) {
     if (this.#phase === 'approach') {
       this.#moveTowardPlayer(deltaSeconds, this.#config.speed);

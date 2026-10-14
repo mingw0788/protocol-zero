@@ -32,6 +32,7 @@ export class LocalProgressSystem {
   }
 
   recordRun(result) {
+    if (result?.mapId === 'energy-hub') return false;
     if (result?.modeId !== undefined && result.modeId !== 'standard') return false;
     if (!result || !['victory', 'defeat'].includes(result.outcome)
       || !Number.isSafeInteger(result.killCount) || result.killCount < 0
