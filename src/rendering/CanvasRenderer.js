@@ -11,6 +11,7 @@ import { ExpansionRenderer } from './ExpansionRenderer.js';
 import { TacticalRenderer } from './TacticalRenderer.js';
 import { EncounterRenderer } from './EncounterRenderer.js';
 import { EnemyAttackRenderer } from './EnemyAttackRenderer.js';
+import { HazardRenderer } from './HazardRenderer.js';
 
 export class CanvasRenderer {
   #canvas;
@@ -28,6 +29,7 @@ export class CanvasRenderer {
   #tacticalRenderer = new TacticalRenderer();
   #encounterRenderer = new EncounterRenderer();
   #enemyAttackRenderer = new EnemyAttackRenderer();
+  #hazardRenderer = new HazardRenderer();
   #windowTarget;
   #devicePixelRatio;
   #started = false;
@@ -156,6 +158,7 @@ export class CanvasRenderer {
     this.#camera.update();
     this.#mapRenderer.render(this.#context, this.#camera);
     this.#tacticalRenderer.renderWorld(this.#context, this.#camera, expansionSnapshot);
+    this.#hazardRenderer.render(this.#context, this.#camera, expansionSnapshot);
     this.#encounterRenderer.render(this.#context, this.#camera, expansionSnapshot);
     this.#enemyAttackRenderer.render(this.#context, this.#camera, expansionSnapshot, enemies);
     this.#experienceCrystalRenderer.render(this.#context, this.#camera, experienceCrystals);

@@ -3,12 +3,13 @@ import { RELAY_CONFIG } from '../config/relayConfig.js';
 export class RelaySystem {
   #enabled = false;
   #stations = [];
+  #firepowerRemaining = 0;
 
   constructor({ player, enemies, enemyDamageSystem, config = RELAY_CONFIG }) {
     if (!player || !Array.isArray(enemies) || typeof enemyDamageSystem?.applyDamage !== 'function') {
       throw new TypeError('Invalid relay dependencies');
     }
-    for (const key of ['radius', 'channelSeconds', 'healing', 'pulseRadius', 'damage', 'bossDamage', 'visualSeconds', 'energyCap', 'killEnergy', 'energyRadius', 'batteryRange']) {
+    for (const key of ['radius', 'channelSeconds', 'healing', 'pulseRadius', 'damage', 'bossDamage', 'visualSeconds', 'energyCap', 'killEnergy', 'energyRadius', 'batteryRange', 'firepowerBonus', 'firepowerSeconds']) {
       if (!Number.isFinite(config[key]) || config[key] <= 0) throw new RangeError('Invalid relay setting: ' + key);
     }
     if (!Array.isArray(config.stations) || config.stations.some(s => !s.id || !s.name || !Number.isFinite(s.x) || !Number.isFinite(s.y))
@@ -21,7 +22,13 @@ export class RelaySystem {
   }
 
   setEnabled(enabled) { this.#enabled = Boolean(enabled); this.reset(); }
-  reset() { this.#stations = this.config.stations.map(s => ({ ...s, charge: 0, energy: this.config.energyCap, pulseRemaining: 0 })); }
+  reset() {
+    this.#stations = this.config.stations.map(s => ({ ...s, charge: 0, energy: this.config.energyCap, pulseRemaining: 0 }));
+    this.#firepowerRemaining = 0;
+  }
+
+  get damageMultiplier() { return this.#firepowerRemaining > 0 ? 1 + this.config.firepowerBonus : 1; }
+  getBuffSnapshot() { return Object.freeze({ remaining: this.#firepowerRemaining, damageMultiplier: this.damageMultiplier }); }
 
   notifyEnemyDeath(event) {
     if (!Number.isFinite(event?.x) || !Number.isFinite(event?.y)) throw new TypeError('Enemy death requires finite coordinates');
@@ -49,6 +56,7 @@ export class RelaySystem {
   update(deltaSeconds) {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0) throw new RangeError('Invalid relay delta');
     if (!this.#enabled || deltaSeconds === 0) return 0;
+    this.#firepowerRemaining = Math.max(0, this.#firepowerRemaining - deltaSeconds);
     let activated = 0;
     for (const station of this.#stations) {
       station.pulseRemaining = Math.max(0, station.pulseRemaining - deltaSeconds);
@@ -59,7 +67,8 @@ export class RelaySystem {
       station.energy = 0;
       station.charge = 0;
       station.pulseRemaining = this.config.visualSeconds;
-      this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.config.healing);
+      if (station.effect === 'firepower') this.#firepowerRemaining = this.config.firepowerSeconds;
+      else this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.config.healing);
       for (const enemy of this.enemies) {
         if (enemy.alive && Math.hypot(enemy.x - station.x, enemy.y - station.y) <= this.config.pulseRadius + enemy.radius) {
           this.damageSystem.applyDamage(enemy, enemy.category === 'boss' ? this.config.bossDamage : this.config.damage, 'relay-pulse');
@@ -73,6 +82,8 @@ export class RelaySystem {
   getSnapshot() {
     return Object.freeze(this.#enabled ? this.#stations.map(s => Object.freeze({ ...s, used: s.energy === 0,
       radius: this.config.radius, pulseRadius: this.config.pulseRadius,
+      channelSeconds: this.config.channelSeconds, healing: this.config.healing,
+      firepowerBonus: this.config.firepowerBonus, firepowerSeconds: this.config.firepowerSeconds,
       pulseProgress: 1 - s.pulseRemaining / this.config.visualSeconds,
       progress: Math.min(1, s.charge / this.config.channelSeconds),
     })) : []);

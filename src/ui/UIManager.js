@@ -240,6 +240,7 @@ export class UIManager {
     }
     if (supply.decoy) parts.push(`诱饵 ${Math.ceil(supply.decoy.remaining)}s`);
     if (supply.overclockRemaining > 0) parts.push(`过载 +30% · ${Math.ceil(supply.overclockRemaining)}s`);
+    if (snapshot.relayBuff?.remaining > 0) parts.push(`火力中继 +${Math.round((snapshot.relayBuff.damageMultiplier - 1) * 100)}% · ${Math.ceil(snapshot.relayBuff.remaining)}s`);
     if (supply.scannerStacks > 0) parts.push(`扫描器 ${supply.scannerStacks}/3`);
     if (supply.station) parts.push(`救援补给 ${Math.ceil(supply.station.remaining)}s · 蓄能 ${Math.floor(supply.station.progress * 100)}%`);
     this.#setText(element, parts.join('  /  '));

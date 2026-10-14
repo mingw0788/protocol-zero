@@ -49,7 +49,7 @@ function firstIntersectionParameter(projectile, enemies, deltaSeconds) {
 }
 
 export class ProjectileSystem {
-  constructor({ projectiles, enemies, enemyDamageSystem } = {}) {
+  constructor({ projectiles, enemies, enemyDamageSystem, getObjects = null, applyObjectDamage = null } = {}) {
     if (!Array.isArray(projectiles)) {
       throw new TypeError('ProjectileSystem requires a projectile array');
     }
@@ -59,10 +59,14 @@ export class ProjectileSystem {
     if (typeof enemyDamageSystem?.applyDamage !== 'function') {
       throw new TypeError('ProjectileSystem requires an enemy damage system');
     }
+    if ((getObjects !== null || applyObjectDamage !== null)
+      && (typeof getObjects !== 'function' || typeof applyObjectDamage !== 'function')) throw new TypeError('Object hit callbacks must both be functions');
 
     this.projectiles = projectiles;
     this.enemies = enemies;
     this.enemyDamageSystem = enemyDamageSystem;
+    this.getObjects = getObjects;
+    this.applyObjectDamage = applyObjectDamage;
   }
 
   update(deltaSeconds) {
@@ -80,9 +84,10 @@ export class ProjectileSystem {
       }
 
       const effectiveDelta = Math.min(deltaSeconds, projectile.remainingLife);
-      const hitEnemy = firstIntersectionParameter(projectile, this.enemies, effectiveDelta);
+      const hitEnemy = firstIntersectionParameter(projectile, [...this.enemies, ...(this.getObjects?.() ?? [])], effectiveDelta);
       if (hitEnemy) {
-        this.enemyDamageSystem.applyDamage(hitEnemy, projectile.damage, projectile.weaponId);
+        if (hitEnemy.kind === 'barrel') this.applyObjectDamage?.(hitEnemy.id, projectile.damage);
+        else this.enemyDamageSystem.applyDamage(hitEnemy, projectile.damage, projectile.weaponId);
         projectile.active = false;
         continue;
       }

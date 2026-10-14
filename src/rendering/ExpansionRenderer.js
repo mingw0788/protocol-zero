@@ -27,7 +27,7 @@ export class ExpansionRenderer {
       const p = camera.worldToScreen(relay.x, relay.y);
       const extent = relay.pulseRadius + 30;
       if (p.x + extent < 0 || p.y + extent < 0 || p.x - extent > width || p.y - extent > height) continue;
-      const color = energy === 0 ? '#ff9b70' : energy < 100 ? '#ffc268' : '#64dfde';
+      const color = energy === 0 ? '#ff9b70' : energy < 100 ? '#ffc268' : relay.effect === 'firepower' ? '#ffd078' : '#64dfde';
       ctx.fillStyle = energy === 0 ? '#30242a' : '#163944';
       ctx.beginPath(); ctx.arc(p.x, p.y, relay.radius, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = color; ctx.lineWidth = 2;
@@ -41,12 +41,18 @@ export class ExpansionRenderer {
       ctx.fillStyle = color;
       ctx.fillRect(p.x - 14, p.y - 14, 28, 28);
       ctx.fillStyle = '#0c2431';
-      ctx.fillRect(p.x - 2, p.y - 9, 4, 18); ctx.fillRect(p.x - 9, p.y - 2, 18, 4);
+      if (relay.effect === 'firepower') {
+        for (let i = 0; i < 3; i++) ctx.fillRect(p.x - 9 + i * 6, p.y - 6 - i * 2, 4, 14 + i * 2);
+      } else {
+        ctx.fillRect(p.x - 2, p.y - 9, 4, 18); ctx.fillRect(p.x - 9, p.y - 2, 18, 4);
+      }
       ctx.fillStyle = relay.used ? '#91a4ad' : '#c6ffff';
       ctx.fillText(relay.name, p.x, p.y - relay.radius - 18);
+      const specialty = relay.effect === 'firepower' ? `火力 +${Math.round((relay.firepowerBonus ?? .25) * 100)}% / ${relay.firepowerSeconds ?? 10}s`
+        : `修复 +${relay.healing ?? 15}`;
       const relayStatus = energy === 0 ? '能量耗尽 · 就近击杀补充'
         : energy < 100 ? `能量 ${energy}% · 就近击杀补充`
-          : relay.progress > 0 ? `蓄能 ${Math.round(relay.progress * 100)}% · 修复 + 冲击` : '站入 2 秒 · 修复 + 冲击';
+          : relay.progress > 0 ? `蓄能 ${Math.round(relay.progress * 100)}% · ${specialty}` : `站入 ${relay.channelSeconds ?? 2} 秒 · ${specialty} + 冲击`;
       ctx.fillText(relayStatus, p.x, p.y + relay.radius + 20);
       if (relay.pulseRemaining > 0) {
         ctx.globalAlpha = 1 - relay.pulseProgress;

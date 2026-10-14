@@ -3,7 +3,7 @@
 - Task ID：T037
 - 状态：完成（功能及列明验证范围）。
 - 规格：`docs/superpowers/specs/2026-10-14-t037-hostile-attacks-design.md`。
-- Git Commit：见本任务交付提交。
+- Git Commit：`6db9c8e`。
 
 新增 EN-04 狙击哨兵、EN-05 自爆爬行器、EN-06 干扰精英，具有独立像素轮廓/颜色、瞄准线、爆炸圈与光环。EnemyAttackSystem 管理锁定预警、敌弹线段碰撞、有限爆炸表现；EnemySystem 只按本步初始光环位置计算移动，不改基础速度。新敌逐步替换旧波次份额，精英与事件守卫共用数量限制。
 

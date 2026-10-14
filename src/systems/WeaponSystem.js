@@ -89,7 +89,7 @@ export class WeaponSystem {
     this.config = Object.freeze({ ...config });
   }
 
-  update({ player, enemies, projectiles, deltaSeconds, upgradeEffects = NEUTRAL_UPGRADE_EFFECTS, fireRateMultiplier = 1 } = {}) {
+  update({ player, enemies, projectiles, deltaSeconds, upgradeEffects = NEUTRAL_UPGRADE_EFFECTS, fireRateMultiplier = 1, fallbackTargets = [] } = {}) {
     if (!Number.isFinite(fireRateMultiplier) || fireRateMultiplier <= 0) throw new RangeError('Invalid fire rate multiplier');
     if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0) {
       throw new RangeError('deltaSeconds must be a non-negative finite number');
@@ -107,7 +107,8 @@ export class WeaponSystem {
     }
 
     weaponState.cooldownRemaining = Math.max(0, weaponState.cooldownRemaining - deltaSeconds);
-    const target = findNearestTarget(player, enemies, this.config.range);
+    if (!Array.isArray(fallbackTargets)) throw new TypeError('fallbackTargets must be an array');
+    const target = findNearestTarget(player, enemies, this.config.range) ?? findNearestTarget(player, fallbackTargets, this.config.range);
     if (!target || weaponState.cooldownRemaining > 0) return 0;
 
     const damage = this.config.damage * effects.damageMultiplier;

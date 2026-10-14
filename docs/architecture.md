@@ -562,3 +562,9 @@ ObjectiveSystem 只保存所选目标 ID，消费事件/探索/补给/中继快�
 ### T037 战术敌人
 
 EnemyAttackSystem 持有按敌人 ID 的瞄准/引信状态和有界敌弹、爆炸。它只报告伤害候选；GameWorld 将候选与移动后接触合并交给 DamageSystem.applyDamageBatch，一次取最大伤害，保持统一护盾/冲刺/无敌/死亡统计。自爆只设置 defeatedBySelf，deathProcessed 仍由 GameWorld 收尾；不发玩家奖励。EnemySystem 读取停步标记与本步开始位置的非叠加光环，SpawnSystem 限制共享单精英。新增表现只读快照，暂停和 reset 清理与既有世界一致。
+
+### T038 环境对象与中继专长
+
+HazardSystem 独立持有电容桶/区域/爆炸，getAttackTargets 返回冻结可击毁对象。WeaponSystem 仅在没有合法敌人时使用对象后备目标；ProjectileSystem 的对象回调将桶伤害交回 HazardSystem。桶爆炸经过 EnemyDamageSystem，桶不进入敌人列表/击杀/XP。环境伤害只产生候选，与敌弹和接触同批处理。事件锚点排除危险区范围。
+
+RelaySystem 拥有火力临时倍率和单一计时，GameWorld 将其乘到当步升级伤害快照，原配置不变。HazardRenderer/中继 UI 只读专长和危险快照。电弧仅配置于未开放的能源地图，正式选图/关闭走廊关联留 T042。

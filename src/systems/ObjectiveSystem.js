@@ -11,7 +11,7 @@ export class ObjectiveSystem {
     }
     if (supply?.station) targets.push({ ...supply.station, id: 'supply-station', kind: 'supply', name: '救援补给', action: '站入圆环领取补给' });
     for (const relay of relays) targets.push({ ...relay, id: `relay-${relay.id}`, kind: 'relay',
-      action: relay.energy >= 100 ? '站入蓄能释放中继' : '附近击杀或电芯补能' });
+      action: relay.energy >= 100 ? relay.effect === 'firepower' ? '站入获取火力增益与冲击' : '站入获取治疗与冲击' : '附近击杀或电芯补能' });
     return targets;
   }
 

@@ -36,6 +36,7 @@ import { EncounterSystem } from '../systems/EncounterSystem.js';
 import { RunRewardSystem } from '../systems/RunRewardSystem.js';
 import { ObjectiveSystem } from '../systems/ObjectiveSystem.js';
 import { EnemyAttackSystem } from '../systems/EnemyAttackSystem.js';
+import { HazardSystem } from '../systems/HazardSystem.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -120,6 +121,8 @@ export class GameWorld {
         this.#emitSoundEvent('weapon-hit');
       }
     } });
+    this.hazardSystem = new HazardSystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem,
+      onBlast: () => this.#emitSoundEvent('barrel-blast') });
     this.relaySystem = new RelaySystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem });
     this.supplySystem.setEffects({ enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem, relaySystem: this.relaySystem,
       onEvent: type => this.#emitSoundEvent(type) });
@@ -130,6 +133,8 @@ export class GameWorld {
       projectiles: this.projectiles,
       enemies: this.enemies,
       enemyDamageSystem: this.enemyDamageSystem,
+      getObjects: () => this.hazardSystem.getAttackTargets(),
+      applyObjectDamage: (id, damage) => this.hazardSystem.damageBarrel(id, damage),
     });
     this.orbitalBladeSystem = new OrbitalBladeSystem({
       player: this.player,
@@ -196,6 +201,7 @@ export class GameWorld {
     this.encounterSystem.reset(map.id);
     this.rewardSystem.reset();
     this.objectiveSystem.reset();
+    this.hazardSystem.reset(map.id);
     return true;
   }
 
@@ -213,6 +219,8 @@ export class GameWorld {
       arc: this.arcCoilSystem.getSnapshot(), rail: this.railgunSystem.getSnapshot(), relays: this.relaySystem.getSnapshot(),
       encounters: this.encounterSystem.getSnapshot(), rewards: this.rewardSystem.getSnapshot(),
       hostileAttacks: this.enemyAttackSystem.getSnapshot() };
+    snapshot.hazards = this.hazardSystem.getSnapshot();
+    snapshot.relayBuff = this.relaySystem.getBuffSnapshot();
     snapshot.trackedObjective = this.objectiveSystem.getTrackedSnapshot(snapshot);
     return Object.freeze(snapshot);
   }
@@ -355,11 +363,13 @@ export class GameWorld {
     this.spawnSystem.update(deltaSeconds, waveSnapshot);
     this.bossSystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
     const hostileHits = this.enemyAttackSystem.update(deltaSeconds, enemy => this.supplySystem.targetFor(enemy));
+    const hazardHits = this.hazardSystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
     this.enemySystem.update(deltaSeconds, (enemy) => this.supplySystem.targetFor(enemy));
     const contacts = this.collisionSystem.getPlayerContacts();
     const damageResult = this.damageSystem.applyDamageBatch([
       ...contacts.map(enemy => ({ damage: enemy.contactDamage, sourceTypeId: enemy.typeId })),
       ...hostileHits,
+      ...hazardHits,
     ]);
     if (damageResult.damaged) {
       this.combatStatsSystem.recordPlayerDamage({
@@ -372,7 +382,9 @@ export class GameWorld {
       this.particleSystem.emitPlayerHit(this.player);
       this.#emitSoundEvent('player-hit');
     }
-    const upgradeEffects = this.upgradeEffectSystem.getSnapshot();
+    const baseUpgradeEffects = this.upgradeEffectSystem.getSnapshot();
+    const upgradeEffects = Object.freeze({ ...baseUpgradeEffects,
+      damageMultiplier: baseUpgradeEffects.damageMultiplier * this.relaySystem.damageMultiplier });
     const firedProjectileCount = this.weaponSystem.update({
       player: this.player,
       enemies: this.enemies,
@@ -380,6 +392,7 @@ export class GameWorld {
       deltaSeconds,
       upgradeEffects,
       fireRateMultiplier: this.supplySystem.fireRateMultiplier,
+      fallbackTargets: this.hazardSystem.getAttackTargets(this.hazardSystem.config.targetRange),
     });
     if (firedProjectileCount > 0) this.#emitSoundEvent('pulse-fire');
     this.projectileSystem.update(deltaSeconds);
@@ -396,7 +409,7 @@ export class GameWorld {
     this.experienceSystem.update(deltaSeconds, this.supplySystem.pickupRadiusBonus);
     this.explorationSystem.update(deltaSeconds);
     this.encounterSystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds,
-      [...this.explorationSystem.getSnapshot().terminals, ...this.relaySystem.getSnapshot()]);
+      [...this.explorationSystem.getSnapshot().terminals, ...this.relaySystem.getSnapshot(), ...this.hazardSystem.getBlockedPoints()]);
     const gainedLevels = this.levelSystem.processExperience();
     this.clock.advance(deltaSeconds);
     this.#simulationSteps += 1;
@@ -467,6 +480,7 @@ export class GameWorld {
     this.encounterSystem.reset(this.mapConfig.id);
     this.rewardSystem.reset();
     this.objectiveSystem.reset();
+    this.hazardSystem.reset(this.mapConfig.id);
     this.#rerolls = TACTICAL_CONFIG.initialRerolls;
     this.camera.follow(this.player);
     this.enemies.length = 0;

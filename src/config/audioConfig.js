@@ -1,4 +1,5 @@
 const TONES = Object.freeze({
+  'barrel-blast': Object.freeze({ waveform: 'triangle', startFrequencyHz: 170, bodyFrequencyHz: 80, endFrequencyHz: 36, durationSeconds: .24, peak: .1, priority: 1 }),
   'enemy-warning': Object.freeze({ waveform: 'sine', startFrequencyHz: 480, bodyFrequencyHz: 760, endFrequencyHz: 480, durationSeconds: .16, peak: .06, priority: 2 }),
   dash: Object.freeze({ waveform: 'triangle', startFrequencyHz: 240, bodyFrequencyHz: 600, endFrequencyHz: 170, durationSeconds: .13, peak: .07, priority: 1 }),
   'terminal-complete': Object.freeze({ waveform: 'sine', startFrequencyHz: 440, bodyFrequencyHz: 660, endFrequencyHz: 1100, durationSeconds: .3, peak: .09, priority: 2 }),
