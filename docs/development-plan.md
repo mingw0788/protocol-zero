@@ -324,7 +324,7 @@ Git Commit：哈希或未提交原因
 
 ## 最新玩法扩展路线：T034–T045
 
-用户授权执行 `docs/superpowers/plans/2026-10-14-gameplay-expansion-roadmap.md`。T034 已完成并为后续来源伤害建立统计口径；T035–T045 按该路线图依赖顺序实施。T034 规格为 `docs/superpowers/specs/2026-10-14-t034-combat-statistics-design.md`，报告为 `docs/task-report-T034.md`。
+用户授权执行 `docs/superpowers/plans/2026-10-14-gameplay-expansion-roadmap.md`。T034–T045 已按依赖顺序完成自动验收，综合验证及剩余人工门禁见 `docs/task-report-T045.md`。T034 规格为 `docs/superpowers/specs/2026-10-14-t034-combat-statistics-design.md`，报告为 `docs/task-report-T034.md`。
 
 ### T035 双主动道具槽
 
@@ -369,4 +369,4 @@ Git Commit：哈希或未提交原因
 
 ### T044 重复游玩与本机档案
 
-新增标准/突击/回收/守卫开局协议、三种可选挑战、独立配置成绩与胜利后无尽加时；本地图鉴、八成就、纯外观奖励和校验后预览确认的档案导入导出。 验证证据见 `docs/task-report-T044.md`。后续按路线依赖推进 T045。
+新增标准/突击/回收/守卫开局协议、三种可选挑战、独立配置成绩与胜利后无尽加时；本地图鉴、八成就、纯外观奖励和校验后预览确认的档案导入导出。 验证证据见 `docs/task-report-T044.md`。T045 综合验收已完成，报告见 `docs/task-report-T045.md`。

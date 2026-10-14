@@ -182,7 +182,8 @@ export class UpgradeSystem {
       }
       const improvements = eligible.filter(card => this.#isReinforcement(card));
       if (improvements.length && !choices.some(card => this.#isReinforcement(card))) {
-        const index = choices.findLastIndex(card => card.type !== 'evolution');
+        const nonEvolutionIndex = choices.findLastIndex(card => card.type !== 'evolution');
+        const index = nonEvolutionIndex >= 0 ? nonEvolutionIndex : choices.length - 1;
         choices[index] = improvements[Math.floor(this.#sample() * improvements.length)];
       }
     }

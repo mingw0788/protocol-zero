@@ -480,9 +480,15 @@ export class GameWorld {
     if (this.runConfigSystem.challenge.id === 'elite' && this.clock.elapsedSeconds + deltaSeconds >= this.#nextEliteAt) {
       this.#nextEliteAt += 90;
       const { width, height } = this.#bossOptions.world;
+      const hpMultiplier = waveSnapshot.hpMultiplier ?? 1;
+      const eliteConfig = hpMultiplier === 1 ? ENEMY_CONFIG.EN06 : {
+        ...ENEMY_CONFIG.EN06,
+        hp: ENEMY_CONFIG.EN06.hp * hpMultiplier,
+        maxHp: ENEMY_CONFIG.EN06.maxHp * hpMultiplier,
+      };
       const points = [{ x: 56, y: 56 }, { x: width - 56, y: 56 }, { x: 56, y: height - 56 }, { x: width - 56, y: height - 56 }]
         .sort((a, b) => Math.hypot(a.x - this.player.x, a.y - this.player.y) - Math.hypot(b.x - this.player.x, b.y - this.player.y));
-      for (const point of points) if (this.spawnSystem.spawnEncounterElite({ ...point, config: ENEMY_CONFIG.EN06, encounterId: 'challenge-elite' })) break;
+      for (const point of points) if (this.spawnSystem.spawnEncounterElite({ ...point, config: eliteConfig, encounterId: 'challenge-elite' })) break;
     }
     this.bossSystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
     for (const enemy of this.enemies) if (enemy.typeId) this.#seenTypes.add(enemy.typeId);

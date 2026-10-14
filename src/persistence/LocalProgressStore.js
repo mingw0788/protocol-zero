@@ -14,7 +14,7 @@ export function normalizeProgress(value) {
     || !count(value.highestKillCount) || !(value.bestVictorySeconds === null || time(value.bestVictorySeconds))
     || typeof value.soundEnabled !== 'boolean' || !Number.isFinite(value.soundVolume) || value.soundVolume < 0 || value.soundVolume > 1) return null;
   const legacy = value.version === 1;
-  const records = legacy ? [] : value.records ?? [];
+  const records = legacy || value.records === undefined ? [] : value.records;
   if (!Array.isArray(records) || records.length > 96 || new Set(records.map(record => record?.key)).size !== records.length) return null;
   const normalizedRecords = [];
   for (const record of records) {
@@ -28,19 +28,19 @@ export function normalizeProgress(value) {
       runs: record.runs, wins: record.wins, bestVictorySeconds: record.bestVictorySeconds,
       bestEndlessSeconds: record.bestEndlessSeconds, highestEndlessKills: record.highestEndlessKills, maxTerminals: record.maxTerminals }));
   }
-  const discoveryInput = legacy ? emptyDiscoveries : value.discoveries ?? emptyDiscoveries;
-  if (!discoveryInput || typeof discoveryInput !== 'object') return null;
+  const discoveryInput = legacy || value.discoveries === undefined ? emptyDiscoveries : value.discoveries;
+  if (!discoveryInput || typeof discoveryInput !== 'object' || Array.isArray(discoveryInput)) return null;
   const discoveries = {};
   for (const [key, allowed] of Object.entries(DISCOVERY_IDS)) {
-    const list = discoveryInput[key] ?? [];
+    const list = discoveryInput[key] === undefined ? [] : discoveryInput[key];
     if (!ids(list, allowed)) return null;
     discoveries[key] = Object.freeze([...list]);
   }
-  const achievements = legacy ? [] : value.achievements ?? [];
+  const achievements = legacy || value.achievements === undefined ? [] : value.achievements;
   if (!ids(achievements, ACHIEVEMENTS.map(item => item.id))) return null;
   const progress = { version: SAVE_VERSION, highestKillCount: value.highestKillCount, bestVictorySeconds: value.bestVictorySeconds,
     soundEnabled: value.soundEnabled, soundVolume: value.soundVolume, records: Object.freeze(normalizedRecords),
-    discoveries: Object.freeze(discoveries), achievements: Object.freeze([...achievements]), cosmeticId: legacy ? 'cyan' : value.cosmeticId ?? 'cyan' };
+    discoveries: Object.freeze(discoveries), achievements: Object.freeze([...achievements]), cosmeticId: legacy || value.cosmeticId === undefined ? 'cyan' : value.cosmeticId };
   progress.achievements = deriveAchievements(progress);
   const cosmetic = COSMETICS.find(item => item.id === progress.cosmeticId);
   if (!cosmetic || cosmetic.achievement && !progress.achievements.includes(cosmetic.achievement)) return null;
@@ -62,7 +62,7 @@ export class LocalProgressStore {
       if (!raw) return DEFAULT_PROGRESS;
       if (typeof raw !== 'string' || raw.length > 65536) { this.#blocked = true; this.#status = 'damaged'; return DEFAULT_PROGRESS; }
       const parsed = JSON.parse(raw);
-      if (typeof parsed?.version === 'number' && ![1, SAVE_VERSION].includes(parsed.version)) { this.#blocked = true; this.#status = 'future-version'; return DEFAULT_PROGRESS; }
+      if (parsed && Object.hasOwn(parsed, 'version') && ![1, SAVE_VERSION].includes(parsed.version)) { this.#blocked = true; this.#status = 'future-version'; return DEFAULT_PROGRESS; }
       const progress = normalizeProgress(parsed);
       if (!progress) { this.#status = 'damaged'; return DEFAULT_PROGRESS; }
       if (parsed.version === 1) this.save(progress);
