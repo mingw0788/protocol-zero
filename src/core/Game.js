@@ -163,6 +163,8 @@ export class Game {
   }
 
   getExpansionSnapshot() { return this.world.getExpansionSnapshot(); }
+  selectMode(id) { return this.world.setMode(id); }
+  getRunConfigSnapshot() { return this.world.getRunConfigSnapshot(); }
 
   getHudSnapshot() {
     return this.world.getHudSnapshot();

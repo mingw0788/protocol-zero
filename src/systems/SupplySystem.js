@@ -74,6 +74,7 @@ export class SupplySystem {
 
   get fireRateMultiplier() { return this.#overclockRemaining > 0 ? 1 + this.config.fireRateBonus : 1; }
   get pickupRadiusBonus() { return this.#scannerStacks * this.config.scannerBonus; }
+  get scannerStacks() { return this.#scannerStacks; }
 
   addPickup(type, x, y) {
     if (!this.config.rewards.includes(type) || !Number.isFinite(x) || !Number.isFinite(y)) throw new RangeError('Invalid supply pickup');

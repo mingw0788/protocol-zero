@@ -1,4 +1,5 @@
 import { ORBITAL_BLADE_CONFIG } from '../config/orbitalBladeConfig.js';
+import { ORBITAL_EVOLUTION_CONFIG } from '../config/evolutionConfig.js';
 
 const TWO_PI = Math.PI * 2;
 
@@ -87,6 +88,9 @@ export class OrbitalBladeSystem {
   #angleRadians = 0;
   #level = 0;
   #hitCooldowns = new Map();
+  #evolved = false;
+  #sweepCooldown = 0;
+  #sweepRemaining = 0;
 
   constructor({ player, enemies, enemyDamageSystem, config = ORBITAL_BLADE_CONFIG } = {}) {
     requireDependencies({ player, enemies, enemyDamageSystem });
@@ -100,7 +104,8 @@ export class OrbitalBladeSystem {
     return this.#config;
   }
 
-  update({ deltaSeconds, upgradeEffects, fireRateMultiplier = 1 } = {}) {
+  update({ deltaSeconds, upgradeEffects, fireRateMultiplier = 1, evolved = false } = {}) {
+    if (typeof evolved !== 'boolean') throw new TypeError('evolved must be a boolean');
     if (!Number.isFinite(fireRateMultiplier) || fireRateMultiplier <= 0) throw new RangeError('Invalid fire rate multiplier');
     requireUpdate({ deltaSeconds, upgradeEffects }, this.#config.maxLevel);
     if (!Number.isFinite(this.player.x) || !Number.isFinite(this.player.y)) {
@@ -109,6 +114,9 @@ export class OrbitalBladeSystem {
     if (deltaSeconds === 0) return false;
 
     const level = upgradeEffects.orbitalBladeLevel;
+    this.#evolved = evolved && level > 0;
+    this.#sweepRemaining = this.#evolved ? Math.max(0, this.#sweepRemaining - deltaSeconds) : 0;
+    this.#sweepCooldown = this.#evolved ? Math.max(0, this.#sweepCooldown - deltaSeconds) : 0;
     const nextAngle = level > 0
       ? (this.#angleRadians + this.#config.rotationRadiansPerSecond * deltaSeconds * fireRateMultiplier) % TWO_PI
       : 0;
@@ -160,6 +168,17 @@ export class OrbitalBladeSystem {
         this.#hitCooldowns.set(enemy.id, this.#config.hitCooldownSeconds / fireRateMultiplier);
       }
     }
+    if (this.#evolved && this.#sweepCooldown <= 1e-9) {
+      this.#sweepCooldown = ORBITAL_EVOLUTION_CONFIG.sweepInterval / fireRateMultiplier;
+      this.#sweepRemaining = ORBITAL_EVOLUTION_CONFIG.visualSeconds;
+      for (const enemy of this.enemies) {
+        if (!isLiveEnemy(enemy) || this.#hitCooldowns.has(enemy.id)
+          || Math.hypot(enemy.x - this.player.x, enemy.y - this.player.y) > ORBITAL_EVOLUTION_CONFIG.sweepRadius + enemy.radius) continue;
+        if (this.enemyDamageSystem.applyDamage(enemy, ORBITAL_EVOLUTION_CONFIG.sweepDamage * upgradeEffects.damageMultiplier, this.#config.id)) {
+          this.#hitCooldowns.set(enemy.id, this.#config.hitCooldownSeconds / fireRateMultiplier);
+        }
+      }
+    }
     return true;
   }
 
@@ -182,7 +201,11 @@ export class OrbitalBladeSystem {
       radius: this.#config.bladeRadius,
       orbitRadius,
       angleRadians: this.#angleRadians,
-      color: this.#config.color,
+      color: this.#evolved ? '#ffcf7c' : this.#config.color,
+      evolved: active && this.#evolved,
+      sweepRadius: ORBITAL_EVOLUTION_CONFIG.sweepRadius,
+      sweepRemaining: active ? this.#sweepRemaining : 0,
+      sweepLifetime: ORBITAL_EVOLUTION_CONFIG.visualSeconds,
     });
   }
 
@@ -190,5 +213,6 @@ export class OrbitalBladeSystem {
     this.#angleRadians = 0;
     this.#level = 0;
     this.#hitCooldowns.clear();
+    this.#evolved = false; this.#sweepCooldown = 0; this.#sweepRemaining = 0;
   }
 }

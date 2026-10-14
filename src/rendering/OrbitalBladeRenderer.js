@@ -19,6 +19,15 @@ export class OrbitalBladeRenderer {
       return false;
     }
 
+    if (snapshot.sweepRemaining > 0) {
+      const center = camera.worldToScreen(snapshot.playerX, snapshot.playerY);
+      context.save();
+      context.beginPath(); context.rect(0, 0, camera.viewportWidth, camera.viewportHeight); context.clip();
+      context.globalAlpha = .6 * snapshot.sweepRemaining / snapshot.sweepLifetime;
+      context.strokeStyle = '#ffcf7c'; context.lineWidth = 5;
+      context.beginPath(); context.arc(center.x, center.y, snapshot.sweepRadius, 0, Math.PI * 2); context.stroke();
+      context.restore();
+    }
     const position = camera.worldToScreen(snapshot.x, snapshot.y);
     if (!Number.isFinite(position?.x) || !Number.isFinite(position?.y)) return false;
     const boundsRadius = snapshot.radius * Math.SQRT2;

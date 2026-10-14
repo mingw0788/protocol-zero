@@ -114,8 +114,8 @@ describe('GameWorld upgrade effect integration', () => {
   });
 
   it('clears selected gameplay effects and restores player baselines on reset', () => {
-    const cycle = [0, 0.5, 0.55];
-    const world = createWorld(Array.from({ length: 9 }, (_, index) => cycle[index % cycle.length]));
+    // Each offer includes a pulse improvement under the owned-weapon guarantee.
+    const world = createWorld([0, 0, 0, 0, 0.5, 0, 0.65, 0, 0]);
     enterLevelUp(world, 35);
     for (const upgradeId of ['UP-01', 'UP-05', 'UP-06']) {
       expect(world.getUpgradeChoices().map(({ id }) => id)).toContain(upgradeId);

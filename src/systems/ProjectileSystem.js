@@ -1,3 +1,6 @@
+import { Projectile } from '../entities/Projectile.js';
+import { PULSE_EVOLUTION_CONFIG } from '../config/evolutionConfig.js';
+
 function requireCircleEnemy(enemy) {
   return enemy?.alive === true
     && Number.isFinite(enemy.hp)
@@ -17,6 +20,7 @@ function firstIntersectionParameter(projectile, enemies, deltaSeconds) {
 
   for (const enemy of enemies) {
     if (!requireCircleEnemy(enemy)) continue;
+    if (enemy.id === projectile.ignoreEnemyId) continue;
 
     const radius = projectile.radius + enemy.radius;
     const offsetX = projectile.x - enemy.x;
@@ -45,10 +49,11 @@ function firstIntersectionParameter(projectile, enemies, deltaSeconds) {
     }
   }
 
-  return firstEnemy;
+  return firstEnemy ? { enemy: firstEnemy, t: firstT } : null;
 }
 
 export class ProjectileSystem {
+  #nextSplitId = 1;
   constructor({ projectiles, enemies, enemyDamageSystem, getObjects = null, applyObjectDamage = null } = {}) {
     if (!Array.isArray(projectiles)) {
       throw new TypeError('ProjectileSystem requires a projectile array');
@@ -76,6 +81,7 @@ export class ProjectileSystem {
     if (deltaSeconds === 0) return;
 
     let writeIndex = 0;
+    const children = [];
     for (let readIndex = 0; readIndex < this.projectiles.length; readIndex += 1) {
       const projectile = this.projectiles[readIndex];
       if (!projectile || projectile.active !== true || projectile.remainingLife <= 0) {
@@ -84,10 +90,14 @@ export class ProjectileSystem {
       }
 
       const effectiveDelta = Math.min(deltaSeconds, projectile.remainingLife);
-      const hitEnemy = firstIntersectionParameter(projectile, [...this.enemies, ...(this.getObjects?.() ?? [])], effectiveDelta);
+      const intersection = firstIntersectionParameter(projectile, [...this.enemies, ...(this.getObjects?.() ?? [])], effectiveDelta);
+      const hitEnemy = intersection?.enemy;
       if (hitEnemy) {
         if (hitEnemy.kind === 'barrel') this.applyObjectDamage?.(hitEnemy.id, projectile.damage);
-        else this.enemyDamageSystem.applyDamage(hitEnemy, projectile.damage, projectile.weaponId);
+        else {
+          const applied = this.enemyDamageSystem.applyDamage(hitEnemy, projectile.damage, projectile.weaponId);
+          if (applied && projectile.canSplit) this.#split(projectile, hitEnemy, effectiveDelta * intersection.t, children);
+        }
         projectile.active = false;
         continue;
       }
@@ -105,5 +115,24 @@ export class ProjectileSystem {
     }
 
     this.projectiles.length = writeIndex;
+    this.projectiles.push(...children.slice(0, Math.max(0, PULSE_EVOLUTION_CONFIG.maxProjectiles - writeIndex)));
   }
+
+  #split(projectile, original, travelSeconds, children) {
+    const config = PULSE_EVOLUTION_CONFIG;
+    const origin = { x: projectile.x + projectile.vx * travelSeconds, y: projectile.y + projectile.vy * travelSeconds };
+    const targets = this.enemies.filter(enemy => requireCircleEnemy(enemy) && enemy.id !== original.id
+      && Math.hypot(enemy.x - original.x, enemy.y - original.y) <= config.splitRange)
+      .sort((a, b) => Math.hypot(a.x - original.x, a.y - original.y) - Math.hypot(b.x - original.x, b.y - original.y)
+        || String(a.id).localeCompare(String(b.id))).slice(0, config.splitTargets);
+    for (const target of targets) {
+      const dx = target.x - origin.x, dy = target.y - origin.y, distance = Math.hypot(dx, dy) || 1;
+      children.push(new Projectile({ id: `pulse-split-${this.#nextSplitId++}`, ownerId: projectile.ownerId, weaponId: projectile.weaponId,
+        x: origin.x, y: origin.y, vx: dx / distance * config.speed, vy: dy / distance * config.speed,
+        radius: config.radius, damage: projectile.damage * config.damageRatio, lifetimeSeconds: config.lifetime,
+        canSplit: false, ignoreEnemyId: original.id }));
+    }
+  }
+
+  reset() { this.#nextSplitId = 1; }
 }

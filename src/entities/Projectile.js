@@ -28,6 +28,8 @@ export class Projectile {
     radius,
     damage,
     lifetimeSeconds,
+    canSplit = false,
+    ignoreEnemyId = null,
   } = {}) {
     requireId(id, 'id');
     requireId(ownerId, 'ownerId');
@@ -39,6 +41,9 @@ export class Projectile {
     requirePositiveFinite(radius, 'radius');
     requirePositiveFinite(damage, 'damage');
     requirePositiveFinite(lifetimeSeconds, 'lifetimeSeconds');
+    if (typeof canSplit !== 'boolean' || (ignoreEnemyId !== null && typeof ignoreEnemyId !== 'string' && !Number.isFinite(ignoreEnemyId))) {
+      throw new TypeError('Invalid projectile generation metadata');
+    }
 
     this.id = id;
     this.ownerId = ownerId;
@@ -51,5 +56,7 @@ export class Projectile {
     this.damage = damage;
     this.remainingLife = lifetimeSeconds;
     this.active = true;
+    this.canSplit = canSplit;
+    this.ignoreEnemyId = ignoreEnemyId;
   }
 }

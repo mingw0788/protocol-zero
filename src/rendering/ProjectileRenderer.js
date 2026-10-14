@@ -37,7 +37,7 @@ export class ProjectileRenderer {
         continue;
       }
 
-      context.fillStyle = PULSE_GUN_CONFIG.projectileColor;
+      context.fillStyle = projectile.canSplit ? '#ffe19a' : projectile.ignoreEnemyId !== null && projectile.ignoreEnemyId !== undefined ? '#ffbd83' : PULSE_GUN_CONFIG.projectileColor;
       context.fillRect(x, y, diameter, diameter);
       context.fillStyle = '#e9ffff';
       const core = diameter * 0.5;

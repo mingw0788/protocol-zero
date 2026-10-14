@@ -19,6 +19,9 @@
             <label class="map-choice" for="map-select">部署区域
               <select id="map-select"><option value="laboratory">废弃科技实验室</option><option value="east-city">东城区疏散线 · 救援补给</option></select>
             </label>
+            <label class="map-choice" for="mode-select">构筑模式
+              <select id="mode-select"><option value="standard">标准生存 · 武器不限栏位</option><option value="tactical">战术构筑 · 最多 3 武器</option></select>
+            </label>
             <p class="menu-records" aria-label="本机记录">最高击杀 <strong id="menu-highest-kills">0</strong><span aria-hidden="true"> · </span>最佳通关 <time id="menu-best-victory-time">尚无</time></p>
             <div class="button-stack">
               <button id="start-game-button" class="button-primary" type="button">开始游戏</button>
@@ -110,6 +113,7 @@
             <h2 id="upgrade-title">选择一项升级</h2>
             <p class="upgrade-hint">按 1 / 2 / 3 快速选择 · 战场已暂停</p>
             <p id="upgrade-remaining" class="panel-description" aria-live="polite"></p>
+            <p id="evolution-guide" class="upgrade-hint"></p>
             <div class="upgrade-choice-list">
               <button id="upgrade-choice-0" class="upgrade-choice" type="button" hidden>
                 <span class="upgrade-choice-heading">

@@ -1,4 +1,5 @@
 import { PULSE_GUN_CONFIG } from '../config/weaponConfig.js';
+import { PULSE_EVOLUTION_CONFIG } from '../config/evolutionConfig.js';
 import { Projectile } from '../entities/Projectile.js';
 
 const NUMERIC_CONFIG_FIELDS = [
@@ -89,7 +90,8 @@ export class WeaponSystem {
     this.config = Object.freeze({ ...config });
   }
 
-  update({ player, enemies, projectiles, deltaSeconds, upgradeEffects = NEUTRAL_UPGRADE_EFFECTS, fireRateMultiplier = 1, fallbackTargets = [] } = {}) {
+  update({ player, enemies, projectiles, deltaSeconds, upgradeEffects = NEUTRAL_UPGRADE_EFFECTS, fireRateMultiplier = 1, fallbackTargets = [], evolved = false } = {}) {
+    if (typeof evolved !== 'boolean') throw new TypeError('evolved must be a boolean');
     if (!Number.isFinite(fireRateMultiplier) || fireRateMultiplier <= 0) throw new RangeError('Invalid fire rate multiplier');
     if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0) {
       throw new RangeError('deltaSeconds must be a non-negative finite number');
@@ -109,7 +111,7 @@ export class WeaponSystem {
     weaponState.cooldownRemaining = Math.max(0, weaponState.cooldownRemaining - deltaSeconds);
     if (!Array.isArray(fallbackTargets)) throw new TypeError('fallbackTargets must be an array');
     const target = findNearestTarget(player, enemies, this.config.range) ?? findNearestTarget(player, fallbackTargets, this.config.range);
-    if (!target || weaponState.cooldownRemaining > 0) return 0;
+    if (!target || weaponState.cooldownRemaining > 0 || projectiles.length >= PULSE_EVOLUTION_CONFIG.maxProjectiles) return 0;
 
     const damage = this.config.damage * effects.damageMultiplier;
     const fireIntervalSeconds = this.config.fireIntervalSeconds / effects.pulseGunFireRateMultiplier / fireRateMultiplier;
@@ -132,7 +134,9 @@ export class WeaponSystem {
     weaponState.aimAngle = Math.atan2(directionY, directionX);
     weaponState.fireFlashRemaining = 0.09;
     const angleStep = this.config.multiShotAngleStepDegrees * (Math.PI / 180);
+    let fired = 0;
     for (let index = 0; index < effects.pulseGunProjectileCount; index += 1) {
+      if (projectiles.length >= PULSE_EVOLUTION_CONFIG.maxProjectiles) break;
       const centeredOffset = index - ((effects.pulseGunProjectileCount - 1) / 2);
       const angle = centeredOffset * angleStep;
       const cosine = Math.cos(angle);
@@ -154,10 +158,12 @@ export class WeaponSystem {
         radius: this.config.projectileRadius,
         damage,
         lifetimeSeconds: this.config.projectileLifetimeSeconds,
+        canSplit: evolved,
       }));
       this.#nextProjectileId += 1;
+      fired += 1;
     }
     weaponState.cooldownRemaining = fireIntervalSeconds;
-    return effects.pulseGunProjectileCount;
+    return fired;
   }
 }

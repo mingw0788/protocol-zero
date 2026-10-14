@@ -37,6 +37,7 @@ import { RunRewardSystem } from '../systems/RunRewardSystem.js';
 import { ObjectiveSystem } from '../systems/ObjectiveSystem.js';
 import { EnemyAttackSystem } from '../systems/EnemyAttackSystem.js';
 import { HazardSystem } from '../systems/HazardSystem.js';
+import { getRunMode } from '../config/runConfig.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -56,6 +57,7 @@ export class GameWorld {
   #lastWeaponHitSoundAt = Number.NEGATIVE_INFINITY;
   #lastEnemyWarningAt = Number.NEGATIVE_INFINITY;
   #killCount = 0;
+  #modeId = 'standard';
   #rerolls = TACTICAL_CONFIG.initialRerolls;
   #playerDeathFrozen = false;
   #runResult = null;
@@ -176,7 +178,8 @@ export class GameWorld {
       },
     });
     this.levelSystem = new LevelSystem({ player: this.player, stateManager: this.stateManager });
-    this.upgradeSystem = new UpgradeSystem({ player: this.player, random: upgradeRandom });
+    this.upgradeSystem = new UpgradeSystem({ player: this.player, random: upgradeRandom,
+      getContext: () => ({ scannerStacks: this.supplySystem.scannerStacks }) });
     this.upgradeEffectSystem = new UpgradeEffectSystem({
       player: this.player,
       upgradeSystem: this.upgradeSystem,
@@ -209,6 +212,19 @@ export class GameWorld {
     return Object.freeze({ id: this.mapConfig.id, name: this.mapConfig.name });
   }
 
+  setMode(id) {
+    const mode = getRunMode(id);
+    if (!mode || this.stateManager.currentState !== GAME_STATES.MENU) return false;
+    this.upgradeSystem.setWeaponLimit(mode.weaponLimit ?? Infinity);
+    this.#modeId = mode.id;
+    return true;
+  }
+
+  getRunConfigSnapshot() {
+    const mode = getRunMode(this.#modeId);
+    return Object.freeze({ modeId: mode.id, modeName: mode.name, weaponLimit: mode.weaponLimit });
+  }
+
   getSupplySnapshot() { return this.supplySystem.getSnapshot(); }
 
   getExpansionSnapshot() {
@@ -221,6 +237,8 @@ export class GameWorld {
       hostileAttacks: this.enemyAttackSystem.getSnapshot() };
     snapshot.hazards = this.hazardSystem.getSnapshot();
     snapshot.relayBuff = this.relaySystem.getBuffSnapshot();
+    snapshot.build = this.upgradeSystem.getBuildSnapshot();
+    snapshot.runConfig = this.getRunConfigSnapshot();
     snapshot.trackedObjective = this.objectiveSystem.getTrackedSnapshot(snapshot);
     return Object.freeze(snapshot);
   }
@@ -393,6 +411,7 @@ export class GameWorld {
       upgradeEffects,
       fireRateMultiplier: this.supplySystem.fireRateMultiplier,
       fallbackTargets: this.hazardSystem.getAttackTargets(this.hazardSystem.config.targetRange),
+      evolved: this.upgradeSystem.isEvolved('pulse-gun'),
     });
     if (firedProjectileCount > 0) this.#emitSoundEvent('pulse-fire');
     this.projectileSystem.update(deltaSeconds);
@@ -400,6 +419,7 @@ export class GameWorld {
       deltaSeconds,
       upgradeEffects,
       fireRateMultiplier: this.supplySystem.fireRateMultiplier,
+      evolved: this.upgradeSystem.isEvolved('orbital-blade'),
     });
     const weaponStep = { deltaSeconds, damageMultiplier: upgradeEffects.damageMultiplier, fireRateMultiplier: this.supplySystem.fireRateMultiplier };
     if (this.arcCoilSystem.update({ ...weaponStep, level: upgradeEffects.arcCoilLevel }) > 0) this.#emitSoundEvent('arc-fire');
@@ -487,6 +507,7 @@ export class GameWorld {
     this.bossSystem.reset();
     for (const projectile of this.projectiles) projectile.active = false;
     this.projectiles.length = 0;
+    this.projectileSystem.reset();
     this.experienceSystem.reset();
     this.levelSystem.reset();
     this.upgradeSystem.reset();
@@ -509,6 +530,8 @@ export class GameWorld {
       killCount: this.#killCount,
       elapsedSeconds: this.clock.elapsedSeconds,
       statistics: this.combatStatsSystem.getSnapshot(),
+      modeId: this.#modeId,
+      mapId: this.mapConfig.id,
     });
     if (!this.stateManager.finishRun(outcome)) {
       this.#runResult = null;

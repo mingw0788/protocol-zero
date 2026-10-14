@@ -122,6 +122,11 @@ export class UIManager {
       this.#game.selectMap(mapSelect.value);
       mapSelect.value = this.#game.getMapSnapshot().id;
     });
+    const modeSelect = this.#root.querySelector('#mode-select');
+    if (modeSelect) this.#listen(modeSelect, 'change', () => {
+      this.#game.selectMode(modeSelect.value);
+      modeSelect.value = this.#game.getRunConfigSnapshot().modeId;
+    });
     this.#listen(e.start, 'click', () => this.#game.startGame());
     this.#listen(e.showHelp, 'click', () => this.#showHelp(true));
     this.#listen(e.hideHelp, 'click', () => this.#showHelp(false));
@@ -185,7 +190,9 @@ export class UIManager {
     this.#setText(e.level, String(snapshot.level));
     this.#setText(e.time, formatTime(snapshot.elapsedSeconds));
     this.#setText(e.kills, String(snapshot.killCount));
-    this.#setText(e.weapons, snapshot.weaponIds.map((id) => WEAPON_LABELS[id] ?? id).join(' / ') || '无');
+    const build = this.#game.getExpansionSnapshot?.()?.build;
+    const names = snapshot.weaponIds.map(id => build?.evolutions.find(evolution => evolution.weaponId === id && evolution.evolved)?.name ?? WEAPON_LABELS[id] ?? id);
+    this.#setText(e.weapons, (names.join(' / ') || '无') + (build?.weaponLimit ? ` · ${build.weaponIds.length}/${build.weaponLimit} 栏` : ''));
     const orbitalBladeEquipped = String(snapshot.weaponIds.includes('orbital-blade'));
     if (e.weapons.getAttribute('data-orbital-blade') !== orbitalBladeEquipped) {
       e.weapons.setAttribute('data-orbital-blade', orbitalBladeEquipped);
@@ -299,6 +306,9 @@ export class UIManager {
     this.#displayedChoices = choices;
     const pendingLevelUps = this.#game.getHudSnapshot().pendingLevelUps;
     this.#setText(this.#elements.upgradeRemaining, `剩余升级选择：${pendingLevelUps}`);
+    const guide = this.#root.querySelector('#evolution-guide');
+    const build = this.#game.getExpansionSnapshot?.()?.build;
+    if (guide && build) this.#setText(guide, build.evolutions.map(evolution => `${evolution.evolved ? '✓' : evolution.eligible ? '★' : '◇'} ${evolution.name}：${evolution.requirementText}`).join(' · '));
     const reroll = this.#elements.reroll;
     const rerollState = this.#game.getUpgradeRerollSnapshot?.();
     if (reroll && rerollState) {
@@ -311,7 +321,7 @@ export class UIManager {
       this.#elements.upgradeChoiceButtons[index].hidden = !choice;
       if (!choice) continue;
       this.#setText(this.#elements.upgradeChoiceNames[index], choice.name);
-      const levelText = choice.repeatable
+      const levelText = choice.type === 'evolution' ? '★ 武器进化 · 本局永久' : choice.repeatable
         ? '可重复恢复'
         : `等级 ${choice.currentLevel} → ${choice.targetLevel} / ${choice.maxLevel}`;
       this.#setText(this.#elements.upgradeChoiceLevels[index], levelText);

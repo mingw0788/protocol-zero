@@ -110,7 +110,7 @@ export class UpgradeEffectSystem {
     if (!selection || typeof selection !== 'object' || typeof selection.id !== 'string') {
       throw new TypeError('A successful upgrade selection is required');
     }
-    if (selection.id === 'full-repair') return this.getSnapshot();
+    if (selection.id === 'full-repair' || selection.type === 'evolution') return this.getSnapshot();
 
     const configured = UPGRADE_CONFIG.find((upgrade) => upgrade.id === selection.id);
     const currentLevel = this.upgradeSystem.getLevel(selection.id);

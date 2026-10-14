@@ -568,3 +568,7 @@ EnemyAttackSystem 持有按敌人 ID 的瞄准/引信状态和有界敌弹、爆
 HazardSystem 独立持有电容桶/区域/爆炸，getAttackTargets 返回冻结可击毁对象。WeaponSystem 仅在没有合法敌人时使用对象后备目标；ProjectileSystem 的对象回调将桶伤害交回 HazardSystem。桶爆炸经过 EnemyDamageSystem，桶不进入敌人列表/击杀/XP。环境伤害只产生候选，与敌弹和接触同批处理。事件锚点排除危险区范围。
 
 RelaySystem 拥有火力临时倍率和单一计时，GameWorld 将其乘到当步升级伤害快照，原配置不变。HazardRenderer/中继 UI 只读专长和危险快照。电弧仅配置于未开放的能源地图，正式选图/关闭走廊关联留 T042。
+
+### T039 构筑与进化
+
+UpgradeSystem 单独拥有模式武器栏限制、进化集合、合法候选与强化/进化保底；普通升级快照保持原定义。GameWorld 转发模式与构筑只读快照，并将进化标志传给对应武器。分裂弹在命中后排到下一步且不能递归，轨道扫击与原刃共用命中冷却。UI 只消费配方/进化快照。模式仅 MENU 可改，reset 清战局而保留模式；结果携带模式/地图，旧记录暂排除战术模式，T044 分配置存档接管。
