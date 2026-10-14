@@ -4,12 +4,14 @@ export class RelaySystem {
   #enabled = false;
   #stations = [];
   #firepowerRemaining = 0;
+  #firepowerBonus = 0;
+  #amplifierArmed = false;
 
   constructor({ player, enemies, enemyDamageSystem, config = RELAY_CONFIG }) {
     if (!player || !Array.isArray(enemies) || typeof enemyDamageSystem?.applyDamage !== 'function') {
       throw new TypeError('Invalid relay dependencies');
     }
-    for (const key of ['radius', 'channelSeconds', 'healing', 'pulseRadius', 'damage', 'bossDamage', 'visualSeconds', 'energyCap', 'killEnergy', 'energyRadius', 'batteryRange', 'firepowerBonus', 'firepowerSeconds']) {
+    for (const key of ['radius', 'channelSeconds', 'healing', 'pulseRadius', 'damage', 'bossDamage', 'visualSeconds', 'energyCap', 'killEnergy', 'energyRadius', 'batteryRange', 'firepowerBonus', 'firepowerSeconds', 'amplifierMultiplier', 'amplifierRadiusMultiplier']) {
       if (!Number.isFinite(config[key]) || config[key] <= 0) throw new RangeError('Invalid relay setting: ' + key);
     }
     if (!Array.isArray(config.stations) || config.stations.some(s => !s.id || !s.name || !Number.isFinite(s.x) || !Number.isFinite(s.y))
@@ -25,9 +27,13 @@ export class RelaySystem {
   reset() {
     this.#stations = this.config.stations.map(s => ({ ...s, charge: 0, energy: this.config.energyCap, pulseRemaining: 0 }));
     this.#firepowerRemaining = 0;
+    this.#firepowerBonus = 0;
+    this.#amplifierArmed = false;
   }
 
-  get damageMultiplier() { return this.#firepowerRemaining > 0 ? 1 + this.config.firepowerBonus : 1; }
+  get amplifierArmed() { return this.#amplifierArmed; }
+  armAmplifier() { if (this.#amplifierArmed) return false; this.#amplifierArmed = true; return true; }
+  get damageMultiplier() { return this.#firepowerRemaining > 0 ? 1 + this.#firepowerBonus : 1; }
   getBuffSnapshot() { return Object.freeze({ remaining: this.#firepowerRemaining, damageMultiplier: this.damageMultiplier }); }
 
   notifyEnemyDeath(event) {
@@ -67,11 +73,17 @@ export class RelaySystem {
       station.energy = 0;
       station.charge = 0;
       station.pulseRemaining = this.config.visualSeconds;
-      if (station.effect === 'firepower') this.#firepowerRemaining = this.config.firepowerSeconds;
-      else this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.config.healing);
+      const multiplier = this.#amplifierArmed ? this.config.amplifierMultiplier : 1;
+      station.amplified = this.#amplifierArmed;
+      station.pulseRadius = this.config.pulseRadius * (this.#amplifierArmed ? this.config.amplifierRadiusMultiplier : 1);
+      this.#amplifierArmed = false;
+      if (station.effect === 'firepower') {
+        this.#firepowerRemaining = this.config.firepowerSeconds * multiplier;
+        this.#firepowerBonus = this.config.firepowerBonus * multiplier;
+      } else this.player.hp = Math.min(this.player.maxHp, this.player.hp + Math.round(this.config.healing * multiplier));
       for (const enemy of this.enemies) {
-        if (enemy.alive && Math.hypot(enemy.x - station.x, enemy.y - station.y) <= this.config.pulseRadius + enemy.radius) {
-          this.damageSystem.applyDamage(enemy, enemy.category === 'boss' ? this.config.bossDamage : this.config.damage, 'relay-pulse');
+        if (enemy.alive && Math.hypot(enemy.x - station.x, enemy.y - station.y) <= station.pulseRadius + enemy.radius) {
+          this.damageSystem.applyDamage(enemy, (enemy.category === 'boss' ? this.config.bossDamage : this.config.damage) * multiplier, 'relay-pulse');
         }
       }
       activated++;
@@ -81,7 +93,7 @@ export class RelaySystem {
 
   getSnapshot() {
     return Object.freeze(this.#enabled ? this.#stations.map(s => Object.freeze({ ...s, used: s.energy === 0,
-      radius: this.config.radius, pulseRadius: this.config.pulseRadius,
+      radius: this.config.radius, pulseRadius: s.pulseRadius ?? this.config.pulseRadius,
       channelSeconds: this.config.channelSeconds, healing: this.config.healing,
       firepowerBonus: this.config.firepowerBonus, firepowerSeconds: this.config.firepowerSeconds,
       pulseProgress: 1 - s.pulseRemaining / this.config.visualSeconds,

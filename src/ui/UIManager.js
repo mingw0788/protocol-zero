@@ -185,7 +185,7 @@ export class UIManager {
     const e = this.#elements;
     const danger = String(snapshot.health.current / snapshot.health.max <= .3);
     if (e.healthBar.getAttribute('data-danger') !== danger) e.healthBar.setAttribute('data-danger', danger);
-    this.#setText(e.healthText, snapshot.health.current + ' / ' + snapshot.health.max);
+    this.#setText(e.healthText, Number(snapshot.health.current.toFixed(1)) + ' / ' + snapshot.health.max);
     this.#setText(e.experience, `${Number(Number(snapshot.experience).toFixed(1))} / ${snapshot.experienceRequired}`);
     this.#setText(e.level, String(snapshot.level));
     this.#setText(e.time, formatTime(snapshot.elapsedSeconds));

@@ -9,6 +9,10 @@ const CAPSULES = Object.freeze({
   'relay-cell': { color: '#64dfde', symbol: 'ϟ' },
   shield: { color: '#83caff', symbol: '◇' },
   magnet: { color: '#e4b5ff', symbol: '∩' },
+  'cryo-grenade': { color: '#8af5f6', symbol: '❄' },
+  'turret-kit': { color: '#e2c590', symbol: 'T' },
+  'healing-field': { color: '#82efb1', symbol: 'H' },
+  'relay-amplifier': { color: '#d8b1ff', symbol: '×' },
 });
 
 export class ExpansionRenderer {

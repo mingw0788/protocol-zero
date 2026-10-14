@@ -1,4 +1,5 @@
 const TONES = Object.freeze({
+  'tactical-deploy': Object.freeze({ waveform: 'triangle', startFrequencyHz: 540, bodyFrequencyHz: 840, endFrequencyHz: 640, durationSeconds: .18, peak: .06, priority: 2 }),
   'cryo-fire': Object.freeze({ waveform: 'sawtooth', startFrequencyHz: 750, bodyFrequencyHz: 380, endFrequencyHz: 260, durationSeconds: .14, peak: .025, priority: 1 }),
   'drone-fire': Object.freeze({ waveform: 'sine', startFrequencyHz: 1250, endFrequencyHz: 850, durationSeconds: .07, peak: .04, priority: 1 }),
   'barrel-blast': Object.freeze({ waveform: 'triangle', startFrequencyHz: 170, bodyFrequencyHz: 80, endFrequencyHz: 36, durationSeconds: .24, peak: .1, priority: 1 }),

@@ -577,3 +577,8 @@ UpgradeSystem 单独拥有模式武器栏限制、进化集合、合法候选与
 ### T040 六武器与完整进化
 
 StatusEffectSystem 按来源管理强弱减速独立时长，EnemySystem/BossSystem 读取最强倍率；Boss 不冻结。CryoSystem 与 DroneSystem 独立推进，后者最多 24 弹。弧光电爆不递归，磁轨地带最多 2 条、逐敌共享冷却；原磁轨枪口余辉继续跟随武器。世界统一结算伤害/死亡并清理新系统；AdvancedWeaponRenderer 只消费快照。修改范围包括配置、武器/状态系统、世界、机体/攻击渲染、音效、HUD 和相应回归。
+
+
+### T041 战术道具与分类奖励
+
+DeployableSystem 独立管理最多2炮台、1维修场和有界提示；SupplySystem 统一主动类型并路由使用，失败不消费。RelaySystem 储存一次增幅并只在成功激活时消费。EncounterSystem 使用独立奖励随机流，RunRewardSystem 继续幂等发放。原普通击杀恢复池和城区救援站8种基础补给保留，新四道具经事件池提供。UI 显示装置寿命、待用增幅，生命读数控制小数长度。修改范围：道具/事件配置，补给/部署/中继/事件/世界，绘制/HUD/帮助/音色和测试。

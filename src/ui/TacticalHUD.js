@@ -12,7 +12,7 @@ export class TacticalHUD {
     for (const e of [this.status, this.objective, this.notice]) if (e) e.hidden = !visible;
     if (!visible || !snapshot) return;
     const cooldown = snapshot.dash.cooldownRemaining;
-    setText(this.status, `Shift · 冲刺 ${cooldown > .05 ? cooldown.toFixed(1) + 's' : '就绪'}  |  护盾 ${snapshot.shield}  |  补给还需 ${snapshot.supply.killsUntilDrop} 击杀`);
+    setText(this.status, `Shift · 冲刺 ${cooldown > .05 ? cooldown.toFixed(1) + 's' : '就绪'}  |  护盾 ${snapshot.shield}  |  补给还需 ${snapshot.supply.killsUntilDrop} 击杀${snapshot.supply.amplifierArmed ? '  |  中继增幅待用 ×1.5' : ''}`);
     const { exploration, playerPosition } = snapshot;
     const next = snapshot.trackedObjective ?? exploration.terminals.filter(t => !t.completed).sort((a, b) =>
       Math.hypot(a.x - playerPosition.x, a.y - playerPosition.y) - Math.hypot(b.x - playerPosition.x, b.y - playerPosition.y))[0];

@@ -41,6 +41,7 @@ import { getRunMode } from '../config/runConfig.js';
 import { StatusEffectSystem } from '../systems/StatusEffectSystem.js';
 import { CryoSystem } from '../systems/CryoSystem.js';
 import { DroneSystem } from '../systems/DroneSystem.js';
+import { DeployableSystem } from '../systems/DeployableSystem.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -78,6 +79,7 @@ export class GameWorld {
     upgradeRandom = createRandomStream(),
     supplyRandom = createRandomStream(),
     encounterRandom = createRandomStream(),
+    encounterRewardRandom = createRandomStream(),
     world = WORLD_MAP,
     enemyConfig = ENEMY_CONFIG,
     waveConfig = WAVE_CONFIG,
@@ -130,7 +132,10 @@ export class GameWorld {
     this.hazardSystem = new HazardSystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem,
       onBlast: () => this.#emitSoundEvent('barrel-blast') });
     this.relaySystem = new RelaySystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem });
+    this.deployableSystem = new DeployableSystem({ player, enemies: this.enemies,
+      enemyDamageSystem: this.enemyDamageSystem, statusSystem: this.statusEffectSystem });
     this.supplySystem.setEffects({ enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem, relaySystem: this.relaySystem,
+      deployableSystem: this.deployableSystem,
       onEvent: type => this.#emitSoundEvent(type) });
     this.arcCoilSystem = new ArcCoilSystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem });
     this.railgunSystem = new RailgunSystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem });
@@ -158,6 +163,7 @@ export class GameWorld {
       enemyConfig,
     });
     this.encounterSystem = new EncounterSystem({ player, enemies: this.enemies, random: encounterRandom, world,
+      rewardRandom: encounterRewardRandom,
       spawnElite: options => this.spawnSystem.spawnEncounterElite(options),
       onNotice: message => this.supplySystem.notify(message),
       onReward: reward => {
@@ -248,6 +254,7 @@ export class GameWorld {
     snapshot.cryo = this.cryoSystem.getSnapshot();
     snapshot.drones = this.droneSystem.getSnapshot();
     snapshot.railFields = this.railgunSystem.getFieldsSnapshot();
+    snapshot.deployables = this.deployableSystem.getSnapshot();
     snapshot.trackedObjective = this.objectiveSystem.getTrackedSnapshot(snapshot);
     return Object.freeze(snapshot);
   }
@@ -436,6 +443,7 @@ export class GameWorld {
     if (this.railgunSystem.update({ ...weaponStep, level: upgradeEffects.railgunLevel, evolved: this.upgradeSystem.isEvolved('railgun') }) > 0) this.#emitSoundEvent('rail-fire');
     if (this.cryoSystem.update({ ...weaponStep, level: upgradeEffects.cryoLevel }) > 0) this.#emitSoundEvent('cryo-fire');
     if (this.droneSystem.update({ ...weaponStep, level: upgradeEffects.droneLevel }) > 0) this.#emitSoundEvent('drone-fire');
+    this.deployableSystem.update(deltaSeconds, weaponStep);
     this.#settleEnemyDeaths(this.clock.elapsedSeconds + deltaSeconds);
     this.enemySystem.cleanup();
     this.experienceSystem.update(deltaSeconds, this.supplySystem.pickupRadiusBonus);
@@ -529,6 +537,7 @@ export class GameWorld {
     this.railgunSystem.reset();
     this.cryoSystem.reset();
     this.droneSystem.reset();
+    this.deployableSystem.reset();
     this.spawnSystem.reset();
     this.#simulationSteps = 0;
     this.#lastWeaponHitSoundAt = Number.NEGATIVE_INFINITY;

@@ -15,7 +15,8 @@ function copyConfig(config, world) {
   for (const type of config.types) {
     if (!['defense', 'transport', 'elite'].includes(type.id) || !type.name || !Object.hasOwn(SUPPLY_NAMES, type.reward)
       || !Number.isSafeInteger(type.experience) || type.experience < 0
-      || ['radius', 'channelSeconds', 'duration'].some(key => !Number.isFinite(type[key]) || type[key] <= 0)) throw new RangeError('Invalid encounter type');
+      || ['radius', 'channelSeconds', 'duration'].some(key => !Number.isFinite(type[key]) || type[key] <= 0)
+      || type.rewardPool !== undefined && (!Array.isArray(type.rewardPool) || !type.rewardPool.length || type.rewardPool.some(id => !Object.hasOwn(SUPPLY_NAMES, id)))) throw new RangeError('Invalid encounter type');
   }
   if (!config.maps || typeof config.maps !== 'object' || !config.elite) throw new RangeError('Invalid encounter maps or elite');
   const maps = Object.fromEntries(Object.entries(config.maps).map(([id, anchors]) => {
@@ -24,7 +25,7 @@ function copyConfig(config, world) {
     return [id, Object.freeze(anchors.map(point => Object.freeze({ ...point })))];
   }));
   return Object.freeze({ ...config, maps: Object.freeze(maps), elite: Object.freeze({ ...config.elite }),
-    schedule: Object.freeze([...config.schedule]), types: Object.freeze(config.types.map(type => Object.freeze({ ...type }))) });
+    schedule: Object.freeze([...config.schedule]), types: Object.freeze(config.types.map(type => Object.freeze({ ...type, rewardPool: Object.freeze([...(type.rewardPool ?? [type.reward])]) }))) });
 }
 
 // Duration spent inside a stationary circle along one constant velocity segment.
@@ -50,11 +51,12 @@ export class EncounterSystem {
   #failed = 0;
   #skipped = 0;
 
-  constructor({ player, enemies, spawnElite, random = Math.random, onReward, onNotice = null, config = ENCOUNTER_CONFIG, world = WORLD_MAP } = {}) {
+  constructor({ player, enemies, spawnElite, random = Math.random, rewardRandom = Math.random, onReward, onNotice = null, config = ENCOUNTER_CONFIG, world = WORLD_MAP } = {}) {
     if (!player || !Array.isArray(enemies) || typeof spawnElite !== 'function' || typeof random !== 'function'
-      || typeof onReward !== 'function' || (onNotice !== null && typeof onNotice !== 'function')) throw new TypeError('Invalid encounter dependencies');
+      || typeof rewardRandom !== 'function' || typeof onReward !== 'function' || (onNotice !== null && typeof onNotice !== 'function')) throw new TypeError('Invalid encounter dependencies');
     this.player = player; this.enemies = enemies; this.spawnElite = spawnElite;
     this.random = random; this.onReward = onReward; this.onNotice = onNotice;
+    this.rewardRandom = rewardRandom;
     this.config = copyConfig(config, world); this.world = world;
     this.reset();
   }
@@ -121,6 +123,7 @@ export class EncounterSystem {
     this.#active = { id, type: type.id, name: type.name, x: point.x, y: point.y, radius: type.radius,
       startedAt: startAt, deadline: startAt + type.duration, remaining: startAt + type.duration - elapsed,
       channelSeconds: type.channelSeconds, charge: 0, progress: 0, experience: type.experience, reward: type.reward,
+      rewardPool: type.rewardPool,
       enemyId: enemy?.id ?? null,
       endX: point.x + (point.x < this.world.width / 2 ? 1 : -1) * this.config.transportDistance };
     this.onNotice?.(`可选事件 · ${type.name} · 按 G 追踪目标`);
@@ -143,8 +146,11 @@ export class EncounterSystem {
     const event = this.#active;
     this.#active = null;
     this.#completed++;
+    const sample = this.rewardRandom();
+    if (!Number.isFinite(sample) || sample < 0 || sample >= 1) throw new RangeError('Encounter reward random must be in [0,1)');
+    const item = event.rewardPool[Math.floor(sample * event.rewardPool.length)];
     this.onReward(Object.freeze({ id: event.id, type: event.type, name: event.name,
-      x: event.x, y: event.y, experience: event.experience, items: Object.freeze([event.reward]) }));
+      x: event.x, y: event.y, experience: event.experience, items: Object.freeze([item]) }));
   }
 
   #sample() {

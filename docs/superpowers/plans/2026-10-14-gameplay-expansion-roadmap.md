@@ -1,6 +1,6 @@
 # Protocol Zero 下一轮玩法与功能扩展计划
 
-日期：2026-10-14。状态：**路线经用户授权开始执行；T034–T040 已完成，T041–T045 待执行。**
+日期：2026-10-14。状态：**路线经用户授权开始执行；T034–T041 已完成，T042–T045 待执行。**
 
 本文件先按用户要求整理为计划，随后用户明确要求“根据上述方案执行计划”。本文件是分批产品与开发路线图，不是可直接逐项执行的详细代码实施规格。新增玩法的首轮值属于执行阶段设计提案；落实每项时会记录规格、接口与数值，并同步 SRS、SDD 和决策记录，不将计划草案误写成用户逐参数确认。
 
@@ -109,7 +109,7 @@
 - 版本化本地存档迁移，保留旧成绩和音量；导出/导入仅支持校验后的有限 JSON，不保存进行中战局。
 - 音频增加独立音乐/音效音量、低强度原创循环背景音与战斗层次；重要危险声优先，静音/低特效仍完整表达规则。
 
-## 6. 开发拆分与依赖（T034–T040 已完成，T041–T045 待开始）
+## 6. 开发拆分与依赖（T034–T041 已完成，T042–T045 待开始）
 
 | 任务 | 可独立验收的交付 | 依赖 | 主要改动位置 |
 |---|---|---|---|
@@ -120,7 +120,7 @@
 | T038 | 中继专长、电容桶与环境危机基础（完成） | T034、T036 | RelaySystem、HazardSystem、HazardRenderer、WeaponSystem/ProjectileSystem |
 | T039 | 升级保底、扩展武器栏及两种进化（完成） | T034 | UpgradeSystem、UpgradeEffectSystem、weapon 配置与对应武器系统 |
 | T040 | 两新武器与其余两种进化（完成） | T037、T039 | 拟新增 CryoSystem、DroneSystem；PlayerRenderer、AudioManager |
-| T041 | 四新道具和事件奖励池 | T035、T036、T038、T040 | SupplySystem、supplyConfig、EncounterSystem |
+| T041 | 四新道具和事件奖励池（完成） | T035、T036、T038、T040 | SupplySystem、supplyConfig、EncounterSystem |
 | T042 | 能源枢纽地图、三布局、两阶段 Boss | T037、T038 | mapConfig、MapRenderer、BossSystem、ExplorationSystem、TacticalRenderer |
 | T043 | 反馈设置、武器统计结算、教学和音频分层 | T035–T042 | UIManager、TacticalHUD、AudioManager、styles.css、index.html |
 | T044 | 协议、挑战、无尽与本地图鉴存档 | T039、T041–T043 | Game、GameWorld、LocalProgressStore/System；拟新增 RunConfig |

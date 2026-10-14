@@ -1,0 +1,17 @@
+import { describe, expect, it } from 'vitest';
+import { Player } from '../src/entities/Player.js';
+import { Enemy } from '../src/entities/Enemy.js';
+import { ENEMY_CONFIG } from '../src/config/enemyConfig.js';
+import { EnemyDamageSystem } from '../src/systems/EnemyDamageSystem.js';
+import { StatusEffectSystem } from '../src/systems/StatusEffectSystem.js';
+import { DeployableSystem } from '../src/systems/DeployableSystem.js';
+import { RelaySystem } from '../src/systems/RelaySystem.js';
+import { SupplySystem } from '../src/systems/SupplySystem.js';
+function fixture(){const player=new Player(),enemies=[],enemyDamageSystem=new EnemyDamageSystem(),statusSystem=new StatusEffectSystem({enemies});const deployableSystem=new DeployableSystem({player,enemies,enemyDamageSystem,statusSystem});const relaySystem=new RelaySystem({player,enemies,enemyDamageSystem});relaySystem.setEnabled(true);const supplySystem=new SupplySystem({player});supplySystem.setEffects({enemies,enemyDamageSystem,relaySystem,deployableSystem});return {player,enemies,enemyDamageSystem,statusSystem,deployableSystem,relaySystem,supplySystem};}
+function take(f,type){f.supplySystem.addPickup(type,f.player.x,f.player.y);f.supplySystem.update(1/60,1/60);}
+describe('tactical deployables',()=>{
+ it('retains a targetless grenade and applies strongest slow on use',()=>{const f=fixture();take(f,'cryo-grenade');expect(f.supplySystem.deploy(0)).toBe(false);expect(f.supplySystem.getSnapshot().activeItems[0]).toBe('cryo-grenade');f.enemies.push(new Enemy({id:'near',x:f.player.x+100,y:f.player.y}));expect(f.supplySystem.deploy(0)).toBe(true);expect(f.enemies[0].slowMultiplier).toBe(.4);expect(f.supplySystem.getSnapshot().activeItems[0]).toBe(null);});
+ it('caps turrets and delivers damage through the shared pipeline until expiry',()=>{const f=fixture();expect(f.deployableSystem.deploy('turret-kit')).toBe(true);expect(f.deployableSystem.deploy('turret-kit')).toBe(true);expect(f.deployableSystem.deploy('turret-kit')).toBe(false);const enemy=new Enemy({id:'durable',x:f.player.x+100,y:f.player.y,config:ENEMY_CONFIG.EN03});f.enemies.push(enemy);f.deployableSystem.update(.01,{damageMultiplier:2});expect(enemy.hp).toBe(52);f.deployableSystem.update(12);expect(f.deployableSystem.getSnapshot().turrets).toEqual([]);f.deployableSystem.reset();});
+ it('heals only in range and does not accumulate full-health treatment',()=>{const f=fixture();f.player.hp=50;expect(f.deployableSystem.deploy('healing-field')).toBe(true);f.deployableSystem.update(2);expect(f.player.hp).toBe(60);f.player.x+=200;f.deployableSystem.update(2);expect(f.player.hp).toBe(60);f.player.x-=200;f.player.hp=99;f.deployableSystem.update(1);expect(f.player.hp).toBe(100);f.player.hp=50;f.deployableSystem.update(10);expect(f.player.hp).toBe(65);expect(f.deployableSystem.getSnapshot().healingFields).toEqual([]);});
+ it('keeps an extra amplifier on the floor and consumes the stored one only on relay success',()=>{const f=fixture();take(f,'relay-amplifier');take(f,'relay-amplifier');expect(f.relaySystem.amplifierArmed).toBe(true);expect(f.supplySystem.getSnapshot().pickups).toHaveLength(1);f.relaySystem.update(2);expect(f.relaySystem.amplifierArmed).toBe(true);Object.assign(f.player,{x:620,y:360,hp:50});f.enemies.push(new Enemy({id:'pulse',x:800,y:360,config:ENEMY_CONFIG.EN03}));expect(f.relaySystem.update(2)).toBe(1);expect(f.player.hp).toBe(73);expect(f.enemies[0].hp).toBe(10);expect(f.relaySystem.amplifierArmed).toBe(false);f.relaySystem.reset();expect(f.relaySystem.amplifierArmed).toBe(false);});
+});

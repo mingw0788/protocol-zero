@@ -10,7 +10,7 @@ function setup(sample = 0, spawnAllowed = true) {
   const enemies = [];
   const rewards = [];
   const system = new EncounterSystem({
-    player, enemies, random: () => sample,
+    player, enemies, random: () => sample, rewardRandom: () => 0,
     spawnElite: ({ x, y, config }) => {
       if (!spawnAllowed) return null;
       const enemy = new Enemy({ id: 'event-elite', x, y, config });

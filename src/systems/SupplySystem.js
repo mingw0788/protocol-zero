@@ -1,4 +1,4 @@
-import { SUPPLY_CONFIG, SUPPLY_NAMES } from '../config/supplyConfig.js';
+import { SUPPLY_CONFIG, SUPPLY_NAMES, ACTIVE_ITEM_TYPES } from '../config/supplyConfig.js';
 import { TACTICAL_CONFIG } from '../config/tacticalConfig.js';
 
 const freeze = (value) => value === null ? null : Object.freeze({ ...value });
@@ -40,7 +40,11 @@ export class SupplySystem {
     }
     this.player = player;
     this.random = random;
-    this.config = Object.freeze({ ...config, schedule: Object.freeze(config.schedule.map(freeze)), rewards: Object.freeze([...config.rewards]) });
+    const stationRewards = config.stationRewards ?? config.rewards;
+    if (!Array.isArray(stationRewards) || !stationRewards.length || stationRewards.some(id => !Object.hasOwn(SUPPLY_NAMES, id))) throw new RangeError('Invalid station reward pool');
+    const supportedStationRewards = stationRewards.filter(id => config.rewards.includes(id));
+    this.config = Object.freeze({ ...config, schedule: Object.freeze(config.schedule.map(freeze)), rewards: Object.freeze([...config.rewards]),
+      stationRewards: Object.freeze(supportedStationRewards.length ? supportedStationRewards : [...config.rewards]) });
   }
 
   setEnabled(enabled) {
@@ -48,7 +52,7 @@ export class SupplySystem {
     this.reset();
   }
 
-  setEffects({ enemies, enemyDamageSystem, relaySystem, experienceSystem = null, onEvent = null } = {}) {
+  setEffects({ enemies, enemyDamageSystem, relaySystem, deployableSystem = null, experienceSystem = null, onEvent = null } = {}) {
     if (!Array.isArray(enemies) || typeof enemyDamageSystem?.applyDamage !== 'function'
       || typeof relaySystem?.rechargeNearest !== 'function' || (onEvent !== null && typeof onEvent !== 'function')) {
       throw new TypeError('Supply effects require enemies, damage, relay and event interfaces');
@@ -56,6 +60,7 @@ export class SupplySystem {
     this.enemies = enemies; this.enemyDamageSystem = enemyDamageSystem;
     this.relaySystem = relaySystem; this.onEvent = onEvent;
     this.experienceSystem = experienceSystem;
+    this.deployableSystem = deployableSystem;
   }
 
   notify(text) {
@@ -128,6 +133,15 @@ export class SupplySystem {
       return true;
     }
     if (activeItem === 'relay-cell') this.notify('电芯未消耗 · 靠近未满能量中继后按 E 或 Q');
+    if (['cryo-grenade', 'turret-kit', 'healing-field'].includes(activeItem)) {
+      if (!this.deployableSystem?.deploy(activeItem)) {
+        this.notify(activeItem === 'cryo-grenade' ? '冷凝炸弹未消耗 · 附近没有目标' : '道具未消耗 · 同类装置已达上限');
+        return false;
+      }
+      this.#activeSlots[slotIndex] = null;
+      this.onEvent?.('tactical-deploy');
+      return true;
+    }
     return false;
   }
 
@@ -161,7 +175,7 @@ export class SupplySystem {
     let distance = Infinity;
     for (let candidateIndex = 0; candidateIndex < this.#pickups.length; candidateIndex += 1) {
       const pickup = this.#pickups[candidateIndex];
-      if (!['decoy', 'emp-charge', 'relay-cell'].includes(pickup.type)) continue;
+      if (!ACTIVE_ITEM_TYPES.includes(pickup.type)) continue;
       const candidateDistance = Math.hypot(this.player.x - pickup.x, this.player.y - pickup.y);
       if (candidateDistance > this.config.exchangeRadius) continue;
       const current = index >= 0 ? this.#pickups[index] : null;
@@ -210,7 +224,9 @@ export class SupplySystem {
         if (!this.experienceSystem) return true;
         const amount = this.experienceSystem.collectAll();
         this.notify(`回收磁铁 · +${amount} 经验`);
-      } else if (['decoy', 'emp-charge', 'relay-cell'].includes(pickup.type)) {
+      } else if (pickup.type === 'relay-amplifier') {
+        if (!this.relaySystem?.armAmplifier()) return true;
+      } else if (ACTIVE_ITEM_TYPES.includes(pickup.type)) {
         const emptySlot = this.#activeSlots.indexOf(null);
         if (emptySlot < 0) return true;
         this.#activeSlots[emptySlot] = pickup.type;
@@ -244,7 +260,8 @@ export class SupplySystem {
     if (station.charge + 1e-9 >= this.config.channelSeconds) {
       const sample = this.random();
       if (!Number.isFinite(sample) || sample < 0 || sample >= 1) throw new RangeError('Supply random must be in [0,1)');
-      this.addPickup(this.config.rewards[Math.floor(sample * this.config.rewards.length)], station.x, station.y);
+      const pool = this.config.stationRewards ?? this.config.rewards;
+      this.addPickup(pool[Math.floor(sample * pool.length)], station.x, station.y);
       this.#station = null;
     } else if (elapsedSeconds >= expiry) this.#station = null;
     else station.remaining = expiry - elapsedSeconds;
@@ -264,6 +281,7 @@ export class SupplySystem {
       pickups: Object.freeze(this.#pickups.map(freeze)), decoy: freeze(this.#decoy),
       pulse: freeze(this.#pulse), activeItem: this.#activeSlots[0], activeItems: Object.freeze([...this.#activeSlots]),
       selectedSlot: this.#selectedSlot, nearbyActivePickup, overclockRemaining: this.#overclockRemaining, scannerStacks: this.#scannerStacks,
+      amplifierArmed: this.relaySystem?.amplifierArmed ?? false,
       collected: this.#collected, killsUntilDrop: TACTICAL_CONFIG.killsPerDrop - this.#normalKills % TACTICAL_CONFIG.killsPerDrop,
       notices: Object.freeze(this.#notices.map(freeze)),
     });
