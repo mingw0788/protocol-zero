@@ -5,7 +5,7 @@
 - 日期：2026-10-14，Asia/Shanghai
 - 规格：`docs/superpowers/specs/2026-10-14-t046-campaign-polish-design.md`
 - 执行计划：`docs/superpowers/plans/2026-10-14-t046-campaign-polish.md`
-- Git：实现与验证提交号在本地交付后补记；分支 `codex/v2-visual-combat-feedback`。
+- Git：实现与验证提交 `8234aa2`；分支 `codex/v2-visual-combat-feedback`。提交记录由本报告的后续文档提交补记。
 
 ## 检查结论与已增加内容
 
