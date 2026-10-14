@@ -18,6 +18,8 @@ export class SupplySystem {
   #normalKills = 0;
   #collected = 0;
   #notices = [];
+  #killsPerDrop = TACTICAL_CONFIG.killsPerDrop;
+  #stationWindow;
 
   constructor({ player, random = Math.random, config = SUPPLY_CONFIG } = {}) {
     if (!player || !Number.isFinite(player.x) || !Number.isFinite(player.y)
@@ -39,6 +41,7 @@ export class SupplySystem {
       previous = event.time;
     }
     this.player = player;
+    this.#stationWindow = config.windowSeconds;
     this.random = random;
     const stationRewards = config.stationRewards ?? config.rewards;
     if (!Array.isArray(stationRewards) || !stationRewards.length || stationRewards.some(id => !Object.hasOwn(SUPPLY_NAMES, id))) throw new RangeError('Invalid station reward pool');
@@ -50,6 +53,11 @@ export class SupplySystem {
   setEnabled(enabled) {
     this.#enabled = Boolean(enabled);
     this.reset();
+  }
+
+  configureRules({ killsPerDrop = TACTICAL_CONFIG.killsPerDrop, stationWindow = this.config.windowSeconds } = {}) {
+    if (!Number.isSafeInteger(killsPerDrop) || killsPerDrop < 1 || !Number.isFinite(stationWindow) || stationWindow <= 0) throw new RangeError('Invalid supply rules');
+    this.#killsPerDrop = killsPerDrop; this.#stationWindow = stationWindow;
   }
 
   setEffects({ enemies, enemyDamageSystem, relaySystem, deployableSystem = null, experienceSystem = null, onEvent = null } = {}) {
@@ -71,9 +79,9 @@ export class SupplySystem {
   notifyEnemyDeath(event) {
     if (event.category !== 'normal') return;
     this.#normalKills += 1;
-    if (this.#normalKills % TACTICAL_CONFIG.killsPerDrop !== 0) return;
+    if (this.#normalKills % this.#killsPerDrop !== 0) return;
     const rewards = TACTICAL_CONFIG.killRewards;
-    const type = rewards[(this.#normalKills / TACTICAL_CONFIG.killsPerDrop - 1) % rewards.length];
+    const type = rewards[(this.#normalKills / this.#killsPerDrop - 1) % rewards.length];
     if (this.addPickup(type, event.x, event.y)) this.notify(`击杀补给掉落 · ${SUPPLY_NAMES[type]}`);
   }
 
@@ -246,13 +254,13 @@ export class SupplySystem {
     while (this.#nextEvent < this.config.schedule.length
       && this.config.schedule[this.#nextEvent].time <= elapsedSeconds) {
       const event = this.config.schedule[this.#nextEvent++];
-      if (elapsedSeconds < event.time + this.config.windowSeconds) {
-        this.#station = { ...event, charge: 0, remaining: event.time + this.config.windowSeconds - elapsedSeconds };
+      if (elapsedSeconds < event.time + this.#stationWindow) {
+        this.#station = { ...event, charge: 0, remaining: event.time + this.#stationWindow - elapsedSeconds };
       }
     }
     const station = this.#station;
     if (!station) return;
-    const expiry = station.time + this.config.windowSeconds;
+    const expiry = station.time + this.#stationWindow;
     const activeDelta = Math.max(0, Math.min(elapsedSeconds, expiry) - Math.max(start, station.time));
     if (this.player.alive && Math.hypot(this.player.x - station.x, this.player.y - station.y) <= this.config.stationRadius) {
       station.charge += activeDelta;
@@ -282,7 +290,7 @@ export class SupplySystem {
       pulse: freeze(this.#pulse), activeItem: this.#activeSlots[0], activeItems: Object.freeze([...this.#activeSlots]),
       selectedSlot: this.#selectedSlot, nearbyActivePickup, overclockRemaining: this.#overclockRemaining, scannerStacks: this.#scannerStacks,
       amplifierArmed: this.relaySystem?.amplifierArmed ?? false,
-      collected: this.#collected, killsUntilDrop: TACTICAL_CONFIG.killsPerDrop - this.#normalKills % TACTICAL_CONFIG.killsPerDrop,
+      collected: this.#collected, killsUntilDrop: this.#killsPerDrop - this.#normalKills % this.#killsPerDrop,
       notices: Object.freeze(this.#notices.map(freeze)),
     });
   }

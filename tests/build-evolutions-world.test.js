@@ -42,10 +42,11 @@ describe('world build integration', () => {
     expect(world.getExpansionSnapshot().build.evolvedWeaponIds).toEqual([]);
   });
 
-  it('keeps tactical records out of legacy standard scores until the new save format is introduced', () => {
+  it('keeps tactical records separate from legacy standard scores in the new save format', () => {
     const progress = new LocalProgressSystem();
-    const before = progress.getSnapshot();
+    const before = progress.getSnapshot().highestKillCount;
     expect(progress.recordRun({ modeId: 'tactical', outcome: 'victory', killCount: 999, elapsedSeconds: 300 })).toBe(false);
-    expect(progress.getSnapshot()).toBe(before);
+    expect(progress.getSnapshot().highestKillCount).toBe(before);
+    expect(progress.getRecord({ modeId: 'tactical' }).highestKillCount).toBe(999);
   });
 });

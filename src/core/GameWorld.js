@@ -45,6 +45,9 @@ import { DeployableSystem } from '../systems/DeployableSystem.js';
 import { ENERGY_LAYOUTS } from '../config/energyMapConfig.js';
 import { GridBossSystem } from '../systems/GridBossSystem.js';
 import { DamageNumberSystem } from '../systems/DamageNumberSystem.js';
+import { RunConfigSystem } from '../systems/RunConfigSystem.js';
+import { DISCOVERY_IDS } from '../config/progressConfig.js';
+import { UPGRADE_EFFECT_CONFIG } from '../config/upgradeEffectConfig.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -64,7 +67,12 @@ export class GameWorld {
   #lastWeaponHitSoundAt = Number.NEGATIVE_INFINITY;
   #lastEnemyWarningAt = Number.NEGATIVE_INFINITY;
   #killCount = 0;
-  #modeId = 'standard';
+  #endless = false;
+  #endlessStartedAt = 0;
+  #endlessStartKills = 0;
+  #standardVictory = null;
+  #nextEliteAt = 90;
+  #seenTypes = new Set();
   #layout = null;
   #layoutRandom;
   #bossOptions;
@@ -95,13 +103,15 @@ export class GameWorld {
     requireCamera(camera);
     if (typeof layoutRandom !== 'function') throw new TypeError('Layout random must be a function');
     this.#layoutRandom = layoutRandom;
+    this.runConfigSystem = new RunConfigSystem();
     this.stateManager = stateManager;
     this.mapConfig = getMapConfig('laboratory');
     this.clock = clock;
     this.player = player;
     this.inputController = inputController;
     this.supplySystem = new SupplySystem({ player, random: supplyRandom });
-    this.rewardSystem = new RunRewardSystem({ player, supplySystem: this.supplySystem });
+    this.rewardSystem = new RunRewardSystem({ player, supplySystem: this.supplySystem,
+      getExperienceMultiplier: () => this.runConfigSystem.protocol.explorationMultiplier });
     this.objectiveSystem = new ObjectiveSystem();
     this.camera = camera;
     this.enemies = [];
@@ -180,7 +190,7 @@ export class GameWorld {
       onNotice: message => this.supplySystem.notify(message),
       onReward: reward => {
         this.rewardSystem.grant(reward);
-        this.supplySystem.notify(`事件完成 · ${reward.name} · +${reward.experience} 经验 / 补给`);
+        this.supplySystem.notify(`事件完成 · ${reward.name} · +${Math.round(reward.experience * this.runConfigSystem.protocol.explorationMultiplier)} 经验 / 补给`);
         this.#emitSoundEvent('terminal-complete');
       },
     });
@@ -191,15 +201,16 @@ export class GameWorld {
     });
     this.supplySystem.experienceSystem = this.experienceSystem;
     this.explorationSystem = new ExplorationSystem({ player,
+      getExperienceMultiplier: () => this.runConfigSystem.protocol.explorationMultiplier,
       onReward: terminal => {
         if (terminal.disableZone) this.hazardSystem.disableZone(terminal.disableZone);
         this.supplySystem.addPickup(terminal.reward, terminal.x, terminal.y);
-        this.supplySystem.notify(`${terminal.name} 已上传 · +${TACTICAL_CONFIG.terminalExperience} 经验`);
+        this.supplySystem.notify(`${terminal.name} 已上传 · +${terminal.experienceReward} 经验`);
         this.#emitSoundEvent('terminal-complete');
       },
-      onComplete: () => {
+      onComplete: experienceReward => {
         this.#rerolls += 1;
-        this.supplySystem.notify(`区域档案完整 · +${TACTICAL_CONFIG.completionExperience} 经验 / 重抽 +1`);
+        this.supplySystem.notify(`区域档案完整 · +${experienceReward} 经验 / 重抽 +1`);
       },
     });
     this.levelSystem = new LevelSystem({ player: this.player, stateManager: this.stateManager });
@@ -208,6 +219,7 @@ export class GameWorld {
     this.upgradeEffectSystem = new UpgradeEffectSystem({
       player: this.player,
       upgradeSystem: this.upgradeSystem,
+      getModifiers: () => this.runConfigSystem.protocol,
     });
     this.particleSystem = new ParticleSystem();
     this.subscribeEnemyDeath((event) => this.particleSystem.emitEnemyDeath(event));
@@ -255,13 +267,45 @@ export class GameWorld {
     const mode = getRunMode(id);
     if (!mode || this.stateManager.currentState !== GAME_STATES.MENU) return false;
     this.upgradeSystem.setWeaponLimit(mode.weaponLimit ?? Infinity);
-    this.#modeId = mode.id;
+    this.runConfigSystem.set({ modeId: mode.id });
     return true;
   }
 
   getRunConfigSnapshot() {
-    const mode = getRunMode(this.#modeId);
-    return Object.freeze({ modeId: mode.id, modeName: mode.name, weaponLimit: mode.weaponLimit });
+    return this.runConfigSystem.getSnapshot(this.mapConfig.id);
+  }
+
+  setProtocol(id) {
+    if (this.stateManager.currentState !== GAME_STATES.MENU || !this.runConfigSystem.set({ protocolId: id })) return false;
+    this.#applyOpeningProtocol(); return true;
+  }
+  setChallenge(id) {
+    if (this.stateManager.currentState !== GAME_STATES.MENU || !this.runConfigSystem.set({ challengeId: id })) return false;
+    this.supplySystem.configureRules(this.runConfigSystem.challenge); this.#nextEliteAt = 90; return true;
+  }
+  #applyOpeningProtocol() {
+    const protocol = this.runConfigSystem.protocol;
+    this.player.maxHp = protocol.maxHp + this.upgradeSystem.getLevel('UP-06') * UPGRADE_EFFECT_CONFIG['UP-06'].maxHpIncreasePerLevel;
+    this.player.hp = this.player.maxHp; this.player.shield = protocol.startingShield;
+    this.player.moveSpeed = this.player.baseMoveSpeed * this.upgradeEffectSystem.getSnapshot().moveSpeedMultiplier;
+  }
+  getDiscoverySnapshot() {
+    const build = this.upgradeSystem.getBuildSnapshot();
+    return Object.freeze({ enemies: Object.freeze([...this.#seenTypes].filter(id => DISCOVERY_IDS.enemies.includes(id))),
+      weapons: build.weaponIds, evolutions: Object.freeze(build.evolutions.filter(item => item.evolved).map(item => item.id)),
+      events: this.encounterSystem.getSnapshot().completedTypes, maps: Object.freeze([this.mapConfig.id]) });
+  }
+  continueEndless() {
+    if (this.stateManager.currentState !== GAME_STATES.VICTORY || this.#endless || !this.#runResult || !this.player.alive) return false;
+    this.#standardVictory = this.#runResult; this.#endless = true;
+    this.#endlessStartedAt = this.clock.elapsedSeconds; this.#endlessStartKills = this.#killCount; this.#runResult = null;
+    this.stateManager.continueEndless();
+    if (this.levelSystem.pendingLevelUps > 0) { this.upgradeSystem.prepareChoices(); this.stateManager.beginLevelUp(); }
+    return true;
+  }
+  endEndless() {
+    if (!this.#endless || this.stateManager.currentState !== GAME_STATES.PAUSED) return false;
+    this.stateManager.resume(); return this.#finishRun(GAME_STATES.DEFEAT);
   }
 
   getSupplySnapshot() { return this.supplySystem.getSnapshot(); }
@@ -284,6 +328,8 @@ export class GameWorld {
     snapshot.deployables = this.deployableSystem.getSnapshot();
     snapshot.damageNumbers = this.damageNumberSystem.getSnapshot();
     snapshot.upgrades = this.upgradeSystem.getUpgradeLevelsSnapshot();
+    snapshot.endless = Object.freeze({ active: this.#endless, elapsedSeconds: this.#endless ? this.clock.elapsedSeconds - this.#endlessStartedAt : 0,
+      kills: this.#endless ? this.#killCount - this.#endlessStartKills : 0 });
     snapshot.trackedObjective = this.objectiveSystem.getTrackedSnapshot(snapshot);
     return Object.freeze(snapshot);
   }
@@ -316,8 +362,12 @@ export class GameWorld {
     });
   }
 
-  getWaveSnapshot() {
-    return this.waveSystem.getSnapshot(this.clock.elapsedSeconds);
+  getWaveSnapshot(elapsedSeconds = this.clock.elapsedSeconds) {
+    const wave = this.waveSystem.getSnapshot(elapsedSeconds);
+    const minutes = this.#endless ? Math.floor(Math.max(0, elapsedSeconds - this.#endlessStartedAt) / 60) : 0;
+    const intervalMultiplier = this.runConfigSystem.challenge.spawnIntervalMultiplier * Math.max(.5, 1 - .05 * minutes);
+    return intervalMultiplier === 1 && minutes === 0 ? wave : Object.freeze({ ...wave,
+      spawnIntervalSeconds: wave.spawnIntervalSeconds * intervalMultiplier, ...(minutes > 0 ? { hpMultiplier: Math.min(3, 1 + .15 * minutes) } : {}) });
   }
 
   getBossSnapshot() {
@@ -401,6 +451,7 @@ export class GameWorld {
 
   update(deltaSeconds) {
     if (!this.stateManager.isPlaying() || this.#playerDeathFrozen) return false;
+    for (const enemy of this.enemies) if (enemy.typeId) this.#seenTypes.add(enemy.typeId);
 
     this.particleSystem.update(deltaSeconds);
     this.damageNumberSystem.update(deltaSeconds);
@@ -424,9 +475,17 @@ export class GameWorld {
     this.camera.follow(this.player);
     this.#settleEnemyDeaths(this.clock.elapsedSeconds + deltaSeconds);
     this.enemySystem.cleanup();
-    const waveSnapshot = this.waveSystem.getSnapshot(this.clock.elapsedSeconds + deltaSeconds);
+    const waveSnapshot = this.getWaveSnapshot(this.clock.elapsedSeconds + deltaSeconds);
     this.spawnSystem.update(deltaSeconds, waveSnapshot);
+    if (this.runConfigSystem.challenge.id === 'elite' && this.clock.elapsedSeconds + deltaSeconds >= this.#nextEliteAt) {
+      this.#nextEliteAt += 90;
+      const { width, height } = this.#bossOptions.world;
+      const points = [{ x: 56, y: 56 }, { x: width - 56, y: 56 }, { x: 56, y: height - 56 }, { x: width - 56, y: height - 56 }]
+        .sort((a, b) => Math.hypot(a.x - this.player.x, a.y - this.player.y) - Math.hypot(b.x - this.player.x, b.y - this.player.y));
+      for (const point of points) if (this.spawnSystem.spawnEncounterElite({ ...point, config: ENEMY_CONFIG.EN06, encounterId: 'challenge-elite' })) break;
+    }
     this.bossSystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
+    for (const enemy of this.enemies) if (enemy.typeId) this.#seenTypes.add(enemy.typeId);
     const hostileHits = this.enemyAttackSystem.update(deltaSeconds, enemy => this.supplySystem.targetFor(enemy));
     const hazardHits = this.hazardSystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
     this.enemySystem.update(deltaSeconds, (enemy) => this.supplySystem.targetFor(enemy));
@@ -481,7 +540,7 @@ export class GameWorld {
     this.deployableSystem.update(deltaSeconds, weaponStep);
     this.#settleEnemyDeaths(this.clock.elapsedSeconds + deltaSeconds);
     this.enemySystem.cleanup();
-    this.experienceSystem.update(deltaSeconds, this.supplySystem.pickupRadiusBonus);
+    this.experienceSystem.update(deltaSeconds, this.supplySystem.pickupRadiusBonus + this.runConfigSystem.protocol.pickupBonus);
     this.explorationSystem.update(deltaSeconds);
     this.encounterSystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds,
       [...this.explorationSystem.getSnapshot().terminals, ...this.relaySystem.getSnapshot(), ...this.hazardSystem.getBlockedPoints()]);
@@ -498,7 +557,7 @@ export class GameWorld {
       this.#finishRun(GAME_STATES.DEFEAT);
     } else {
       const bossSnapshot = this.bossSystem.getSnapshot();
-      if (this.clock.elapsedSeconds >= 300 && bossSnapshot?.alive === false) {
+      if (!this.#endless && this.clock.elapsedSeconds >= 300 && bossSnapshot?.alive === false) {
         this.#finishRun(GAME_STATES.VICTORY);
       }
     }
@@ -569,6 +628,8 @@ export class GameWorld {
     this.experienceSystem.reset();
     this.levelSystem.reset();
     this.upgradeSystem.reset();
+    this.#applyOpeningProtocol();
+    this.supplySystem.configureRules(this.runConfigSystem.challenge);
     this.orbitalBladeSystem.reset();
     this.arcCoilSystem.reset();
     this.railgunSystem.reset();
@@ -583,6 +644,8 @@ export class GameWorld {
     this.combatStatsSystem.reset();
     this.#playerDeathFrozen = false;
     this.#runResult = null;
+    this.#endless = false; this.#standardVictory = null; this.#endlessStartedAt = 0; this.#endlessStartKills = 0;
+    this.#nextEliteAt = 90; this.#seenTypes.clear();
   }
 
   #finishRun(outcome) {
@@ -591,8 +654,13 @@ export class GameWorld {
       killCount: this.#killCount,
       elapsedSeconds: this.clock.elapsedSeconds,
       statistics: this.combatStatsSystem.getSnapshot(),
-      modeId: this.#modeId,
-      mapId: this.mapConfig.id,
+      ...this.getRunConfigSnapshot(),
+      discoveries: this.getDiscoverySnapshot(),
+      exploration: this.explorationSystem.getSnapshot(),
+      endless: this.#endless,
+      endlessSeconds: this.#endless ? this.clock.elapsedSeconds - this.#endlessStartedAt : 0,
+      endlessKills: this.#endless ? this.#killCount - this.#endlessStartKills : 0,
+      standardVictory: this.#standardVictory,
     });
     if (!this.stateManager.finishRun(outcome)) {
       this.#runResult = null;

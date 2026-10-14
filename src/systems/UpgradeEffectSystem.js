@@ -54,11 +54,13 @@ function requirePositiveFinite(value, name) {
 }
 
 export class UpgradeEffectSystem {
-  constructor({ player, upgradeSystem } = {}) {
+  constructor({ player, upgradeSystem, getModifiers = () => ({ damageMultiplier: 1, moveSpeedMultiplier: 1 }) } = {}) {
     requirePlayer(player);
     requireUpgradeSystem(upgradeSystem);
     this.player = player;
     this.upgradeSystem = upgradeSystem;
+    if (typeof getModifiers !== 'function') throw new TypeError('Run modifiers must be a function');
+    this.getModifiers = getModifiers;
   }
 
   getSnapshot() {
@@ -67,6 +69,9 @@ export class UpgradeEffectSystem {
     const fireRate = UPGRADE_EFFECT_CONFIG['UP-02'].pulseGunFireRateBonusPerLevel;
     const extraProjectiles = UPGRADE_EFFECT_CONFIG['UP-03'].extraProjectilesPerLevel;
     const moveSpeed = UPGRADE_EFFECT_CONFIG['UP-05'].moveSpeedBonusPerLevel;
+    const modifiers = this.getModifiers();
+    requirePositiveFinite(modifiers.damageMultiplier, 'protocol damage');
+    requirePositiveFinite(modifiers.moveSpeedMultiplier, 'protocol movement');
 
     for (const [value, name] of [
       [damage, 'damageBonusPerLevel'],
@@ -83,10 +88,10 @@ export class UpgradeEffectSystem {
     requirePositiveFinite(UPGRADE_EFFECT_CONFIG['UP-06'].healPerLevel, 'healPerLevel');
 
     const snapshot = Object.freeze({
-      damageMultiplier: 1 + (damage * levels.get('UP-01')),
+      damageMultiplier: (1 + damage * levels.get('UP-01')) * modifiers.damageMultiplier,
       pulseGunFireRateMultiplier: 1 + (fireRate * levels.get('UP-02')),
       pulseGunProjectileCount: 1 + (extraProjectiles * levels.get('UP-03')),
-      moveSpeedMultiplier: 1 + (moveSpeed * levels.get('UP-05')),
+      moveSpeedMultiplier: (1 + moveSpeed * levels.get('UP-05')) * modifiers.moveSpeedMultiplier,
       orbitalBladeLevel: UPGRADE_EFFECT_CONFIG['UP-04'].exposesOrbitalBladeLevel
         ? levels.get('UP-04')
         : 0,

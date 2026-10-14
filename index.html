@@ -16,12 +16,17 @@
             <p class="eyebrow">PROTOCOL ZERO / 2149</p>
             <h1 id="game-title">零号协议<span>失控之城</span></h1>
             <p class="menu-description">自主战斗单元 ZERO<br />冲刺突围 · 搜索补给 · 上传档案 · 坚守五分钟</p>
+            <div class="deployment-grid">
             <label class="map-choice" for="map-select">部署区域
               <select id="map-select"><option value="laboratory">废弃科技实验室</option><option value="east-city">东城区疏散线 · 救援补给</option><option value="energy-hub">失控能源枢纽 · 电网危机</option></select>
             </label>
             <label class="map-choice" for="mode-select">构筑模式
               <select id="mode-select"><option value="standard">标准生存 · 武器不限栏位</option><option value="tactical">战术构筑 · 最多 3 武器</option></select>
             </label>
+            <label class="map-choice" for="protocol-select">开局协议<select id="protocol-select"><option value="standard">标准协议 · 原始属性</option><option value="assault">突击 · 伤害+18% / 生命80</option><option value="recycle">回收 · 探索+50% / 伤害-10%</option><option value="guard">守卫 · 生命120 / 移速-8%</option></select></label>
+            <label class="map-choice" for="challenge-select">挑战词条<select id="challenge-select"><option value="none">无挑战</option><option value="pressure">高压敌潮 · 生成间隔-20%</option><option value="scarce">物资稀缺 · 恢复来源减少</option><option value="elite">精英增援 · 每90秒尝试</option></select></label>
+            </div>
+            <p id="run-configuration-description" class="configuration-description"></p>
             <p class="menu-records" aria-label="本机记录">最高击杀 <strong id="menu-highest-kills">0</strong><span aria-hidden="true"> · </span>最佳通关 <time id="menu-best-victory-time">尚无</time></p>
             <div class="button-stack">
               <button id="start-game-button" class="button-primary" type="button">开始游戏</button>
@@ -42,6 +47,13 @@
               <label class="sound-volume-control" for="music-volume-slider"><span>音乐音量</span><input id="music-volume-slider" type="range" min="0" max="100" step="5" value="20" /><output id="music-volume-value">20%</output></label>
               <p id="feedback-save-notice" class="save-notice" role="status" hidden></p>
             </details>
+            <details class="local-library"><summary>本地图鉴、成就与档案</summary><p id="local-library-content"></p>
+              <label class="map-choice" for="cosmetic-select">ZERO 外观<select id="cosmetic-select"><option value="cyan">零号青</option><option value="amber" disabled>幸存琥珀 · 首次胜利解锁</option><option value="violet" disabled>进化紫晶 · 四种进化解锁</option><option value="mint" disabled>城市翡翠 · 三图通关解锁</option></select></label>
+              <div class="transfer-actions"><button id="export-progress-button" type="button">导出档案</button><button id="import-progress-button" type="button">导入档案</button></div>
+              <input id="import-progress-file" type="file" accept="application/json,.json" hidden />
+              <p id="progress-transfer-status" role="status"></p>
+            </details>
+            <p id="progress-save-notice" class="save-notice" role="status" hidden></p>
           </div>
         </section>
         <section id="help-panel" class="ui-panel" aria-labelledby="help-title" hidden>
@@ -72,6 +84,9 @@
               <div><dt>窗口失焦</dt><dd>自动暂停，回到游戏后手动继续。</dd></div>
               <div><dt>能源枢纽 · 终端与反应堆</dt><dd>每局三套固定布局择一。三条电弧交错通电，黄色预警1秒后红色危险2秒；中央环道始终安全。完成终端永久关闭对应电弧。中央反应堆初始没电，340范围内击杀四敌或使用电芯补满，站入2.5秒释放300范围冲击，可反复补能。</dd></div>
               <div><dt>电网监护者 · 两阶段首领</dt><dd>能源枢纽4:30出现。电击圈锁定位置预警1.2秒，及时离开或冲刺。半血进入第二阶段，先留1.4秒安全切换，再组合三圈电击；生命不会重置。仍须坚持5分钟且击败首领获胜。</dd></div>
+              <div><dt>开局协议 / 挑战</dt><dd>菜单可选标准、突击、回收或守卫协议，收益和代价提前展示；每局最多一个挑战。成绩按地图、模式、协议和挑战分别保存，历史基线可在本机档案查看。</dd></div>
+              <div><dt>胜利后 · 无尽加时</dt><dd>五分钟胜利先保存，再可选择继承构筑继续无尽。每分钟新敌生命和生成压力增加，上限仍保留；加时死亡或暂停页主动结束只记录额外时间/击杀，原胜利不会撤销。</dd></div>
+              <div><dt>本地图鉴 / 外观 / 档案</dt><dd>发现敌人、武器、进化及完成事件可留存图鉴；成就仅解锁外观，不增加永久攻防。菜单可导出备份或导入经过校验的有限JSON；导入会先预览并确认替换。声音总开关同时控制音乐与音效，二者可分别调音量。</dd></div>
             </dl>
             <button id="hide-help-button" class="button-primary" type="button">返回主菜单</button>
           </div>
@@ -120,6 +135,7 @@
             <div class="button-stack">
               <button id="resume-game-button" class="button-primary" type="button">继续游戏</button>
               <button id="return-menu-button" type="button">返回主菜单</button>
+              <button id="end-endless-button" type="button" hidden>结束加时并结算</button>
             </div>
           </div>
         </section>
@@ -176,11 +192,16 @@
               <div><dt>存活时间</dt><dd id="run-result-time">00:00</dd></div>
             </dl>
             <div class="button-stack">
+              <button id="continue-endless-button" type="button" hidden>继续无尽 · 保留本次胜利</button>
               <button id="restart-run-button" class="button-primary" type="button">再来一局</button>
               <button id="result-menu-button" type="button">返回主菜单</button>
             </div>
           </div>
         </section>
+        <dialog id="import-progress-dialog" class="confirm-dialog" aria-labelledby="import-progress-title" aria-describedby="import-progress-preview">
+          <h2 id="import-progress-title">导入本机档案？</h2><p id="import-progress-preview"></p>
+          <div class="dialog-actions"><button id="cancel-import-button" type="button" autofocus>取消导入</button><button id="confirm-import-button" type="button">确认替换档案</button></div>
+        </dialog>
         <dialog id="return-menu-dialog" class="confirm-dialog" aria-labelledby="return-menu-title" aria-describedby="return-menu-description">
           <p class="eyebrow">ZERO / DISCONNECT</p>
           <h2 id="return-menu-title">返回主菜单？</h2>

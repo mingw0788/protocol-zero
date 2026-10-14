@@ -762,3 +762,13 @@ button:disabled { opacity: .45; cursor: default; }
 .tutorial-tip { position: absolute; left: 14px; bottom: 48px; max-width: 56%; padding: 7px 10px; color: #b7d7e1; background: #0d2135ed; border: 1px solid #345970; font-size: 12px; pointer-events: auto; }
 .tutorial-tip button { display: inline; width: auto; min-height: 24px; padding: 1px 7px; margin-left: 8px; border: 0; background: transparent; color: #c3e9f2; }
 @container (max-width:700px) { .tutorial-tip { font-size: 9px; max-width: 52%; bottom: 60px; left: 8px; } .damage-table th,.damage-table td { padding: 5px 4px; font-size: 10px; } }
+.menu-card { width: min(100%, 600px); }
+.deployment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.configuration-description { font-size: 11px; color: #a7c0cb; margin: 6px 0 10px; line-height: 1.6; }
+.local-library { border: 1px solid #304c60; padding: 10px 12px; margin-top: 10px; font-size: 12px; color: #b4c9d6; }
+.local-library summary { color: #d9c4ff; cursor: pointer; }
+#local-library-content { white-space: pre-line; font-size: 11px; line-height: 1.9; overflow-wrap: anywhere; }
+.transfer-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.transfer-actions button { font-size: 12px; padding: 8px; }
+.save-notice,#progress-transfer-status { color: #f1ca7d; font-size: 11px; line-height: 1.6; }
+@container (max-width:500px) { .deployment-grid { gap: 0 5px; } .map-choice select { font-size: 10px; padding: 6px 4px; } }

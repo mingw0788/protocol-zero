@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LocalProgressSystem } from '../src/systems/LocalProgressSystem.js';
-import { LocalProgressStore, SAVE_KEY, SAVE_VERSION } from '../src/persistence/LocalProgressStore.js';
+import { LocalProgressStore, SAVE_KEY, SAVE_VERSION, DEFAULT_PROGRESS } from '../src/persistence/LocalProgressStore.js';
 
 function createStorage({ failWrites = false } = {}) {
   const data = new Map();
@@ -14,13 +14,7 @@ function createStorage({ failWrites = false } = {}) {
   };
 }
 
-const initial = Object.freeze({
-  version: SAVE_VERSION,
-  highestKillCount: 0,
-  bestVictorySeconds: null,
-  soundEnabled: true,
-  soundVolume: 0.65,
-});
+const initial = DEFAULT_PROGRESS;
 
 describe('LocalProgressSystem', () => {
   it('updates highest kills for any finished run but only sets best time for victories', () => {

@@ -2,6 +2,9 @@ import { GAME_STATES } from '../core/GameStateManager.js';
 import { TacticalHUD } from './TacticalHUD.js';
 import { SUPPLY_NAMES } from '../config/supplyConfig.js';
 import { formatBuildSummary, formatCombatSummary, WEAPON_NAMES } from './buildSummary.js';
+import { OPENING_PROTOCOLS, CHALLENGES } from '../config/runConfig.js';
+import { ACHIEVEMENTS, COSMETICS, DISCOVERY_IDS } from '../config/progressConfig.js';
+import { ENEMY_CONFIG } from '../config/enemyConfig.js';
 
 const WEAPON_LABELS = WEAPON_NAMES;
 const ELEMENT_IDS = Object.freeze({
@@ -63,6 +66,8 @@ export class UIManager {
   #displayedChoices = Object.freeze([]);
   #tacticalHUD;
   #lastStatsResult = null;
+  #lastLibraryProgress = null;
+  #pendingImport = null;
 
   constructor({ root, game, windowTarget = globalThis.window ?? null } = {}) {
     if (!root || typeof root.querySelector !== 'function') {
@@ -128,6 +133,33 @@ export class UIManager {
       this.#game.selectMode(modeSelect.value);
       modeSelect.value = this.#game.getRunConfigSnapshot().modeId;
     });
+    for (const [id, method, key] of [['protocol-select', 'selectProtocol', 'protocolId'], ['challenge-select', 'selectChallenge', 'challengeId']]) {
+      const control = this.#root.querySelector(`#${id}`);
+      if (control) this.#listen(control, 'change', () => { this.#game[method](control.value); control.value = this.#game.getRunConfigSnapshot()[key]; this.#renderRecords(); });
+    }
+    const cosmetic = this.#root.querySelector('#cosmetic-select');
+    if (cosmetic) this.#listen(cosmetic, 'change', () => { this.#game.selectCosmetic?.(cosmetic.value); this.#renderRecords(); });
+    const endless = this.#root.querySelector('#continue-endless-button');
+    if (endless) this.#listen(endless, 'click', () => this.#game.continueEndless?.());
+    const endEndless = this.#root.querySelector('#end-endless-button');
+    if (endEndless) this.#listen(endEndless, 'click', () => this.#game.endEndless?.());
+    const exportButton = this.#root.querySelector('#export-progress-button');
+    if (exportButton) this.#listen(exportButton, 'click', () => this.#exportProgress());
+    const importButton = this.#root.querySelector('#import-progress-button'), fileInput = this.#root.querySelector('#import-progress-file');
+    if (importButton && fileInput) {
+      this.#listen(importButton, 'click', () => fileInput.click());
+      this.#listen(fileInput, 'change', () => this.#previewImport(fileInput));
+    }
+    const importDialog = this.#root.querySelector('#import-progress-dialog');
+    const cancelImport = this.#root.querySelector('#cancel-import-button'), confirmImport = this.#root.querySelector('#confirm-import-button');
+    if (cancelImport) this.#listen(cancelImport, 'click', () => { this.#pendingImport = null; importDialog.close(); });
+    if (importDialog) this.#listen(importDialog, 'cancel', () => { this.#pendingImport = null; });
+    if (confirmImport) this.#listen(confirmImport, 'click', () => {
+      if (!this.#pendingImport || this.#game.stateManager.currentState !== GAME_STATES.MENU) return;
+      const result = this.#game.importProgress(this.#pendingImport); this.#pendingImport = null; importDialog.close();
+      this.#transferNotice(result?.ok ? result.saved ? '档案已导入并保存。' : '档案本次已应用，本机存储不可用，尚未保存。' : result?.reason ?? '导入未完成。');
+      this.#renderRecords(); this.#renderSound(); this.#renderFeedback();
+    });
     this.#listen(e.start, 'click', () => this.#game.startGame());
     for (const prefix of ['', 'pause-']) {
       for (const [id, key] of [['damage-numbers', 'showDamageNumbers'], ['reduced-flash', 'reducedFlash'], ['danger', 'strongDanger'], ['tutorial', 'showTutorial']]) {
@@ -183,11 +215,16 @@ export class UIManager {
     this.#unsubscribe?.();
     this.#unsubscribe = null;
     if (this.#elements.dialog.open) this.#elements.dialog.close();
+    const importDialog = this.#root.querySelector('#import-progress-dialog');
+    if (importDialog?.open) importDialog.close();
+    this.#pendingImport = null;
   }
 
   renderSnapshot(snapshot, currentState, bossSnapshot = this.#game.getBossSnapshot()) {
     this.#renderFeedback(currentState, snapshot);
     if (currentState === GAME_STATES.PAUSED) this.#renderBuild();
+    const endEndlessButton = this.#root.querySelector('#end-endless-button');
+    if (endEndlessButton) endEndlessButton.hidden = currentState !== GAME_STATES.PAUSED || !this.#game.getExpansionSnapshot?.()?.endless?.active;
     this.#tacticalHUD.render(this.#game.getExpansionSnapshot?.(), currentState === GAME_STATES.PLAYING);
     this.#renderExpansion(currentState);
     this.#renderActiveItems(currentState);
@@ -246,6 +283,9 @@ export class UIManager {
     if (element.hidden) return;
     const { supply, map } = snapshot;
     const parts = [map.name + (map.layoutName ? ` · ${map.layoutName}` : '')];
+    if (snapshot.runConfig && snapshot.runConfig.protocolId !== 'standard') parts.push(snapshot.runConfig.protocolName);
+    if (snapshot.runConfig && snapshot.runConfig.challengeId !== 'none') parts.push(snapshot.runConfig.challengeName);
+    if (snapshot.endless?.active) parts.push(`无尽加时 ${formatTime(snapshot.endless.elapsedSeconds)} · 额外击杀 ${snapshot.endless.kills}`);
     const origin = snapshot.playerPosition;
     if (origin && snapshot.relays?.length) {
       const available = snapshot.relays
@@ -300,6 +340,10 @@ export class UIManager {
     e.bossHud.hidden = true;
     e.resultPanel.hidden = state !== GAME_STATES.VICTORY && state !== GAME_STATES.DEFEAT;
     if (state !== GAME_STATES.PAUSED && e.dialog.open) e.dialog.close();
+    if (state !== GAME_STATES.MENU) {
+      const importDialog = this.#root.querySelector('#import-progress-dialog');
+      if (importDialog?.open) importDialog.close(); this.#pendingImport = null;
+    }
     if (state === GAME_STATES.MENU) e.start.focus();
     if (state === GAME_STATES.PAUSED) e.resume.focus();
     if (state === GAME_STATES.LEVEL_UP) {
@@ -350,7 +394,9 @@ export class UIManager {
     if (state !== GAME_STATES.VICTORY && state !== GAME_STATES.DEFEAT) return;
     const snapshot = this.#game.getRunResultSnapshot();
     if (!snapshot) return;
-    this.#setText(this.#elements.resultTitle, state === GAME_STATES.VICTORY ? '任务完成' : '任务失败');
+    this.#setText(this.#elements.resultTitle, snapshot.endless ? '加时结束 · 标准胜利已保留' : state === GAME_STATES.VICTORY ? '任务完成' : '任务失败');
+    const endlessButton = this.#root.querySelector('#continue-endless-button');
+    if (endlessButton) endlessButton.hidden = state !== GAME_STATES.VICTORY || snapshot.endless;
     this.#setText(this.#elements.resultKills, String(snapshot.killCount));
     this.#setText(this.#elements.resultTime, formatTime(snapshot.elapsedSeconds));
     const detail = this.#root.querySelector('#run-result-exploration');
@@ -413,11 +459,60 @@ export class UIManager {
   #renderRecords() {
     const progress = this.#game.getProgressSnapshot();
     if (!progress) return;
-    this.#setText(this.#elements.highestKills, String(progress.highestKillCount));
+    const config = this.#game.getRunConfigSnapshot?.();
+    const record = progress.records?.find(item => item.key === config?.recordKey);
+    this.#setText(this.#elements.highestKills, String(record?.highestKillCount ?? (progress.records ? 0 : progress.highestKillCount)));
     this.#setText(
       this.#elements.bestVictoryTime,
-      progress.bestVictorySeconds === null ? '尚无' : formatTime(progress.bestVictorySeconds),
+      (record?.bestVictorySeconds ?? (progress.records ? null : progress.bestVictorySeconds)) === null ? '尚无' : formatTime(record?.bestVictorySeconds ?? progress.bestVictorySeconds),
     );
+    const saveNotice = this.#root.querySelector('#progress-save-notice');
+    const status = this.#game.getProgressSaveStatus?.();
+    if (saveNotice) { saveNotice.hidden = status?.saved !== false; this.#setText(saveNotice, status?.reason === 'future-version' ? '检测到较新存档版本，原始档案保留，本次记录尚未保存。' : '本机存储暂不可用，本次记录尚未保存；可导出备份。'); }
+    const protocolDescription = this.#root.querySelector('#run-configuration-description');
+    if (protocolDescription && config) this.#setText(protocolDescription, `${OPENING_PROTOCOLS.find(item => item.id === config.protocolId)?.description ?? ''} · ${CHALLENGES.find(item => item.id === config.challengeId)?.description ?? ''}`);
+    const library = this.#root.querySelector('#local-library-content');
+    const cosmeticSelect = this.#root.querySelector('#cosmetic-select');
+    if (cosmeticSelect && progress.achievements) {
+      cosmeticSelect.value = progress.cosmeticId;
+      for (const option of Array.from(cosmeticSelect.options ?? [])) {
+        const definition = COSMETICS.find(item => item.id === option.value);
+        option.disabled = Boolean(definition?.achievement && !progress.achievements.includes(definition.achievement));
+      }
+    }
+    if (!library || !progress.discoveries || this.#lastLibraryProgress === progress) return;
+    this.#lastLibraryProgress = progress;
+    const names = { ...Object.fromEntries(Object.values(ENEMY_CONFIG).filter(item => item.typeId).map(item => [item.typeId, item.name])),
+      'EN-EVENT': '物资守卫', 'BOSS-01': '机械暴君', 'BOSS-02': '电网监护者', ...WEAPON_NAMES,
+      'EV-01': '裂隙脉冲', 'EV-02': '磁暴轨道', 'EV-03': '雷暴网络', 'EV-04': '裂城磁轨',
+      defense: '防守链路', transport: '运输追赶', elite: '物资精英', laboratory: '实验室', 'east-city': '东城区', 'energy-hub': '能源枢纽' };
+    const labels = { enemies: '敌人', weapons: '武器', evolutions: '进化', events: '事件', maps: '地图' };
+    const lines = Object.keys(DISCOVERY_IDS).map(key => `${labels[key]} ${progress.discoveries[key].length}/${DISCOVERY_IDS[key].length}：${progress.discoveries[key].map(id => names[id] ?? id).join('、') || '尚未发现'}`);
+    lines.push(...ACHIEVEMENTS.map(item => `${progress.achievements.includes(item.id) ? '✓' : '□'} ${item.name} · ${item.description}`));
+    lines.push(`历史基线：最高击杀 ${progress.highestKillCount} · 最佳通关 ${progress.bestVictorySeconds === null ? '尚无' : formatTime(progress.bestVictorySeconds)}`);
+    this.#setText(library, lines.join('\n'));
+  }
+
+  #transferNotice(text) { const element = this.#root.querySelector('#progress-transfer-status'); if (element) this.#setText(element, text); }
+  #exportProgress() {
+    const raw = this.#game.exportProgress?.(); if (!raw) return;
+    const url = URL.createObjectURL(new Blob([raw], { type: 'application/json' }));
+    const button = this.#root.querySelector('#export-progress-button'), link = button.ownerDocument.createElement('a');
+    link.href = url; link.download = 'protocol-zero-save.json'; link.click(); URL.revokeObjectURL(url);
+    this.#transferNotice('已导出本机档案，不包含进行中的战局。');
+  }
+  async #previewImport(input) {
+    const file = input.files?.[0]; input.value = '';
+    if (!file) return;
+    if (file.size > 65536) { this.#transferNotice('文件超过64KiB，未改变当前档案。'); return; }
+    try {
+      const raw = await file.text(), preview = this.#game.previewProgressImport(raw);
+      if (this.#game.stateManager.currentState !== GAME_STATES.MENU) return;
+      if (!preview) { this.#transferNotice('档案无效或版本不支持，未改变当前档案。'); return; }
+      this.#pendingImport = raw;
+      this.#setText(this.#root.querySelector('#import-progress-preview'), `将替换当前本机档案：${preview.progress.records.length} 组成绩、${preview.progress.achievements.length} 项成就及声音/显示设置。取消可保留现有档案。`);
+      this.#root.querySelector('#import-progress-dialog').showModal();
+    } catch { this.#transferNotice('文件无法读取，未改变当前档案。'); }
   }
 
   #selectUpgrade(index) {
@@ -462,7 +557,8 @@ export class UIManager {
         return;
       }
       if (event.code === 'Tab') {
-        const first = this.#elements.restartRun;
+        const endlessButton = this.#root.querySelector('#continue-endless-button');
+        const first = endlessButton && !endlessButton.hidden ? endlessButton : this.#elements.restartRun;
         const last = this.#elements.resultMenu;
         const active = this.#windowTarget?.document?.activeElement;
         if ((event.shiftKey && active === first) || (!event.shiftKey && active === last)) {

@@ -157,6 +157,8 @@ export class SpawnSystem {
     if (deltaSeconds === 0) return 0;
 
     const weightedConfigs = validateWaveSnapshot(waveSnapshot, this.#enemyConfigsByTypeId);
+    const hpMultiplier = waveSnapshot.hpMultiplier ?? 1;
+    if (!Number.isFinite(hpMultiplier) || hpMultiplier < 1 || hpMultiplier > 3) throw new RangeError('Invalid spawn health multiplier');
     const interval = waveSnapshot.spawnIntervalSeconds;
     const totalElapsed = this.#elapsedSeconds + deltaSeconds;
     if (!Number.isFinite(totalElapsed)) throw new RangeError('Accumulated spawn time must be finite');
@@ -167,7 +169,7 @@ export class SpawnSystem {
     this.#elapsedSeconds = remainder <= tolerance || interval - remainder <= tolerance ? 0 : remainder;
 
     const attempts = Math.min(spawnTokens, this.#enemyConfig.spawn.maxActive);
-    for (let token = 0; token < attempts; token += 1) this.#trySpawn(weightedConfigs);
+    for (let token = 0; token < attempts; token += 1) this.#trySpawn(weightedConfigs, hpMultiplier);
     return attempts;
   }
 
@@ -187,7 +189,7 @@ export class SpawnSystem {
     return enemy;
   }
 
-  #trySpawn(weightedConfigs) {
+  #trySpawn(weightedConfigs, hpMultiplier = 1) {
     const { spawn } = this.#enemyConfig;
     const activeCount = this.enemies.reduce(
       (count, enemy) => count + (enemy.category === 'normal' && enemy.alive && enemy.hp > 0 ? 1 : 0),
@@ -215,7 +217,7 @@ export class SpawnSystem {
         id: `enemy-${this.#nextId}`,
         x,
         y,
-        config: enemyConfig,
+        config: hpMultiplier === 1 ? enemyConfig : { ...enemyConfig, hp: enemyConfig.hp * hpMultiplier, maxHp: enemyConfig.maxHp * hpMultiplier },
         worldWidth: this.world.width,
         worldHeight: this.world.height,
       });

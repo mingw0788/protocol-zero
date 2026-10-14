@@ -2,12 +2,13 @@ export class RunRewardSystem {
   #granted = new Set();
   #pending = [];
 
-  constructor({ player, supplySystem } = {}) {
+  constructor({ player, supplySystem, getExperienceMultiplier = () => 1 } = {}) {
     if (!player || typeof supplySystem?.addPickup !== 'function' || !Array.isArray(supplySystem.config?.rewards)) {
       throw new TypeError('RunRewardSystem requires player and supply interfaces');
     }
     this.player = player;
     this.supplySystem = supplySystem;
+    this.getExperienceMultiplier = getExperienceMultiplier;
   }
 
   grant({ id, experience, items = [], x, y } = {}) {
@@ -16,10 +17,14 @@ export class RunRewardSystem {
     if (!Number.isSafeInteger(experience) || experience < 0
       || !Number.isSafeInteger(this.player.exp + experience)) throw new RangeError('Invalid reward experience');
     if (items.some(item => !this.supplySystem.config.rewards.includes(item))) throw new RangeError('Unknown reward item');
+    const multiplier = this.getExperienceMultiplier();
+    const awardedExperience = Math.round(experience * multiplier);
+    if (!Number.isFinite(multiplier) || multiplier <= 0 || !Number.isSafeInteger(awardedExperience)
+      || !Number.isSafeInteger(this.player.exp + awardedExperience)) throw new RangeError('Invalid amplified reward experience');
     if (this.#granted.has(id)) return false;
     if (this.#granted.size >= 32 || this.#pending.length + items.length > 32) throw new RangeError('Run reward capacity exceeded');
     this.#granted.add(id);
-    this.player.exp += experience;
+    this.player.exp += awardedExperience;
     this.#pending.push(...items.map(type => ({ type, x, y })));
     this.update();
     return true;

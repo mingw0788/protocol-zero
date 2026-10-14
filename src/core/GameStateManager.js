@@ -68,6 +68,10 @@ export class GameStateManager {
     return this.#transitionTo(GAME_STATES.PLAYING);
   }
 
+  continueEndless() {
+    return this.#currentState === GAME_STATES.VICTORY ? this.#transitionTo(GAME_STATES.PLAYING) : false;
+  }
+
   beginLevelUp() {
     if (this.#currentState !== GAME_STATES.PLAYING) return false;
     return this.#transitionTo(GAME_STATES.LEVEL_UP);

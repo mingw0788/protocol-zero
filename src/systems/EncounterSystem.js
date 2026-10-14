@@ -51,6 +51,7 @@ export class EncounterSystem {
   #completed = 0;
   #failed = 0;
   #skipped = 0;
+  #completedTypes = new Set();
 
   constructor({ player, enemies, spawnElite, random = Math.random, rewardRandom = Math.random, onReward, onNotice = null, config = ENCOUNTER_CONFIG, world = WORLD_MAP } = {}) {
     if (!player || !Array.isArray(enemies) || typeof spawnElite !== 'function' || typeof random !== 'function'
@@ -147,6 +148,7 @@ export class EncounterSystem {
     const event = this.#active;
     this.#active = null;
     this.#completed++;
+    this.#completedTypes.add(event.type);
     const sample = this.rewardRandom();
     if (!Number.isFinite(sample) || sample < 0 || sample >= 1) throw new RangeError('Encounter reward random must be in [0,1)');
     const item = event.rewardPool[Math.floor(sample * event.rewardPool.length)];
@@ -162,7 +164,7 @@ export class EncounterSystem {
 
   getSnapshot() {
     return Object.freeze({ active: this.#active ? Object.freeze({ ...this.#active }) : null,
-      completed: this.#completed, failed: this.#failed, skipped: this.#skipped, totalScheduled: this.config.schedule.length });
+      completed: this.#completed, completedTypes: Object.freeze([...this.#completedTypes]), failed: this.#failed, skipped: this.#skipped, totalScheduled: this.config.schedule.length });
   }
 
   reset(mapId = this.#mapId, anchors = null) {
@@ -170,5 +172,6 @@ export class EncounterSystem {
     this.#anchors = (anchors ?? this.config.maps[mapId] ?? []).map(point => ({ ...point }));
     this.#availableTypes = [...this.config.types];
     this.#completed = 0; this.#failed = 0; this.#skipped = 0;
+    this.#completedTypes.clear();
   }
 }

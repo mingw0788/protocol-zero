@@ -4,11 +4,12 @@ export class ExplorationSystem {
   #terminals = [];
   #completionAwarded = false;
 
-  constructor({ player, onReward, onComplete, config = TACTICAL_CONFIG }) {
+  constructor({ player, onReward, onComplete, config = TACTICAL_CONFIG, getExperienceMultiplier = () => 1 }) {
     this.player = player;
     this.onReward = onReward;
     this.onComplete = onComplete;
     this.config = config;
+    this.getExperienceMultiplier = getExperienceMultiplier;
     this.reset('laboratory');
   }
 
@@ -24,13 +25,15 @@ export class ExplorationSystem {
       terminal.charge = Math.min(this.config.terminalSeconds, terminal.charge + deltaSeconds);
       if (terminal.charge + 1e-9 < this.config.terminalSeconds) continue;
       terminal.completed = true;
-      this.player.exp += this.config.terminalExperience;
-      this.onReward?.(Object.freeze({ ...terminal }));
+      const experienceReward = Math.round(this.config.terminalExperience * this.getExperienceMultiplier());
+      this.player.exp += experienceReward;
+      this.onReward?.(Object.freeze({ ...terminal, experienceReward }));
     }
     if (!this.#completionAwarded && this.#terminals.length > 0 && this.#terminals.every(t => t.completed)) {
       this.#completionAwarded = true;
-      this.player.exp += this.config.completionExperience;
-      this.onComplete?.();
+      const experienceReward = Math.round(this.config.completionExperience * this.getExperienceMultiplier());
+      this.player.exp += experienceReward;
+      this.onComplete?.(experienceReward);
     }
   }
 
@@ -39,7 +42,7 @@ export class ExplorationSystem {
       total: this.#terminals.length,
       terminals: Object.freeze(this.#terminals.map(t => Object.freeze({ ...t,
         radius: this.config.terminalRadius, channelSeconds: this.config.terminalSeconds,
-        experienceReward: this.config.terminalExperience,
+        experienceReward: Math.round(this.config.terminalExperience * this.getExperienceMultiplier()),
         progress: Math.min(1, t.charge / this.config.terminalSeconds) }))) });
   }
 

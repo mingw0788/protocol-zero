@@ -15,6 +15,7 @@ import { BossRenderer } from '../rendering/BossRenderer.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { LocalProgressSystem } from '../systems/LocalProgressSystem.js';
 import { FeedbackSettingsSystem } from '../systems/FeedbackSettingsSystem.js';
+import { COSMETICS } from '../config/progressConfig.js';
 
 export class Game {
   #uiManager = null;
@@ -157,12 +158,43 @@ export class Game {
   getProgressSnapshot() {
     return this.#progressSystem.getSnapshot();
   }
+  getProgressSaveStatus() { return this.#progressSystem.getSaveStatus?.() ?? { saved: true, reason: 'ready' }; }
+  selectProtocol(id) { return this.world.setProtocol(id); }
+  selectChallenge(id) { return this.world.setChallenge(id); }
+  selectCosmetic(id) {
+    if (this.stateManager.currentState !== GAME_STATES.MENU) return false;
+    const saved = this.#progressSystem.updateCosmetic?.(id) ?? false; this.#syncCosmetic(); return saved;
+  }
+  #syncCosmetic() {
+    const cosmetic = COSMETICS.find(item => item.id === this.getProgressSnapshot().cosmeticId);
+    this.world.player.cosmeticColor = cosmetic?.id === 'cyan' ? null : cosmetic?.color ?? null;
+  }
+  exportProgress() { return this.#progressSystem.exportProgress?.(this.getFeedbackSettings()) ?? null; }
+  previewProgressImport(raw) { return this.#progressSystem.previewImport?.(raw) ?? null; }
+  importProgress(raw) {
+    if (this.stateManager.currentState !== GAME_STATES.MENU) return { ok: false, reason: '请在主菜单导入档案。' };
+    const result = this.#progressSystem.importProgress?.(raw);
+    if (!result?.ok) return result ?? { ok: false, reason: '档案导入不可用。' };
+    const { version, ...preferences } = result.feedback;
+    this.setFeedbackSettings(preferences);
+    const progress = this.getProgressSnapshot();
+    this.#soundEnabled = progress.soundEnabled; this.#audioManager.setEnabled(progress.soundEnabled);
+    this.#audioManager.setVolume(progress.soundVolume); this.#syncCosmetic();
+    return { ...result, saved: result.saved && this.#feedbackSaved };
+  }
+  continueEndless() {
+    const continued = this.world.continueEndless();
+    if (continued && this.#soundEnabled) this.#audioManager.unlock();
+    return continued;
+  }
+  endEndless() { return this.world.endEndless(); }
 
   startGame() {
     if (this.stateManager.currentState !== GAME_STATES.MENU) return false;
     if (this.#soundEnabled) this.#audioManager.unlock();
     this.world.reset();
     this.#mapRenderer.setMap(this.world.mapConfig);
+    this.#syncCosmetic();
     return this.stateManager.startGame();
   }
 
@@ -201,7 +233,9 @@ export class Game {
   }
 
   chooseUpgrade(choiceId) {
-    return this.world.chooseUpgrade(choiceId);
+    const chosen = this.world.chooseUpgrade(choiceId);
+    if (chosen) this.#progressSystem.recordDiscoveries?.(this.world.getDiscoverySnapshot());
+    return chosen;
   }
 
   getUpgradeRerollSnapshot() { return this.world.getUpgradeRerollSnapshot(); }
@@ -218,6 +252,7 @@ export class Game {
     if (this.stateManager.currentState !== GAME_STATES.PAUSED
       && this.stateManager.currentState !== GAME_STATES.VICTORY
       && this.stateManager.currentState !== GAME_STATES.DEFEAT) return false;
+    this.#progressSystem.recordDiscoveries?.(this.world.getDiscoverySnapshot());
     this.world.reset();
     this.#mapRenderer.setMap(this.world.mapConfig);
     return this.stateManager.returnToMenu();
@@ -229,6 +264,7 @@ export class Game {
     if (this.#soundEnabled) this.#audioManager.unlock();
     this.world.reset();
     this.#mapRenderer.setMap(this.world.mapConfig);
+    this.#syncCosmetic();
     return this.stateManager.restartRun();
   }
 

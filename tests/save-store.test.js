@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LocalProgressStore, SAVE_KEY, SAVE_VERSION } from '../src/persistence/LocalProgressStore.js';
+import { LocalProgressStore, SAVE_KEY, SAVE_VERSION, DEFAULT_PROGRESS } from '../src/persistence/LocalProgressStore.js';
 
 function createStorage(initialEntries = []) {
   const data = new Map(initialEntries);
@@ -11,24 +11,20 @@ function createStorage(initialEntries = []) {
 }
 
 const valid = Object.freeze({
+  ...DEFAULT_PROGRESS,
   version: SAVE_VERSION,
   highestKillCount: 42,
   bestVictorySeconds: 321.5,
   soundEnabled: false,
   soundVolume: 0.4,
+  achievements: Object.freeze(['first-victory']),
 });
 
 describe('LocalProgressStore', () => {
   it('uses an immutable safe default when the key is missing', () => {
     const store = new LocalProgressStore({ storage: createStorage() });
     expect(SAVE_KEY).toBe('protocol-zero.save');
-    expect(store.load()).toEqual({
-      version: SAVE_VERSION,
-      highestKillCount: 0,
-      bestVictorySeconds: null,
-      soundEnabled: true,
-      soundVolume: 0.65,
-    });
+    expect(store.load()).toEqual(DEFAULT_PROGRESS);
     expect(Object.isFrozen(store.load())).toBe(true);
   });
 
