@@ -2,9 +2,11 @@
 
 **V1.0.0 基线 + T046 三关战役与角色技能版** · Windows 桌面浏览器单人像素风生存游戏
 
-选择 ZERO、VEIL 或 BASTION，以六种自动武器、四种进化和十二种道具应对失控之城。单图守住五分钟并击败首领，可继续无尽；三关战役按实验室 → 东城区 → 能源枢纽推进，过关保留构筑、关间选择模块，约十分钟后迎战最终电网监护者。普通、困难、噩梦可选；战术构筑最多三武器，标准构筑不限栏位。公开试玩仍运行 V1.0.0，最新扩展在本地分支。
+选择 ZERO、VEIL 或 BASTION，以六种自动武器、四种进化和十二种道具应对失控之城。单图守住五分钟并击败首领，可继续无尽；三关战役按实验室 → 东城区 → 能源枢纽推进，过关保留构筑、关间选择模块，约十分钟后迎战最终电网监护者。普通、困难、噩梦可选；战术构筑最多三武器，标准构筑不限栏位。GitHub Pages 试玩已发布最新 T046 扩展版。
 
-**在线试玩：** [打开 Protocol Zero](https://protocol-zero-game.mingw0788.chatgpt.site)
+**最新在线试玩：** [打开 Protocol Zero](https://mingw0788.github.io/protocol-zero-play/)
+
+**GitHub：** [私有源码仓库](https://github.com/mingw0788/protocol-zero) · [公开游戏发布仓库](https://github.com/mingw0788/protocol-zero-play)。发布和更新说明见 [GitHub 部署说明](docs/github-deployment.md)。原 V1 试玩地址保留为 [历史版本](https://protocol-zero-game.mingw0788.chatgpt.site)。不同站点的本机成绩与设置不会自动迁移。
 
 **本地试玩：**在项目目录运行 `npm ci`、`npm run dev`，再打开命令显示的本机网址。
 
@@ -29,6 +31,7 @@ npm run dev
 ```sh
 npm test          # 运行 Vitest 测试
 npm run build     # 生成静态生产文件到 dist/
+npm run build:github # 生成适配 GitHub Pages 路径的生产文件
 npm run preview   # 本机预览 dist/ 生产构建
 ```
 
