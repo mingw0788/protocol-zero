@@ -46,5 +46,6 @@ export class DroneSystem {
     return Object.freeze({ drones: Object.freeze(this.#drones.map(drone => Object.freeze({ x: drone.x, y: drone.y, aimAngle: drone.aimAngle }))),
       bolts: Object.freeze(this.#bolts.map(bolt => Object.freeze({ x: bolt.x, y: bolt.y, radius: bolt.radius }))) });
   }
+  getCooldownRemaining() { return this.#drones.length ? Math.min(...this.#drones.map(drone => drone.cooldown)) : 0; }
   reset() { this.#drones.length = 0; this.#bolts.length = 0; this.#angle = 0; this.#nextId = 1; this.projectileSystem.reset(); resetWeapon(this); }
 }

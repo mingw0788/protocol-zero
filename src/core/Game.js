@@ -16,6 +16,7 @@ import { AudioManager } from '../audio/AudioManager.js';
 import { LocalProgressSystem } from '../systems/LocalProgressSystem.js';
 import { FeedbackSettingsSystem } from '../systems/FeedbackSettingsSystem.js';
 import { COSMETICS } from '../config/progressConfig.js';
+import { ExpeditionRecordStore } from '../persistence/ExpeditionRecordStore.js';
 
 export class Game {
   #uiManager = null;
@@ -27,6 +28,7 @@ export class Game {
   #feedbackSettings;
   #unsubscribeAudioState;
   #feedbackSaved = true;
+  #expeditionRecords;
 
   constructor({
     canvas = null,
@@ -35,6 +37,7 @@ export class Game {
     audioManager = new AudioManager(),
     progressSystem = new LocalProgressSystem(),
     feedbackSettings = new FeedbackSettingsSystem(),
+    expeditionRecords = new ExpeditionRecordStore(),
   } = {}) {
     if (!audioManager
       || !['unlock', 'setEnabled', 'setVolume', 'playEvent', 'dispose'].every((method) => typeof audioManager[method] === 'function')
@@ -46,6 +49,7 @@ export class Game {
       throw new TypeError('Game requires a compatible local progress system');
     }
     this.#progressSystem = progressSystem;
+    this.#expeditionRecords = expeditionRecords;
     this.#feedbackSettings = feedbackSettings;
     const savedProgress = this.#progressSystem.getSnapshot();
     if (!savedProgress || typeof savedProgress.soundEnabled !== 'boolean'
@@ -72,9 +76,14 @@ export class Game {
     });
     this.#unsubscribeSoundEvents = this.world.subscribeSoundEvent(({ type }) => {
       if (type === 'victory' || type === 'defeat') {
-        this.#progressSystem.recordRun(this.world.getRunResultSnapshot());
+        const result = this.world.getRunResultSnapshot();
+        if (result.journeyId === 'survival' && result.difficultyId === 'normal' && result.characterId === 'zero') this.#progressSystem.recordRun(result);
+        else this.#progressSystem.recordDiscoveries?.(result.discoveries);
+        this.#expeditionRecords.recordRun(result);
+      } else if (type === 'stage-clear') {
+        this.#progressSystem.recordDiscoveries?.(this.world.getDiscoverySnapshot());
       }
-      this.#audioManager.playEvent(type);
+      this.#audioManager.playEvent(type === 'stage-clear' ? 'victory' : type);
     });
     this.camera.follow(this.world.player);
     this.renderer = canvas
@@ -158,7 +167,21 @@ export class Game {
   getProgressSnapshot() {
     return this.#progressSystem.getSnapshot();
   }
-  getProgressSaveStatus() { return this.#progressSystem.getSaveStatus?.() ?? { saved: true, reason: 'ready' }; }
+  getProgressSaveStatus() {
+    const base = this.#progressSystem.getSaveStatus?.() ?? { saved: true, reason: 'ready' };
+    return base.saved ? this.#expeditionRecords.getSaveStatus() : base;
+  }
+  getExpeditionRecords() { return this.#expeditionRecords.getSnapshot(); }
+  getExpeditionRecord() { return this.#expeditionRecords.getRecord(this.world.getRunConfigSnapshot()); }
+  configureExpedition(patch) {
+    if (!this.world.configureExpedition(patch)) return false;
+    this.#mapRenderer.setMap(this.world.mapConfig); this.#syncCosmetic(); return true;
+  }
+  advanceCampaign(moduleId) {
+    if (!this.world.advanceCampaign(moduleId)) return false;
+    this.#mapRenderer.setMap(this.world.mapConfig); this.#syncCosmetic(); return true;
+  }
+  useCharacterSkill() { return this.world.useCharacterSkill(); }
   selectProtocol(id) { return this.world.setProtocol(id); }
   selectChallenge(id) { return this.world.setChallenge(id); }
   selectCosmetic(id) {
@@ -169,7 +192,11 @@ export class Game {
     const cosmetic = COSMETICS.find(item => item.id === this.getProgressSnapshot().cosmeticId);
     this.world.player.cosmeticColor = cosmetic?.id === 'cyan' ? null : cosmetic?.color ?? null;
   }
-  exportProgress() { return this.#progressSystem.exportProgress?.(this.getFeedbackSettings()) ?? null; }
+  exportProgress() {
+    const raw = this.#progressSystem.exportProgress?.(this.getFeedbackSettings());
+    if (!raw) return null;
+    return JSON.stringify({ ...JSON.parse(raw), expeditions: this.#expeditionRecords.getSnapshot() });
+  }
   previewProgressImport(raw) { return this.#progressSystem.previewImport?.(raw) ?? null; }
   importProgress(raw) {
     if (this.stateManager.currentState !== GAME_STATES.MENU) return { ok: false, reason: '请在主菜单导入档案。' };
@@ -177,10 +204,11 @@ export class Game {
     if (!result?.ok) return result ?? { ok: false, reason: '档案导入不可用。' };
     const { version, ...preferences } = result.feedback;
     this.setFeedbackSettings(preferences);
+    const extensionSaved = result.expeditions ? this.#expeditionRecords.replace(result.expeditions) : true;
     const progress = this.getProgressSnapshot();
     this.#soundEnabled = progress.soundEnabled; this.#audioManager.setEnabled(progress.soundEnabled);
     this.#audioManager.setVolume(progress.soundVolume); this.#syncCosmetic();
-    return { ...result, saved: result.saved && this.#feedbackSaved };
+    return { ...result, saved: result.saved && this.#feedbackSaved && extensionSaved };
   }
   continueEndless() {
     const continued = this.world.continueEndless();

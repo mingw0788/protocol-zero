@@ -27,15 +27,15 @@ function requirePositiveFinite(value, name) {
   }
 }
 
-function validateConfig(config) {
+function validateConfig(config, allowTuning = false) {
   if (!config || typeof config !== 'object') {
     throw new TypeError('BossSystem requires a Boss config');
   }
   for (const field of POSITIVE_FIELDS) requirePositiveFinite(config[field], field);
-  if (config.hp !== REQUIRED_HP || config.maxHp !== REQUIRED_HP) {
+  if (!allowTuning && (config.hp !== REQUIRED_HP || config.maxHp !== REQUIRED_HP)) {
     throw new RangeError(`Boss hp and maxHp must remain ${REQUIRED_HP}`);
   }
-  if (config.spawnTimeSeconds !== REQUIRED_SPAWN_TIME_SECONDS) {
+  if (!allowTuning && config.spawnTimeSeconds !== REQUIRED_SPAWN_TIME_SECONDS) {
     throw new RangeError(`Boss spawnTimeSeconds must remain ${REQUIRED_SPAWN_TIME_SECONDS}`);
   }
   if (config.telegraphSeconds < MIN_TELEGRAPH_SECONDS) {
@@ -109,12 +109,14 @@ export class BossSystem {
     camera,
     world = WORLD_MAP,
     config = BOSS_CONFIG,
+    allowTuning = false,
   } = {}) {
     if (!Array.isArray(enemies)) throw new TypeError('BossSystem requires an enemy array');
     validatePlayer(player);
     validateCamera(camera);
     validateWorld(world);
-    validateConfig(config);
+    if (typeof allowTuning !== 'boolean') throw new TypeError('Boss tuning flag must be boolean');
+    validateConfig(config, allowTuning);
     if (world.width < 2 * (config.radius + config.spawnClearance)
       || world.height < 2 * (config.radius + config.spawnClearance)) {
       throw new RangeError('World must fit a Boss plus its spawn clearance');

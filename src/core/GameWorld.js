@@ -48,6 +48,9 @@ import { DamageNumberSystem } from '../systems/DamageNumberSystem.js';
 import { RunConfigSystem } from '../systems/RunConfigSystem.js';
 import { DISCOVERY_IDS } from '../config/progressConfig.js';
 import { UPGRADE_EFFECT_CONFIG } from '../config/upgradeEffectConfig.js';
+import { ExpeditionSystem } from '../systems/ExpeditionSystem.js';
+import { CharacterSkillSystem } from '../systems/CharacterSkillSystem.js';
+import { getEquipmentModule } from '../config/expeditionConfig.js';
 
 function requireCamera(camera) {
   if (!camera
@@ -104,6 +107,7 @@ export class GameWorld {
     if (typeof layoutRandom !== 'function') throw new TypeError('Layout random must be a function');
     this.#layoutRandom = layoutRandom;
     this.runConfigSystem = new RunConfigSystem();
+    this.expeditionSystem = new ExpeditionSystem();
     this.stateManager = stateManager;
     this.mapConfig = getMapConfig('laboratory');
     this.clock = clock;
@@ -153,6 +157,8 @@ export class GameWorld {
     } });
     this.hazardSystem = new HazardSystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem,
       onBlast: () => this.#emitSoundEvent('barrel-blast') });
+    this.characterSkillSystem = new CharacterSkillSystem({ player, enemies: this.enemies,
+      enemyDamageSystem: this.enemyDamageSystem, statusEffectSystem: this.statusEffectSystem });
     this.relaySystem = new RelaySystem({ player, enemies: this.enemies, enemyDamageSystem: this.enemyDamageSystem });
     this.deployableSystem = new DeployableSystem({ player, enemies: this.enemies,
       enemyDamageSystem: this.enemyDamageSystem, statusSystem: this.statusEffectSystem });
@@ -186,7 +192,11 @@ export class GameWorld {
     });
     this.encounterSystem = new EncounterSystem({ player, enemies: this.enemies, random: encounterRandom, world,
       rewardRandom: encounterRewardRandom,
-      spawnElite: options => this.spawnSystem.spawnEncounterElite(options),
+      spawnElite: options => {
+        const multiplier = this.getWaveSnapshot().hpMultiplier ?? 1;
+        return this.spawnSystem.spawnEncounterElite({ ...options, config: multiplier === 1 ? options.config
+          : { ...options.config, hp: options.config.hp * multiplier, maxHp: options.config.maxHp * multiplier } });
+      },
       onNotice: message => this.supplySystem.notify(message),
       onReward: reward => {
         this.rewardSystem.grant(reward);
@@ -219,7 +229,7 @@ export class GameWorld {
     this.upgradeEffectSystem = new UpgradeEffectSystem({
       player: this.player,
       upgradeSystem: this.upgradeSystem,
-      getModifiers: () => this.runConfigSystem.protocol,
+      getModifiers: () => this.#getRunModifiers(),
     });
     this.particleSystem = new ParticleSystem();
     this.subscribeEnemyDeath((event) => this.particleSystem.emitEnemyDeath(event));
@@ -233,7 +243,7 @@ export class GameWorld {
 
   setMap(id) {
     const map = getMapConfig(id);
-    if (!map || this.stateManager.currentState !== GAME_STATES.MENU) return false;
+    if (!map || this.expeditionSystem.campaign || this.stateManager.currentState !== GAME_STATES.MENU) return false;
     this.mapConfig = map;
     this.#configureLayout();
     this.supplySystem.setEnabled(map.supplies);
@@ -242,7 +252,7 @@ export class GameWorld {
     this.rewardSystem.reset();
     this.objectiveSystem.reset();
     this.hazardSystem.reset(map.id, this.#layout);
-    this.bossSystem = map.id === 'energy-hub' ? new GridBossSystem({ ...this.#bossOptions, onWarning: () => this.#emitSoundEvent('enemy-warning') }) : new BossSystem(this.#bossOptions);
+    this.#configureBoss();
     return true;
   }
 
@@ -272,7 +282,60 @@ export class GameWorld {
   }
 
   getRunConfigSnapshot() {
-    return this.runConfigSystem.getSnapshot(this.mapConfig.id);
+    const base = this.runConfigSystem.getSnapshot(this.mapConfig.id);
+    const expedition = this.expeditionSystem.getSnapshot();
+    return Object.freeze({ ...base, journeyId: expedition.journeyId, difficultyId: expedition.difficultyId, characterId: expedition.characterId,
+      recordKey: expedition.journeyId === 'survival' && expedition.difficultyId === 'normal' && expedition.characterId === 'zero' ? base.recordKey : null });
+  }
+
+  configureExpedition(patch) {
+    if (this.stateManager.currentState !== GAME_STATES.MENU || !this.expeditionSystem.configure(patch)) return false;
+    if (this.expeditionSystem.campaign) this.mapConfig = getMapConfig('laboratory');
+    this.#configureBoss(); this.#applyOpeningProtocol(); return true;
+  }
+  #getRunModifiers() {
+    const protocol = this.runConfigSystem.protocol, character = this.expeditionSystem.character, modules = this.expeditionSystem.moduleModifiers;
+    return { ...protocol, damageMultiplier: protocol.damageMultiplier * character.damageMultiplier * modules.damageMultiplier,
+      moveSpeedMultiplier: protocol.moveSpeedMultiplier * character.moveMultiplier * modules.moveMultiplier };
+  }
+  #configureBoss() {
+    const stage = this.expeditionSystem.stage, difficulty = this.expeditionSystem.difficulty;
+    const tuned = this.expeditionSystem.campaign || difficulty.id !== 'normal';
+    const config = tuned ? { ...this.#bossOptions.config, hp: stage.bossHp * difficulty.hpMultiplier,
+      maxHp: stage.bossHp * difficulty.hpMultiplier, spawnTimeSeconds: stage.bossTime } : this.#bossOptions.config;
+    const options = { ...this.#bossOptions, config, allowTuning: tuned };
+    this.bossSystem = this.mapConfig.id === 'energy-hub'
+      ? new GridBossSystem({ ...options, onWarning: () => this.#emitSoundEvent('enemy-warning') }) : new BossSystem(options);
+  }
+  getExpeditionSnapshot() {
+    return Object.freeze({ ...this.expeditionSystem.getSnapshot(this.clock.elapsedSeconds),
+      attributes: Object.freeze({ maxHp: this.player.maxHp, moveSpeed: this.player.moveSpeed, damageMultiplier: this.upgradeEffectSystem.getSnapshot().damageMultiplier }),
+      skill: this.characterSkillSystem.getSnapshot(this.expeditionSystem.character) });
+  }
+  useCharacterSkill() {
+    if (!this.stateManager.isPlaying() || !this.player.alive) return false;
+    const used = this.characterSkillSystem.use(this.expeditionSystem.character, this.upgradeEffectSystem.getSnapshot().damageMultiplier * this.relaySystem.damageMultiplier);
+    if (used) this.#emitSoundEvent('relay-pulse'); else this.supplySystem.notify('技能暂不可用 · 检查 CD、范围内目标或护盾上限');
+    return used;
+  }
+  advanceCampaign(moduleId) {
+    if (this.stateManager.currentState !== GAME_STATES.VICTORY || !this.#runResult?.intermission || !this.player.alive) return false;
+    const module = getEquipmentModule(moduleId);
+    if (!module || !this.expeditionSystem.advance(moduleId)) return false;
+    this.player.hp = Math.min(this.player.maxHp, this.player.hp + this.player.maxHp * .2);
+    this.player.maxHp += module.hpBonus; this.player.hp = Math.min(this.player.maxHp, this.player.hp + module.hpBonus);
+    this.player.moveSpeed = this.player.baseMoveSpeed * this.upgradeEffectSystem.getSnapshot().moveSpeedMultiplier;
+    this.reset({ betweenStages: true });
+    this.stateManager.continueCampaign();
+    if (this.levelSystem.pendingLevelUps > 0) { this.upgradeSystem.prepareChoices(); this.stateManager.beginLevelUp(); }
+    return true;
+  }
+  getEquipmentSnapshot() {
+    const upgrades = { 'orbital-blade': 'UP-04', 'arc-coil': 'UP-07', railgun: 'UP-08', 'cryo-sprayer': 'UP-09', 'drone-swarm': 'UP-10' };
+    return Object.freeze(this.upgradeSystem.getBuildSnapshot().weaponIds.map(id => Object.freeze({ id,
+      level: id === 'pulse-gun' ? this.upgradeSystem.getLevel('UP-01') : upgrades[id] ? this.upgradeSystem.getLevel(upgrades[id]) : 0,
+      evolved: this.upgradeSystem.isEvolved(id), continuous: id === 'orbital-blade',
+      cooldownRemaining: id === 'drone-swarm' ? this.droneSystem.getCooldownRemaining() : this.player.weaponStates.find(weapon => weapon.id === id)?.cooldownRemaining ?? 0 })));
   }
 
   setProtocol(id) {
@@ -285,8 +348,10 @@ export class GameWorld {
   }
   #applyOpeningProtocol() {
     const protocol = this.runConfigSystem.protocol;
-    this.player.maxHp = protocol.maxHp + this.upgradeSystem.getLevel('UP-06') * UPGRADE_EFFECT_CONFIG['UP-06'].maxHpIncreasePerLevel;
+    this.player.maxHp = protocol.maxHp + this.expeditionSystem.character.hpBonus + this.expeditionSystem.moduleModifiers.hpBonus
+      + this.upgradeSystem.getLevel('UP-06') * UPGRADE_EFFECT_CONFIG['UP-06'].maxHpIncreasePerLevel;
     this.player.hp = this.player.maxHp; this.player.shield = protocol.startingShield;
+    this.player.characterColor = this.expeditionSystem.character.id === 'zero' ? null : this.expeditionSystem.character.color;
     this.player.moveSpeed = this.player.baseMoveSpeed * this.upgradeEffectSystem.getSnapshot().moveSpeedMultiplier;
   }
   getDiscoverySnapshot() {
@@ -296,7 +361,7 @@ export class GameWorld {
       events: this.encounterSystem.getSnapshot().completedTypes, maps: Object.freeze([this.mapConfig.id]) });
   }
   continueEndless() {
-    if (this.stateManager.currentState !== GAME_STATES.VICTORY || this.#endless || !this.#runResult || !this.player.alive) return false;
+    if (this.expeditionSystem.campaign || this.stateManager.currentState !== GAME_STATES.VICTORY || this.#endless || !this.#runResult || !this.player.alive) return false;
     this.#standardVictory = this.#runResult; this.#endless = true;
     this.#endlessStartedAt = this.clock.elapsedSeconds; this.#endlessStartKills = this.#killCount; this.#runResult = null;
     this.stateManager.continueEndless();
@@ -330,6 +395,7 @@ export class GameWorld {
     snapshot.upgrades = this.upgradeSystem.getUpgradeLevelsSnapshot();
     snapshot.endless = Object.freeze({ active: this.#endless, elapsedSeconds: this.#endless ? this.clock.elapsedSeconds - this.#endlessStartedAt : 0,
       kills: this.#endless ? this.#killCount - this.#endlessStartKills : 0 });
+    snapshot.expedition = this.getExpeditionSnapshot(); snapshot.equipment = this.getEquipmentSnapshot();
     snapshot.trackedObjective = this.objectiveSystem.getTrackedSnapshot(snapshot);
     return Object.freeze(snapshot);
   }
@@ -365,9 +431,11 @@ export class GameWorld {
   getWaveSnapshot(elapsedSeconds = this.clock.elapsedSeconds) {
     const wave = this.waveSystem.getSnapshot(elapsedSeconds);
     const minutes = this.#endless ? Math.floor(Math.max(0, elapsedSeconds - this.#endlessStartedAt) / 60) : 0;
-    const intervalMultiplier = this.runConfigSystem.challenge.spawnIntervalMultiplier * Math.max(.5, 1 - .05 * minutes);
-    return intervalMultiplier === 1 && minutes === 0 ? wave : Object.freeze({ ...wave,
-      spawnIntervalSeconds: wave.spawnIntervalSeconds * intervalMultiplier, ...(minutes > 0 ? { hpMultiplier: Math.min(3, 1 + .15 * minutes) } : {}) });
+    const stage = this.expeditionSystem.stage, difficulty = this.expeditionSystem.difficulty;
+    const intervalMultiplier = this.runConfigSystem.challenge.spawnIntervalMultiplier * Math.max(.5, 1 - .05 * minutes) * stage.intervalMultiplier * difficulty.intervalMultiplier;
+    const hpMultiplier = Math.min(3, (1 + .15 * minutes) * stage.hpMultiplier * difficulty.hpMultiplier);
+    return intervalMultiplier === 1 && hpMultiplier === 1 ? wave : Object.freeze({ ...wave,
+      spawnIntervalSeconds: wave.spawnIntervalSeconds * intervalMultiplier, hpMultiplier });
   }
 
   getBossSnapshot() {
@@ -459,6 +527,8 @@ export class GameWorld {
     for (const enemy of this.enemies) enemy.hitFlashRemaining = Math.max(0, (enemy.hitFlashRemaining ?? 0) - deltaSeconds);
     for (const weapon of this.player.weaponStates) weapon.fireFlashRemaining = Math.max(0, (weapon.fireFlashRemaining ?? 0) - deltaSeconds);
     this.damageSystem.update(deltaSeconds);
+    this.characterSkillSystem.update(deltaSeconds);
+    if (this.inputController?.consumeSkillPress?.()) this.useCharacterSkill();
     const direction = this.inputController?.getMovementVector() ?? { x: 0, y: 0 };
     if (!this.dashSystem.update(deltaSeconds, direction, this.inputController?.consumeDashPress?.())) {
       this.playerSystem.update(deltaSeconds);
@@ -496,12 +566,13 @@ export class GameWorld {
     const hazardHits = this.hazardSystem.update(deltaSeconds, this.clock.elapsedSeconds + deltaSeconds);
     this.enemySystem.update(deltaSeconds, (enemy) => this.supplySystem.targetFor(enemy));
     const contacts = this.collisionSystem.getPlayerContacts();
+    const damageMultiplier = this.expeditionSystem.difficulty.damageMultiplier * this.expeditionSystem.stage.damageMultiplier;
     const damageResult = this.damageSystem.applyDamageBatch([
       ...contacts.map(enemy => ({ damage: enemy.contactDamage, sourceTypeId: enemy.typeId })),
       ...hostileHits,
       ...hazardHits,
       ...(this.bossSystem.getDamageCandidates?.() ?? []),
-    ]);
+    ].map(hit => ({ ...hit, damage: hit.damage * damageMultiplier })));
     if (damageResult.damaged) {
       this.damageNumberSystem.emit({ targetId: 'player', x: this.player.x, y: this.player.y,
         amount: damageResult.damage, kind: 'player' });
@@ -563,7 +634,7 @@ export class GameWorld {
       this.#finishRun(GAME_STATES.DEFEAT);
     } else {
       const bossSnapshot = this.bossSystem.getSnapshot();
-      if (!this.#endless && this.clock.elapsedSeconds >= 300 && bossSnapshot?.alive === false) {
+      if (!this.#endless && this.clock.elapsedSeconds >= this.expeditionSystem.stage.durationSeconds && bossSnapshot?.alive === false) {
         this.#finishRun(GAME_STATES.VICTORY);
       }
     }
@@ -603,38 +674,42 @@ export class GameWorld {
     }
   }
 
-  reset() {
+  reset({ betweenStages = false } = {}) {
     if (this.stateManager.currentState === GAME_STATES.LEVEL_UP) {
       throw new RangeError('GameWorld cannot reset while level-up choices are pending');
     }
 
     this.clock.reset();
+    if (!betweenStages) this.expeditionSystem.reset();
+    if (this.expeditionSystem.campaign) this.mapConfig = getMapConfig(this.expeditionSystem.stage.mapId);
     this.#configureLayout();
     this.particleSystem.reset();
     this.damageNumberSystem.reset();
-    this.playerSystem.reset();
+    if (!betweenStages) this.playerSystem.reset();
+    else { this.player.x = this.player.worldWidth / 2; this.player.y = this.player.worldHeight / 2;
+      this.player.invulnerabilityRemaining = 0; this.player.moving = false; this.playerSystem.clearInput();
+      for (const weapon of this.player.weaponStates) { weapon.cooldownRemaining = 0; weapon.fireFlashRemaining = 0; delete weapon.aimAngle; } }
     this.dashSystem.reset();
     this.enemyAttackSystem.reset();
     this.inputController?.clear?.();
-    this.supplySystem.reset();
+    this.supplySystem.setEnabled(this.mapConfig.supplies, { preserveInventory: betweenStages });
     this.relaySystem.reset();
     this.explorationSystem.reset(this.mapConfig.id, this.#layout?.terminals);
     this.encounterSystem.reset(this.mapConfig.id, this.#layout?.eventAnchors);
     this.rewardSystem.reset();
     this.objectiveSystem.reset();
     this.hazardSystem.reset(this.mapConfig.id, this.#layout);
-    this.#rerolls = TACTICAL_CONFIG.initialRerolls;
+    if (!betweenStages) this.#rerolls = TACTICAL_CONFIG.initialRerolls;
     this.camera.follow(this.player);
     this.statusEffectSystem.reset();
     this.enemies.length = 0;
-    this.bossSystem.reset();
+    this.#configureBoss();
     for (const projectile of this.projectiles) projectile.active = false;
     this.projectiles.length = 0;
     this.projectileSystem.reset();
     this.experienceSystem.reset();
-    this.levelSystem.reset();
-    this.upgradeSystem.reset();
-    this.#applyOpeningProtocol();
+    if (!betweenStages) { this.levelSystem.reset(); this.upgradeSystem.reset(); this.#applyOpeningProtocol(); }
+    this.characterSkillSystem.reset();
     this.supplySystem.configureRules(this.runConfigSystem.challenge);
     this.orbitalBladeSystem.reset();
     this.arcCoilSystem.reset();
@@ -646,19 +721,21 @@ export class GameWorld {
     this.#simulationSteps = 0;
     this.#lastWeaponHitSoundAt = Number.NEGATIVE_INFINITY;
     this.#lastEnemyWarningAt = Number.NEGATIVE_INFINITY;
-    this.#killCount = 0;
-    this.combatStatsSystem.reset();
+    if (!betweenStages) { this.#killCount = 0; this.combatStatsSystem.reset(); this.#seenTypes.clear(); }
     this.#playerDeathFrozen = false;
     this.#runResult = null;
     this.#endless = false; this.#standardVictory = null; this.#endlessStartedAt = 0; this.#endlessStartKills = 0;
-    this.#nextEliteAt = 90; this.#seenTypes.clear();
+    this.#nextEliteAt = 90;
   }
 
   #finishRun(outcome) {
+    if (outcome === GAME_STATES.VICTORY && !this.#endless) this.expeditionSystem.completeStage(this.clock.elapsedSeconds);
+    const expedition = this.getExpeditionSnapshot();
     this.#runResult = Object.freeze({
       outcome: outcome === GAME_STATES.VICTORY ? 'victory' : 'defeat',
       killCount: this.#killCount,
-      elapsedSeconds: this.clock.elapsedSeconds,
+      elapsedSeconds: this.expeditionSystem.campaign ? expedition.totalElapsedSeconds : this.clock.elapsedSeconds,
+      expedition, intermission: outcome === GAME_STATES.VICTORY && expedition.intermission,
       statistics: this.combatStatsSystem.getSnapshot(),
       ...this.getRunConfigSnapshot(),
       discoveries: this.getDiscoverySnapshot(),
@@ -672,7 +749,7 @@ export class GameWorld {
       this.#runResult = null;
       return false;
     }
-    this.#emitSoundEvent(outcome === GAME_STATES.VICTORY ? 'victory' : 'defeat');
+    this.#emitSoundEvent(this.#runResult.intermission ? 'stage-clear' : outcome === GAME_STATES.VICTORY ? 'victory' : 'defeat');
     return true;
   }
 

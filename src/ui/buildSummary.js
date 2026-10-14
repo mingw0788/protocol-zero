@@ -1,7 +1,7 @@
 import { UPGRADE_CONFIG } from '../config/upgradeConfig.js';
 import { SUPPLY_NAMES } from '../config/supplyConfig.js';
 export const WEAPON_NAMES = Object.freeze({ 'pulse-gun': '脉冲枪', 'orbital-blade': '轨道刃', 'arc-coil': '弧光线圈', railgun: '磁轨炮', 'cryo-sprayer': '冷凝喷射器', 'drone-swarm': '蜂群无人机' });
-const SOURCES = Object.freeze({ ...WEAPON_NAMES, ...SUPPLY_NAMES, 'relay-pulse': '中继冲击', 'capacitor-barrel': '电容桶', unknown: '其他来源' });
+const SOURCES = Object.freeze({ ...WEAPON_NAMES, ...SUPPLY_NAMES, 'character-pulse': '角色电磁脉冲', 'relay-pulse': '中继冲击', 'capacitor-barrel': '电容桶', unknown: '其他来源' });
 export function sourceName(id, build) { return build?.evolutions?.find(evolution => evolution.weaponId === id && evolution.evolved)?.name ?? SOURCES[id] ?? id; }
 export function formatBuildSummary(data) {
   const build = data?.build;

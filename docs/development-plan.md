@@ -370,3 +370,7 @@ Git Commit：哈希或未提交原因
 ### T044 重复游玩与本机档案
 
 新增标准/突击/回收/守卫开局协议、三种可选挑战、独立配置成绩与胜利后无尽加时；本地图鉴、八成就、纯外观奖励和校验后预览确认的档案导入导出。 验证证据见 `docs/task-report-T044.md`。T045 综合验收已完成，报告见 `docs/task-report-T045.md`。
+
+### T046 最终玩法完善：三关战役、难度、角色与装备/CD
+
+依赖T040六武器、T042三地图/电网Boss、T044构筑与档案及T045验收基线。用户授权自主完成。新增独立ExpeditionSystem、CharacterSkillSystem、ExpeditionRecordStore和EquipmentHUD，接入部分场景重置、关间模块与技能冷却。设计与执行计划分别见 `docs/superpowers/specs/2026-10-14-t046-campaign-polish-design.md` 和 `docs/superpowers/plans/2026-10-14-t046-campaign-polish.md`；回归、浏览器、AI样本及性能边界见 `docs/task-report-T046.md`。不新增依赖、不更新公开站点。

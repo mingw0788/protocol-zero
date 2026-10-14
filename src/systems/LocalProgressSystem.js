@@ -38,6 +38,8 @@ export class LocalProgressSystem {
     this.#snapshot = next; return this.#persist();
   }
   recordRun(result) {
+    if (result?.intermission || result?.journeyId && result.journeyId !== 'survival'
+      || result?.difficultyId && result.difficultyId !== 'normal' || result?.characterId && result.characterId !== 'zero') return false;
     if (!result || !['victory', 'defeat'].includes(result.outcome) || !nonnegative(result.killCount)
       || !Number.isFinite(result.elapsedSeconds) || result.elapsedSeconds < 0 || result.elapsedSeconds > 86400) return false;
     const key = createRecordKey(result);
@@ -88,7 +90,7 @@ export class LocalProgressSystem {
     if (!parsed) return Object.freeze({ ok: false, reason: '文件无效、版本不支持或超过64KiB，当前档案未改变。' });
     this.#snapshot = parsed.progress;
     const saved = this.#persist();
-    return Object.freeze({ ok: true, saved, feedback: parsed.feedback });
+    return Object.freeze({ ok: true, saved, feedback: parsed.feedback, ...(parsed.expeditions ? { expeditions: parsed.expeditions } : {}) });
   }
   #persist() { try { this.#saved = this.#store.save(this.#snapshot) === true; } catch { this.#saved = false; } return this.#saved; }
 }

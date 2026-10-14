@@ -15,8 +15,10 @@ import { HazardRenderer } from './HazardRenderer.js';
 import { AdvancedWeaponRenderer } from './AdvancedWeaponRenderer.js';
 import { DeployableRenderer } from './DeployableRenderer.js';
 import { DamageNumberRenderer } from './DamageNumberRenderer.js';
+import { CharacterSkillRenderer } from './CharacterSkillRenderer.js';
 
 export class CanvasRenderer {
+  #characterSkillRenderer = new CharacterSkillRenderer();
   #canvas;
   #context;
   #camera;
@@ -172,6 +174,7 @@ export class CanvasRenderer {
     this.#expansionRenderer.render(this.#context, this.#camera, expansionSnapshot);
     this.#advancedWeaponRenderer.render(this.#context, this.#camera, expansionSnapshot);
     this.#deployableRenderer.render(this.#context, this.#camera, expansionSnapshot);
+    this.#characterSkillRenderer.render(this.#context, this.#camera, expansionSnapshot, feedback);
     this.#projectileRenderer.render(this.#context, this.#camera, projectiles);
     this.#particleRenderer.render(this.#context, this.#camera, visualEffects, feedback);
     this.#bossRenderer.render(this.#context, this.#camera, bossSnapshot, effectiveTime, feedback);

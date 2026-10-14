@@ -5,7 +5,8 @@ export class PlayerRenderer {
     const screenPosition = camera.worldToScreen(player.x, player.y);
     const diameter = player.radius * 2;
     const frame = player.moving ? Math.floor(effectiveTime * 8) % 2 : Math.floor(effectiveTime * 5) % 2;
-    const base = player.cosmeticColor ? { ...SPRITE_PALETTES.player, B: player.cosmeticColor, C: player.cosmeticColor } : SPRITE_PALETTES.player;
+    const color = player.cosmeticColor ?? player.characterColor;
+    const base = color ? { ...SPRITE_PALETTES.player, B: color, C: color } : SPRITE_PALETTES.player;
     const palette = !feedback.reducedFlash && player.invulnerabilityRemaining > 0
       && Math.floor(player.invulnerabilityRemaining / 0.08) % 2 === 0
       ? { ...base, B: '#ffffff', C: '#ffffff' }

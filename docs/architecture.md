@@ -602,3 +602,11 @@ RunConfigSystem持有菜单选择，升级效果复用协议倍率，探索/事�
 ### T045 跨批次稳定性与存档边界修复
 
 综合审查修复三条既有架构边界：当升级样本全为进化卡时，候选替换逻辑保证保底强化仍有合法落点；本机档案导入将未知版本和结构损坏作为拒绝条件，避免覆盖有效档案；无尽模式精英增援继承当前波次 HP 倍率。修复未新增玩法或调整已确认数值。针对性回归、浏览器检查、长局固定步压力和整帧性能证据见 `docs/task-report-T045.md`。
+
+### T046 三关战役、角色技能与装备/CD
+
+ExpeditionSystem拥有菜单旅程/角色/难度选择、三关索引、累计时长和两模块奖励；CharacterSkillSystem单独拥有有效秒冷却及有界范围反馈。GameWorld通过统一派生属性叠加协议/角色/模块；难度伤害在DamageSystem批次前统一缩放，普通波次和事件/挑战精英均继承HP倍率。BossSystem仅在显式allowTuning下允许关卡HP/时间变体；GridBossSystem接受同一配置并保留阶段预警。
+
+前两关沿用VICTORY冻结为intermission，发stage-clear并保存发现而非通关成绩；advanceCampaign校验结果状态和单次奖励后做partial reset，保留成长/装备/道具/累计战斗统计，清理场景与枪口表现，重新配置地图布局和Boss。积压升级在下一关PLAYING后立刻进入LEVEL_UP；第三关才发victory。重开清整个路线；单图无尽保持原结果语义。
+
+ExpeditionRecordStore独立版本化按完整七维配置存128条，Game控制器对默认ZERO普通单图仍更新原V2记录。progressTransfer校验可选expeditions后再替换；旧导入不清旅程记录。Game导出紧凑JSON，已用96旧记录+128旅程记录的大档案验证64KiB往返。EquipmentHUD按装备签名创建卡片，随后只更新变更的CD文字；角色技能范围由独立Canvas渲染器绘制，低闪光设置仍有效。详细证据见T046报告。

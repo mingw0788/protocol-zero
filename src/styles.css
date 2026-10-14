@@ -772,3 +772,27 @@ button:disabled { opacity: .45; cursor: default; }
 .transfer-actions button { font-size: 12px; padding: 8px; }
 .save-notice,#progress-transfer-status { color: #f1ca7d; font-size: 11px; line-height: 1.6; }
 @container (max-width:500px) { .deployment-grid { gap: 0 5px; } .map-choice select { font-size: 10px; padding: 6px 4px; } }
+
+#expedition-description, #pause-equipment { white-space: pre-line; }
+.equipment-hud { position: absolute; top: 160px; right: 14px; width: min(290px, 35%); padding: 7px; border: 1px solid #426276; background: #091725ee; color: #cee8f5; font-size: 11px; }
+.equipment-hud > strong { display: block; margin-bottom: 5px; color: #b6dcf0; font-size: 11px; }
+.equipment-weapons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.equipment-card { display: flex; flex-direction: column; min-width: 0; gap: 3px; padding: 4px; border: 1px solid #304b60; }
+.equipment-card[data-evolved="true"] { border-color: #b28be2; color: #e1c3ff; }
+.equipment-card span:last-child { color: #a9bdcc; font-size: 10px; font-variant-numeric: tabular-nums; }
+#use-skill-button { width: 100%; margin-top: 6px; min-height: 30px; padding: 5px; font-size: 11px; pointer-events: auto; border-color: #75c4db; }
+#skill-cooldown-bar { width: 100%; height: 4px; display: block; margin-top: 3px; accent-color: #b4eaff; }
+.campaign-intermission { margin: 14px 0; padding: 12px; border: 1px solid #7fabc0; background: #102b3e; }
+.campaign-intermission h3 { margin: 0 0 10px; font-size: 14px; color: #bcecff; }
+.campaign-module-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.campaign-module-grid button { padding: 9px 5px; min-width: 0; }
+.campaign-module-grid strong, .campaign-module-grid span { display: block; }
+.campaign-module-grid strong { font-size: 13px; }.campaign-module-grid span { font-size: 10px; margin-top: 5px; line-height: 1.6; }
+@container (max-width:700px) {
+  .equipment-hud { top: 150px; right: 8px; width: 230px; max-width: 40%; padding: 4px; font-size: 9px; }
+  .equipment-hud > strong { font-size: 9px; margin-bottom: 3px; }
+  .equipment-weapons { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; }
+  .equipment-card { padding: 2px; gap: 1px; }.equipment-card span:last-child { font-size: 8px; }
+  #use-skill-button { margin-top: 3px; min-height: 22px; padding: 2px; font-size: 9px; }
+  .campaign-module-grid { gap: 4px; }.campaign-module-grid strong { font-size: 11px; }
+}

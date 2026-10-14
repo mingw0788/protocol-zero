@@ -8,10 +8,12 @@ export class GridBossSystem {
   #cooldown = GRID_BOSS_CONFIG.stageOneInterval;
   #warnings = [];
   #hits = [];
-  constructor({ enemies, player, camera, world, onWarning = null } = {}) {
+  #contactDamage;
+  constructor({ enemies, player, camera, world, config = BOSS_CONFIG, allowTuning = false, onWarning = null } = {}) {
     this.enemies = enemies; this.player = player; this.onWarning = onWarning;
+    this.#contactDamage = config.contactDamage;
     this.#base = new BossSystem({ enemies, player, camera, world,
-      config: { ...BOSS_CONFIG, typeId: 'BOSS-02', name: '电网监护者', color: '#a6bbff' } });
+      allowTuning, config: { ...config, typeId: 'BOSS-02', name: '电网监护者', color: '#a6bbff' } });
   }
   update(deltaSeconds, elapsedSeconds) {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0 || !Number.isFinite(elapsedSeconds) || elapsedSeconds < 0) throw new RangeError('Invalid grid boss step');
@@ -31,7 +33,7 @@ export class GridBossSystem {
     }
     if (this.#transition > 0) {
       this.#transition = Math.max(0, this.#transition - deltaSeconds);
-      if (this.#transition <= 1e-9) { this.#transition = 0; if (boss) boss.contactDamage = BOSS_CONFIG.contactDamage; }
+      if (this.#transition <= 1e-9) { this.#transition = 0; if (boss) boss.contactDamage = this.#contactDamage; }
       return false;
     }
     this.#base.update(deltaSeconds, elapsedSeconds);

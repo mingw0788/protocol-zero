@@ -5,6 +5,8 @@ import { formatBuildSummary, formatCombatSummary, WEAPON_NAMES } from './buildSu
 import { OPENING_PROTOCOLS, CHALLENGES } from '../config/runConfig.js';
 import { ACHIEVEMENTS, COSMETICS, DISCOVERY_IDS } from '../config/progressConfig.js';
 import { ENEMY_CONFIG } from '../config/enemyConfig.js';
+import { EquipmentHUD } from './EquipmentHUD.js';
+import { CHARACTERS, EQUIPMENT_MODULES } from '../config/expeditionConfig.js';
 
 const WEAPON_LABELS = WEAPON_NAMES;
 const ELEMENT_IDS = Object.freeze({
@@ -68,6 +70,7 @@ export class UIManager {
   #lastStatsResult = null;
   #lastLibraryProgress = null;
   #pendingImport = null;
+  #equipmentHUD;
 
   constructor({ root, game, windowTarget = globalThis.window ?? null } = {}) {
     if (!root || typeof root.querySelector !== 'function') {
@@ -87,6 +90,7 @@ export class UIManager {
     }
     this.#root = root;
     this.#tacticalHUD = new TacticalHUD(root);
+    this.#equipmentHUD = new EquipmentHUD(root);
     this.#elements.reroll = root.querySelector('#reroll-upgrades-button');
     this.#elements.expansion = root.querySelector('#expansion-hud');
     this.#elements.activeItemHud = root.querySelector('#active-item-hud');
@@ -122,6 +126,16 @@ export class UIManager {
     if (this.#started) return;
     this.#started = true;
     const e = this.#elements;
+    for (const [id, key] of [['journey-select', 'journeyId'], ['difficulty-select', 'difficultyId'], ['character-select', 'characterId']]) {
+      const control = this.#root.querySelector(`#${id}`);
+      if (control) this.#listen(control, 'change', () => { this.#game.configureExpedition?.({ [key]: control.value }); this.#renderRecords(); this.#renderExpeditionMenu(); });
+    }
+    for (const module of EQUIPMENT_MODULES) {
+      const button = this.#root.querySelector(`#campaign-module-${module.id}`);
+      if (button) this.#listen(button, 'click', () => this.#game.advanceCampaign?.(module.id));
+    }
+    const useSkill = this.#root.querySelector('#use-skill-button');
+    if (useSkill) this.#listen(useSkill, 'click', () => { this.#game.useCharacterSkill?.(); this.#root.focus(); });
     if (e.reroll) this.#listen(e.reroll, 'click', () => this.#rerollUpgrades());
     const mapSelect = this.#root.querySelector('#map-select');
     if (mapSelect) this.#listen(mapSelect, 'change', () => {
@@ -226,6 +240,7 @@ export class UIManager {
     const endEndlessButton = this.#root.querySelector('#end-endless-button');
     if (endEndlessButton) endEndlessButton.hidden = currentState !== GAME_STATES.PAUSED || !this.#game.getExpansionSnapshot?.()?.endless?.active;
     this.#tacticalHUD.render(this.#game.getExpansionSnapshot?.(), currentState === GAME_STATES.PLAYING);
+    this.#equipmentHUD.render(this.#game.getExpansionSnapshot?.(), currentState === GAME_STATES.PLAYING);
     this.#renderExpansion(currentState);
     this.#renderActiveItems(currentState);
     this.#renderBossSnapshot(bossSnapshot, currentState);
@@ -283,6 +298,7 @@ export class UIManager {
     if (element.hidden) return;
     const { supply, map } = snapshot;
     const parts = [map.name + (map.layoutName ? ` · ${map.layoutName}` : '')];
+    if (snapshot.expedition?.journeyId === 'campaign') parts.unshift(`第 ${snapshot.expedition.stageIndex}/3 关 · ${snapshot.expedition.stage.name} · 守住 ${formatTime(snapshot.expedition.stage.durationSeconds)} 并击败首领`);
     if (snapshot.runConfig && snapshot.runConfig.protocolId !== 'standard') parts.push(snapshot.runConfig.protocolName);
     if (snapshot.runConfig && snapshot.runConfig.challengeId !== 'none') parts.push(snapshot.runConfig.challengeName);
     if (snapshot.endless?.active) parts.push(`无尽加时 ${formatTime(snapshot.endless.elapsedSeconds)} · 额外击杀 ${snapshot.endless.kills}`);
@@ -345,6 +361,7 @@ export class UIManager {
       if (importDialog?.open) importDialog.close(); this.#pendingImport = null;
     }
     if (state === GAME_STATES.MENU) e.start.focus();
+    if (state === GAME_STATES.MENU) this.#renderExpeditionMenu();
     if (state === GAME_STATES.PAUSED) e.resume.focus();
     if (state === GAME_STATES.LEVEL_UP) {
       this.#renderUpgradeChoices();
@@ -352,7 +369,8 @@ export class UIManager {
     }
     if (state === GAME_STATES.VICTORY || state === GAME_STATES.DEFEAT) {
       this.#renderRunResult(state);
-      e.restartRun.focus();
+      if (this.#game.getRunResultSnapshot()?.intermission) this.#root.querySelector('#campaign-module-reactor')?.focus();
+      else e.restartRun.focus();
     }
     if (state === GAME_STATES.PLAYING) this.#root.focus();
     this.renderSnapshot(this.#game.getHudSnapshot(), state, this.#game.getBossSnapshot());
@@ -394,9 +412,19 @@ export class UIManager {
     if (state !== GAME_STATES.VICTORY && state !== GAME_STATES.DEFEAT) return;
     const snapshot = this.#game.getRunResultSnapshot();
     if (!snapshot) return;
-    this.#setText(this.#elements.resultTitle, snapshot.endless ? '加时结束 · 标准胜利已保留' : state === GAME_STATES.VICTORY ? '任务完成' : '任务失败');
+    this.#setText(this.#elements.resultTitle, snapshot.intermission ? `第 ${snapshot.expedition.stageIndex} 关完成 · 关间整备`
+      : snapshot.journeyId === 'campaign' ? state === GAME_STATES.VICTORY ? '三关通关 · 行动成功' : `战役失败 · 已过 ${snapshot.expedition.completed}/3 关`
+        : snapshot.endless ? '加时结束 · 标准胜利已保留' : state === GAME_STATES.VICTORY ? '任务完成' : '任务失败');
+    const intermission = this.#root.querySelector('#campaign-intermission');
+    if (intermission) intermission.hidden = !snapshot.intermission;
+    const campaignStatus = this.#root.querySelector('#campaign-result-status');
+    if (campaignStatus) {
+      campaignStatus.hidden = snapshot.journeyId !== 'campaign';
+      this.#setText(campaignStatus, snapshot.intermission ? '选择一件模块进入下一关 · 保留构筑/道具 · 恢复20%最大生命 · 技能与冲刺重新就绪'
+        : `${snapshot.expedition?.difficultyName} · ${snapshot.expedition?.characterName} · 总进度 ${snapshot.expedition?.completed}/3 · 累计 ${formatTime(snapshot.elapsedSeconds)}`);
+    }
     const endlessButton = this.#root.querySelector('#continue-endless-button');
-    if (endlessButton) endlessButton.hidden = state !== GAME_STATES.VICTORY || snapshot.endless;
+    if (endlessButton) endlessButton.hidden = state !== GAME_STATES.VICTORY || snapshot.endless || snapshot.journeyId === 'campaign';
     this.#setText(this.#elements.resultKills, String(snapshot.killCount));
     this.#setText(this.#elements.resultTime, formatTime(snapshot.elapsedSeconds));
     const detail = this.#root.querySelector('#run-result-exploration');
@@ -424,6 +452,8 @@ export class UIManager {
   #renderBuild() {
     const data = this.#game.getExpansionSnapshot?.();
     const summary = formatBuildSummary(data);
+    const loadout = this.#root.querySelector('#pause-equipment'), expedition = data?.expedition;
+    if (loadout && expedition) this.#setText(loadout, `${expedition.characterName} · ${expedition.difficultyName} · ${expedition.skill.name} CD ${expedition.skill.cooldownRemaining.toFixed(1)}s\n模块：${expedition.modules.map((id, i) => `${i + 1} ${EQUIPMENT_MODULES.find(item => item.id === id)?.name ?? '空槽'}`).join(' / ')}\n最大生命 ${expedition.attributes.maxHp} · 移速 ${expedition.attributes.moveSpeed.toFixed(1)} · 伤害 ×${expedition.attributes.damageMultiplier.toFixed(2)}`);
     for (const [key, id] of [['weapons', 'pause-weapons'], ['upgrades', 'pause-upgrades'], ['buffs', 'pause-buffs']]) {
       const element = this.#root.querySelector(`#${id}`); if (element) this.#setText(element, summary[key]);
     }
@@ -445,7 +475,7 @@ export class UIManager {
     const tip = this.#root.querySelector('#tutorial-tip'), text = this.#root.querySelector('#tutorial-tip-text');
     if (!tip || !text) return;
     tip.hidden = state !== GAME_STATES.PLAYING || !settings.showTutorial || hud.elapsedSeconds >= 60;
-    if (!tip.hidden) this.#setText(text, hud.elapsedSeconds < 15 ? 'WASD 移动 · 靠近敌人自动攻击 · Shift 冲刺脱围'
+    if (!tip.hidden) this.#setText(text, hud.elapsedSeconds < 15 ? 'WASD 移动 · 自动攻击 · Shift 冲刺 · Space 角色技能'
       : hud.elapsedSeconds < 35 ? '拾取晶体积累经验 · 升级时查看武器进化条件 · E/Q 使用道具'
         : 'G 切换目标 · 探索终端获取补给 · 事件倒计时内完成可得额外奖励');
   }
@@ -457,9 +487,12 @@ export class UIManager {
   }
 
   #renderRecords() {
+    this.#renderExpeditionMenu();
     const progress = this.#game.getProgressSnapshot();
     if (!progress) return;
     const config = this.#game.getRunConfigSnapshot?.();
+    const extended = this.#root.querySelector('#expedition-best'), extendedRecord = this.#game.getExpeditionRecord?.();
+    if (extended) this.#setText(extended, `当前完整配置：通关 ${extendedRecord?.wins ?? 0} 次 · 最佳 ${extendedRecord?.bestVictorySeconds == null ? '尚无' : formatTime(extendedRecord.bestVictorySeconds)} · 最高击杀 ${extendedRecord?.highestKillCount ?? 0}${config?.journeyId === 'campaign' ? ` · 最远 ${extendedRecord?.maxStage ?? 0}/3 关` : ''}`);
     const record = progress.records?.find(item => item.key === config?.recordKey);
     this.#setText(this.#elements.highestKills, String(record?.highestKillCount ?? (progress.records ? 0 : progress.highestKillCount)));
     this.#setText(
@@ -493,6 +526,18 @@ export class UIManager {
     this.#setText(library, lines.join('\n'));
   }
 
+  #renderExpeditionMenu() {
+    if (this.#game.stateManager.currentState !== GAME_STATES.MENU) return;
+    const data = this.#game.getExpansionSnapshot?.()?.expedition;
+    if (!data) return;
+    for (const [id, key] of [['journey-select', 'journeyId'], ['difficulty-select', 'difficultyId'], ['character-select', 'characterId']]) {
+      const control = this.#root.querySelector(`#${id}`); if (control) control.value = data[key];
+    }
+    const map = this.#root.querySelector('#map-select');
+    if (map) { map.disabled = data.journeyId === 'campaign'; map.value = this.#game.getMapSnapshot().id; }
+    const description = this.#root.querySelector('#expedition-description'), character = CHARACTERS.find(item => item.id === data.characterId);
+    if (description && character) this.#setText(description, `${data.journeyId === 'campaign' ? '路线：实验室 → 东城区 → 能源枢纽。三关约10分钟，首领未死继续战斗；关间整备保留构筑。' : '单图五分钟，击败首领后可继续无尽。'}\n${character.name}：最大生命 ${data.attributes.maxHp}，移速 ${data.attributes.moveSpeed.toFixed(0)}，伤害 ×${data.attributes.damageMultiplier.toFixed(2)}。Space ${character.skillName}，CD ${character.cooldown}s。${data.difficultyId === 'normal' ? '普通：原始敌人属性。' : data.difficultyId === 'hard' ? '困难：敌生命×1.25、承伤×1.15、生成间隔×0.9。' : '噩梦：敌生命×1.6、承伤×1.3、生成间隔×0.8。'}高难与角色独立记分。`);
+  }
   #transferNotice(text) { const element = this.#root.querySelector('#progress-transfer-status'); if (element) this.#setText(element, text); }
   #exportProgress() {
     const raw = this.#game.exportProgress?.(); if (!raw) return;
@@ -510,7 +555,7 @@ export class UIManager {
       if (this.#game.stateManager.currentState !== GAME_STATES.MENU) return;
       if (!preview) { this.#transferNotice('档案无效或版本不支持，未改变当前档案。'); return; }
       this.#pendingImport = raw;
-      this.#setText(this.#root.querySelector('#import-progress-preview'), `将替换当前本机档案：${preview.progress.records.length} 组成绩、${preview.progress.achievements.length} 项成就及声音/显示设置。取消可保留现有档案。`);
+      this.#setText(this.#root.querySelector('#import-progress-preview'), `将替换当前本机档案：${preview.progress.records.length} 组原始成绩、${preview.progress.achievements.length} 项成就及声音/显示设置${preview.expeditions ? `，另含 ${preview.expeditions.records.length} 组旅程成绩` : '；旧档案不改变旅程成绩'}。取消可保留现有档案。`);
       this.#root.querySelector('#import-progress-dialog').showModal();
     } catch { this.#transferNotice('文件无法读取，未改变当前档案。'); }
   }
@@ -558,7 +603,9 @@ export class UIManager {
       }
       if (event.code === 'Tab') {
         const endlessButton = this.#root.querySelector('#continue-endless-button');
-        const first = endlessButton && !endlessButton.hidden ? endlessButton : this.#elements.restartRun;
+        const first = this.#game.getRunResultSnapshot()?.intermission
+          ? this.#root.querySelector('#campaign-module-reactor') ?? this.#elements.restartRun
+          : endlessButton && !endlessButton.hidden ? endlessButton : this.#elements.restartRun;
         const last = this.#elements.resultMenu;
         const active = this.#windowTarget?.document?.activeElement;
         if ((event.shiftKey && active === first) || (!event.shiftKey && active === last)) {

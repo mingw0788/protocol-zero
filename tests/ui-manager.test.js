@@ -97,6 +97,16 @@ function createHarness({ upgradeChoices = null } = {}) {
 }
 
 describe('tactical controls', () => {
+  it('keeps campaign module rewards within the result keyboard focus cycle', () => {
+    const h = createHarness(); h.game.configureExpedition({ journeyId: 'campaign' }); h.click('start-game-button');
+    const w = h.game.world; w.clock.advance(180); w.bossSystem.update(1 / 60, 180);
+    w.enemyDamageSystem.applyDamage(w.enemies.find(enemy => enemy.category === 'boss'), 100000); w.update(1 / 60);
+    expect(w.getRunResultSnapshot().intermission).toBe(true);
+    h.get('result-menu-button').focus(); const forward = h.key('Tab');
+    expect(forward.defaultPrevented).toBe(true); expect(h.documentTarget.activeElement).toBe(h.get('campaign-module-reactor'));
+    const backward = h.key('Tab', { shiftKey: true });
+    expect(backward.defaultPrevented).toBe(true); expect(h.documentTarget.activeElement).toBe(h.get('result-menu-button'));
+  });
   it('shows the laboratory tactical HUD and rerolls with R without consuming a level', () => {
     const h = createHarness();
     h.click('start-game-button');

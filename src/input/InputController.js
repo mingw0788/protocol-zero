@@ -27,6 +27,8 @@ export class InputController {
   #objectiveHeld = false;
   #dashPending = false;
   #dashKeys = new Set();
+  #skillPending = false;
+  #skillHeld = false;
   #unsubscribeState = null;
 
   constructor({
@@ -80,6 +82,7 @@ export class InputController {
   }
 
   clear() {
+    this.#skillPending = false; this.#skillHeld = false;
     this.#pressedKeys.clear();
     this.#itemUsePending = null;
     this.#itemKeys.clear();
@@ -98,6 +101,7 @@ export class InputController {
     this.#dashPending = false;
     return pending;
   }
+  consumeSkillPress() { const pending = this.#skillPending; this.#skillPending = false; return pending; }
 
   consumeItemUsePress() {
     const pending = this.#itemUsePending;
@@ -124,6 +128,12 @@ export class InputController {
   }
 
   #handleKeyDown = (event) => {
+    if (event.code === 'Space') {
+      if (!this.#stateManager.isPlaying()) return;
+      event.preventDefault?.();
+      if (!event.repeat && !this.#skillHeld) this.#skillPending = true;
+      this.#skillHeld = true; return;
+    }
     if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
       if (!this.#stateManager.isPlaying()) return;
       event.preventDefault?.();
@@ -172,6 +182,7 @@ export class InputController {
   };
 
   #handleKeyUp = (event) => {
+    if (event.code === 'Space') { this.#skillHeld = false; return; }
     if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') { this.#dashKeys.delete(event.code); return; }
     if (event.code === 'KeyE' || event.code === 'KeyQ') { this.#itemKeys.delete(event.code); return; }
     if (event.code === 'KeyF') { this.#exchangeHeld = false; return; }

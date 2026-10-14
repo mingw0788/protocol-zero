@@ -50,9 +50,9 @@ export class SupplySystem {
       stationRewards: Object.freeze(supportedStationRewards.length ? supportedStationRewards : [...config.rewards]) });
   }
 
-  setEnabled(enabled) {
+  setEnabled(enabled, options = {}) {
     this.#enabled = Boolean(enabled);
-    this.reset();
+    this.reset(options);
   }
 
   configureRules({ killsPerDrop = TACTICAL_CONFIG.killsPerDrop, stationWindow = this.config.windowSeconds } = {}) {
@@ -295,7 +295,8 @@ export class SupplySystem {
     });
   }
 
-  reset() {
+  reset({ preserveInventory = false } = {}) {
+    const inventory = { slots: [...this.#activeSlots], scannerStacks: this.#scannerStacks, collected: this.#collected };
     this.#station = null;
     this.#pickups = [];
     this.#decoy = null;
@@ -308,5 +309,8 @@ export class SupplySystem {
     this.#normalKills = 0;
     this.#collected = 0;
     this.#notices = [];
+    if (preserveInventory) {
+      this.#activeSlots = inventory.slots; this.#scannerStacks = inventory.scannerStacks; this.#collected = inventory.collected;
+    }
   }
 }
